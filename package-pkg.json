@@ -1,0 +1,30 @@
+{
+  "name": "ma-communaute",
+  "version": "1.0.0",
+  "main": "dist/app.js",
+  "bin": "dist/app.js",
+  "pkg": {
+    "scripts": [
+      "dist/**/*.js",
+      "dist/**/*.json",
+      "dist/**/*.node"
+    ],
+    "assets": [
+      "views/**/*", 
+      "public/**/*"
+    ],
+    "targets": [
+      "node16-linux-x64",
+      "node16-macos-x64",
+      "node16-win-x64"
+    ]
+  },
+  "dependencies": {
+    "express": "^4.17.2",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "body-parser": "^1.19.0",
+    "bcrypt": "^5.1.1",
+    "socket.io": "^4.1.3"
+  }
+}

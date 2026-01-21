@@ -1,0 +1,1 @@
+export const SERVER_NAME = "MA COMMUNAUTE v 1.0"
