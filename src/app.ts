@@ -1,8 +1,11 @@
 import express, { NextFunction, Request, Response } from "express";
 import { SERVER_NAME } from "./helpers/constants";
 import communauteRouter from "./communaute/routes";
+import mysqlDB from "./db/mysqlDB";
 const qrcode = require('qrcode-terminal');
 const path = require('path');
+const dotenv = require('dotenv')
+dotenv.config();
 
 const app = express();
 // const PORT = 49300;
@@ -70,6 +73,19 @@ app.get("/test", function (_: any, res: any) {
 });
 
 app.use("/communaute", communauteRouter);
+
+app.get("/db-test", (req, res) => {
+  mysqlDB.query("SELECT 1", (err) => {
+    if (err) {
+      return res.status(500).json({
+        status: "ERREUR",
+        error: err.message,
+      });
+    }
+    res.json({ status: "MySQL connecté 🎉" });
+  });
+});
+
 
 // Middleware personnalisé qui définit un cookie
 const setAppCookie = (req, res, next) => {

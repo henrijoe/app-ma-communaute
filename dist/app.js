@@ -6,8 +6,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const constants_1 = require("./helpers/constants");
 const routes_1 = __importDefault(require("./communaute/routes"));
+const mysqlDB_1 = __importDefault(require("./db/mysqlDB"));
 const qrcode = require('qrcode-terminal');
 const path = require('path');
+const dotenv = require('dotenv');
+dotenv.config();
 const app = (0, express_1.default)();
 // const PORT = 49300;
 const PORT = process.env.PORT || 49300;
@@ -65,6 +68,17 @@ app.get("/test", function (_, res) {
     });
 });
 app.use("/communaute", routes_1.default);
+app.get("/db-test", (req, res) => {
+    mysqlDB_1.default.query("SELECT 1", (err) => {
+        if (err) {
+            return res.status(500).json({
+                status: "ERREUR",
+                error: err.message,
+            });
+        }
+        res.json({ status: "MySQL connecté 🎉" });
+    });
+});
 // Middleware personnalisé qui définit un cookie
 const setAppCookie = (req, res, next) => {
     const serverUrl = `${req.protocol}://${req.get('host')}`;

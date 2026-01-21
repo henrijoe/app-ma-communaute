@@ -1,8 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports._selectSql = exports._executeSql = void 0;
-const db = require("./mysqlDB");
-const execCmd = db.query.bind(db);
+const mysqlDB_1 = __importDefault(require("./mysqlDB"));
+// const db = require("./mysqlDB");
+const execCmd = mysqlDB_1.default.query.bind(mysqlDB_1.default);
 const _executeSql = (sql, param) => {
     return new Promise((resolve, reject) => {
         try {
@@ -34,5 +38,5 @@ const _selectSql = (sql, param) => {
     });
 };
 exports._selectSql = _selectSql;
-exports.default = db;
+// export default db;
 //# sourceMappingURL=index.js.map

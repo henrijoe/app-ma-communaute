@@ -1,3 +1,5 @@
+const dotenv = require ("dotenv");
+dotenv.config();
 const mysql = require("mysql");
 
 // const mysqlDB = mysql.createPool({
@@ -48,4 +50,4 @@ mysqlDB.getConnection((err: any, connection: any) => {
     return
 })
 
-module.exports = mysqlDB
+export default mysqlDB;

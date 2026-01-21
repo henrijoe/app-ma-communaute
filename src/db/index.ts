@@ -1,7 +1,8 @@
 import { MysqlError, OkPacket } from "mysql";
-const db = require("./mysqlDB");
+import mysqlDB from "./mysqlDB";
+// const db = require("./mysqlDB");
 
-const execCmd = db.query.bind(db);
+const execCmd = mysqlDB.query.bind(mysqlDB);
 
 export const _executeSql = (sql: string, param: any) => {
   return new Promise((resolve, reject) => {
@@ -31,4 +32,4 @@ export const _selectSql:any = (sql: string, param: (string|number)[]) => {
   });
 };
 
-export default db;
+// export default db;

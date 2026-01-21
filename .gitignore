@@ -3,3 +3,4 @@ https://www.atlassian.com/fr/git/tutorials/saving-changes/gitignore
 /node_modules
 notes.txt
 /backup
+/yarn.lock
