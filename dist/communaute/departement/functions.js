@@ -10,25 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("../../db");
-//   
-// const ajouterDepartement = (data: IDepartement) => {
-//     const values = [
-//         data.libelleLongDepartement,
-//         data.libelleCourtDepartement,
-//         data.sloganDepartement,
-//         data.responsableDepartement,
-//         data.idUtilisateur,
-//           ]
-//     return new Promise(async (resolve, reject) => {
-//         try {
-//             const sql = `INSERT INTO departement(libelleLongDepartement,libelleCourtDepartement,sloganDepartement,responsableDepartement,idUtilisateur) VALUES (?,?,?,?,?)`;
-//             const departement: any = await _executeSql(sql, [...values]);
-//             resolve(departement.insertId)
-//         } catch (error) {
-//             reject(error);
-//         }
-//     });
-// };
 const ajouterDepartement = (data) => {
     const values = [
         data.libelleLongDepartement,

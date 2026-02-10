@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("../../db");
 //   
 const ajouterDeces = (data) => {
-    console.log("🚀 ~ ajouterDeces ~ data:", data);
+    // console.log("🚀 ~ ajouterDeces ~ data:", data)
     const values = [
         data.nomMembreDeces,
         data.dateDeces,

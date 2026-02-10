@@ -1,25 +1,6 @@
 import { _executeSql, _selectSql } from "../../db";
 import { IDepartement} from "./interfaces";
 
-//   
-// const ajouterDepartement = (data: IDepartement) => {
-//     const values = [
-//         data.libelleLongDepartement,
-//         data.libelleCourtDepartement,
-//         data.sloganDepartement,
-//         data.responsableDepartement,
-//         data.idUtilisateur,
-//           ]
-//     return new Promise(async (resolve, reject) => {
-//         try {
-//             const sql = `INSERT INTO departement(libelleLongDepartement,libelleCourtDepartement,sloganDepartement,responsableDepartement,idUtilisateur) VALUES (?,?,?,?,?)`;
-//             const departement: any = await _executeSql(sql, [...values]);
-//             resolve(departement.insertId)
-//         } catch (error) {
-//             reject(error);
-//         }
-//     });
-// };
 
 const ajouterDepartement = (data: IDepartement) => {
     const values = [

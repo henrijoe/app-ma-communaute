@@ -13,23 +13,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions_1 = __importDefault(require("./functions"));
-// /**
-//  * 
-// Permet d'ajouter un departement
-//  * @returns 
-//  */
-// const ajouterDepartement = (data: IDepartement) => {
-//   return new Promise(async (resolve, reject) => {
-//     try {
-//       const idDepartement: any = await functions.ajouterDepartement({ ...data })
-//       const departement = await functions.recupDepartementById(idDepartement)
-//       console.log("🚀 ~ file: services.ts:14 ~ returnnewPromise ~ departement:", departement)
-//       resolve(departement)
-//     } catch (error) {
-//       reject(error);
-//     }
-//   });
-// };
 const ajouterDepartement = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {

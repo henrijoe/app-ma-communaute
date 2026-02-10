@@ -13,8 +13,10 @@ const ajouterCulte = (data: ICulte) => {
         data.themePredication,
         data.nombreHommeCulte,
         data.nombreFemmeCulte,
+        data.offrandeCulte,
         data.ecodim,
         data.filleEcodim,
+        data.offrandeEcodim,
         data.resumePredication,
         data.idUtilisateur
     ]
@@ -26,7 +28,7 @@ const ajouterCulte = (data: ICulte) => {
                 // Si les libellés existent déjà, rejeter avec un message approprié
                 return reject(new Error('Ce culte existe déjà.'));
               }
-            const sql = `INSERT INTO culte(typeCulte,dateCulte,dirigeant,predication,passageBiblique,themePredication,nombreHommeCulte,nombreFemmeCulte,ecodim,filleEcodim,resumePredication,idUtilisateur) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
+            const sql = `INSERT INTO culte(typeCulte,dateCulte,dirigeant,predication,passageBiblique,themePredication,nombreHommeCulte,nombreFemmeCulte,offrandeCulte,ecodim,filleEcodim,offrandeEcodim,resumePredication,idUtilisateur) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
             const culteData: any = await _executeSql(sql, [...values]);
             resolve(culteData.insertId)
         } catch (error) {
@@ -92,7 +94,7 @@ const supprimerCulte = (idCulte: number): Promise<boolean> => {
 const modifierCulte = (data: ICulte): Promise<boolean> => {
     return new Promise(async (resolve, reject) => {
         try {
-            const sql = `UPDATE culte SET typeCulte=?,dateCulte=?,dirigeant=?,predication=?,passageBiblique=?,themePredication=?,nombreHommeCulte=?,nombreFemmeCulte=?,ecodim=?,filleEcodim=?,resumePredication=?,idUtilisateur=? WHERE idCulte=?`
+            const sql = `UPDATE culte SET typeCulte=?,dateCulte=?,dirigeant=?,predication=?,passageBiblique=?,themePredication=?,nombreHommeCulte=?,nombreFemmeCulte=?,offrandeCulte=?,ecodim=?,filleEcodim=?,offrandeEcodim=?,resumePredication=?,idUtilisateur=? WHERE idCulte=?`
             await _executeSql(sql, [
                 data.typeCulte,
                 data.dateCulte,
@@ -102,8 +104,10 @@ const modifierCulte = (data: ICulte): Promise<boolean> => {
                 data.themePredication,
                 data.nombreHommeCulte,
                 data.nombreFemmeCulte,
+                data.offrandeCulte,
                 data.ecodim,
                 data.filleEcodim,
+                 data.offrandeEcodim,
                 data.resumePredication,
                 data.idUtilisateur,
                 data.idCulte,

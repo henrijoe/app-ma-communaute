@@ -3,7 +3,7 @@ import { IDeces,} from "./interfaces";
 
 //   
 const ajouterDeces = (data: IDeces) => {
-    console.log("🚀 ~ ajouterDeces ~ data:", data)
+    // console.log("🚀 ~ ajouterDeces ~ data:", data)
     const values = [
         data.nomMembreDeces,
         data.dateDeces,

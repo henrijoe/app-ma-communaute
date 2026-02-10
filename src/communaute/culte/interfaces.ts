@@ -1,7 +1,7 @@
 
 export interface ICulte {
-  idCulte: number |null;
-  idUtilisateur: number|null;
+  idCulte: number | null;
+  idUtilisateur: number | null;
   typeCulte: string;
   dateCulte: string;
   dirigeant: string;
@@ -10,8 +10,10 @@ export interface ICulte {
   themePredication: string;
   nombreHommeCulte: string;
   nombreFemmeCulte: string;
+  offrandeCulte: string;
   ecodim: string;
   filleEcodim: string;
+  offrandeEcodim: string;
   resumePredication: string;
 }
 

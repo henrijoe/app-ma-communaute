@@ -22,8 +22,10 @@ const ajouterCulte = (data) => {
         data.themePredication,
         data.nombreHommeCulte,
         data.nombreFemmeCulte,
+        data.offrandeCulte,
         data.ecodim,
         data.filleEcodim,
+        data.offrandeEcodim,
         data.resumePredication,
         data.idUtilisateur
     ];
@@ -35,7 +37,7 @@ const ajouterCulte = (data) => {
                 // Si les libellés existent déjà, rejeter avec un message approprié
                 return reject(new Error('Ce culte existe déjà.'));
             }
-            const sql = `INSERT INTO culte(typeCulte,dateCulte,dirigeant,predication,passageBiblique,themePredication,nombreHommeCulte,nombreFemmeCulte,ecodim,filleEcodim,resumePredication,idUtilisateur) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
+            const sql = `INSERT INTO culte(typeCulte,dateCulte,dirigeant,predication,passageBiblique,themePredication,nombreHommeCulte,nombreFemmeCulte,offrandeCulte,ecodim,filleEcodim,offrandeEcodim,resumePredication,idUtilisateur) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
             const culteData = yield (0, db_1._executeSql)(sql, [...values]);
             resolve(culteData.insertId);
         }
@@ -102,7 +104,7 @@ const supprimerCulte = (idCulte) => {
 const modifierCulte = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `UPDATE culte SET typeCulte=?,dateCulte=?,dirigeant=?,predication=?,passageBiblique=?,themePredication=?,nombreHommeCulte=?,nombreFemmeCulte=?,ecodim=?,filleEcodim=?,resumePredication=?,idUtilisateur=? WHERE idCulte=?`;
+            const sql = `UPDATE culte SET typeCulte=?,dateCulte=?,dirigeant=?,predication=?,passageBiblique=?,themePredication=?,nombreHommeCulte=?,nombreFemmeCulte=?,offrandeCulte=?,ecodim=?,filleEcodim=?,offrandeEcodim=?,resumePredication=?,idUtilisateur=? WHERE idCulte=?`;
             yield (0, db_1._executeSql)(sql, [
                 data.typeCulte,
                 data.dateCulte,
@@ -112,8 +114,10 @@ const modifierCulte = (data) => {
                 data.themePredication,
                 data.nombreHommeCulte,
                 data.nombreFemmeCulte,
+                data.offrandeCulte,
                 data.ecodim,
                 data.filleEcodim,
+                data.offrandeEcodim,
                 data.resumePredication,
                 data.idUtilisateur,
                 data.idCulte,

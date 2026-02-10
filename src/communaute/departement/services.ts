@@ -2,23 +2,6 @@ import functions from "./functions";
 import { IDepartement, } from "./interfaces";
 import functions_utilisateur from "../utlisateur/functions";
 
-// /**
-//  * 
-// Permet d'ajouter un departement
-//  * @returns 
-//  */
-// const ajouterDepartement = (data: IDepartement) => {
-//   return new Promise(async (resolve, reject) => {
-//     try {
-//       const idDepartement: any = await functions.ajouterDepartement({ ...data })
-//       const departement = await functions.recupDepartementById(idDepartement)
-//       console.log("🚀 ~ file: services.ts:14 ~ returnnewPromise ~ departement:", departement)
-//       resolve(departement)
-//     } catch (error) {
-//       reject(error);
-//     }
-//   });
-// };
 
 const ajouterDepartement = (data: IDepartement) => {
   return new Promise(async (resolve, reject) => {
