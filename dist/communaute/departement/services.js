@@ -18,8 +18,8 @@ const ajouterDepartement = (data) => {
         try {
             const idDepartement = yield functions_1.default.ajouterDepartement(Object.assign({}, data));
             const departement = yield functions_1.default.recupDepartementById(idDepartement);
-            console.log("🚀 ~ file: services.ts:14 ~ returnnewPromise ~ departement:", departement);
-            resolve(departement);
+            const departementItem = Array.isArray(departement) ? departement[0] : departement;
+            resolve(departementItem);
         }
         catch (error) {
             reject(error);
@@ -45,15 +45,15 @@ const recupDepartementByIdUtilsateur = (idUtilisateur) => {
             resolve(departementByUtilisateur);
         }
         catch (error) {
-            console.log("🚀 ~ file: services.ts:830 ~ returnnewPromise ~ error:", error);
+            console.log("ðŸš€ ~ file: services.ts:830 ~ returnnewPromise ~ error:", error);
             reject(error);
         }
     }));
 };
-const supprimerDepartement = (idDepartement) => {
+const supprimerDepartement = (idDepartement, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            yield functions_1.default.supprimerDepartement(idDepartement);
+            yield functions_1.default.supprimerDepartement(idDepartement, idUtilisateur);
             resolve({ idDepartement: idDepartement });
         }
         catch (error) {

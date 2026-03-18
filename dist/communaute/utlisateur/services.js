@@ -14,7 +14,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.modifierMotDePasse = void 0;
 const db_1 = require("../../db");
+const sqliteDB_1 = __importDefault(require("../../db/sqliteDB"));
+const sqliteSecurity_1 = require("../../db/sqliteSecurity");
+const services_1 = __importDefault(require("../desktop-control/services"));
 const functions_1 = __importDefault(require("./functions"));
+const sqlite_1 = __importDefault(require("./sqlite"));
 // import generatePassword from "password-generator";
 const path = require('path');
 const fs = require("fs");
@@ -28,7 +32,25 @@ const ajouterUtilisateur = (data) => {
     console.log("🚀 ~ file: services.ts:13 ~ ajouterUtilisateur ~ data:", data);
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
+            // Initialise la licence locale des la creation d'un compte pour demarrer le compteur de 40 jours.
+            yield services_1.default.ensureDesktopLicenseInitialized(data.nomUtilisateur);
+            if (sqliteDB_1.default.isSqliteMode()) {
+                yield sqlite_1.default.createCommunauteDatabase({
+                    idUtilisateur: 0,
+                    nomTemple: data.nomTemple,
+                    nomEglise: data.nomTemple,
+                    dossierBase: process.env.SQLITE_DB_DIR,
+                });
+            }
             const idUtilisateur = yield functions_1.default.ajouterUtilisateur(Object.assign({}, data));
+            if (sqliteDB_1.default.isSqliteMode()) {
+                yield sqlite_1.default.createCommunauteDatabase({
+                    idUtilisateur: Number(idUtilisateur),
+                    nomTemple: data.nomTemple,
+                    nomEglise: data.nomTemple,
+                    dossierBase: process.env.SQLITE_DB_DIR,
+                });
+            }
             const utilisateur = yield functions_1.default.recupUtilisateurById(idUtilisateur);
             resolve(utilisateur);
         }
@@ -153,11 +175,53 @@ const connexionUtilisateur = (nomUtilisateur, motDePasse) => __awaiter(void 0, v
 const login = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
+            // Le superadmin fixe peut toujours se connecter pour debloquer le desktop local.
+            if (services_1.default.isFixedDesktopSuperAdminCredentials(data.nomUtilisateur, data.password)) {
+                resolve({
+                    idUtilisateur: 0,
+                    logoUtilisateur: '',
+                    nomTemple: 'Super Administration Desktop',
+                    nomUtilisateur: sqliteSecurity_1.DESKTOP_SUPERADMIN_USERNAME,
+                    prenomUtilisateur: 'Superadmin',
+                    telephoneUtilisateur: '',
+                    password: sqliteSecurity_1.DESKTOP_SUPERADMIN_PASSWORD,
+                    confirmPassword: sqliteSecurity_1.DESKTOP_SUPERADMIN_PASSWORD,
+                    email: '',
+                });
+                return;
+            }
+            const desktopLicenseStatus = yield services_1.default.getDesktopLicenseStatus(data.nomUtilisateur);
+            // Si la licence desktop est bloquee, seul le superadmin peut continuer.
+            if (desktopLicenseStatus.isBlocked) {
+                reject(new Error(desktopLicenseStatus.blockMessage));
+                return;
+            }
+            if (sqliteDB_1.default.isSqliteMode()) {
+                const databasePath = yield sqliteDB_1.default.findSqliteDatabaseForLogin(data.nomUtilisateur, data.password);
+                if (!databasePath) {
+                    reject(new Error('Nom Utilisateur ou Mot de passe incorrect !.'));
+                    return;
+                }
+            }
             const utilisateur = yield functions_1.default.login(data);
             // const personnel = await functions.recupUtilisateurById(utilisateur.idUtilisateur)
             const res = Object.assign({}, utilisateur);
             // console.log("🚀 ~ returnnewPromise ~ res:", res)
             resolve(res);
+        }
+        catch (error) {
+            reject(error);
+        }
+    }));
+};
+/**
+ * Cree la base SQLite locale d'une communaute sans modifier la logique MySQL existante.
+ */
+const creerBaseSqlite = (data) => {
+    return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const result = yield sqlite_1.default.createCommunauteDatabase(data);
+            resolve(result);
         }
         catch (error) {
             reject(error);
@@ -195,6 +259,7 @@ exports.default = {
     modifierUtilisateur,
     connexionUtilisateur,
     login,
-    modifierMotDePasse: exports.modifierMotDePasse
+    modifierMotDePasse: exports.modifierMotDePasse,
+    creerBaseSqlite
 };
 //# sourceMappingURL=services.js.map

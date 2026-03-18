@@ -6,14 +6,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const services_1 = __importDefault(require("./services"));
 const ajouterCellule = (req, res) => {
     const data = req.body;
-    const io = req.io;
     services_1.default
         .ajouterCellule(data)
         .then((result) => {
         res.status(200).send({ status: 1, data: result });
     })
         .catch((error) => {
-        if (error.message.includes('Cette cellule existe déjà.')) {
+        var _a;
+        if ((_a = error.message) === null || _a === void 0 ? void 0 : _a.includes("Cette cellule existe deja.")) {
             res.status(400).send({ status: 0, error: error.message });
         }
         else {
@@ -21,10 +21,6 @@ const ajouterCellule = (req, res) => {
         }
     });
 };
-/**
- * Récupérer une cellule
- * @returns
- */
 const recupCellule = (req, res) => {
     services_1.default
         .recupCellule()
@@ -34,15 +30,15 @@ const recupCellule = (req, res) => {
         .catch((error) => res.status(400).send({ status: 0, error }));
 };
 const supprimerCellule = (req, res) => {
-    const { idCellule } = req.body;
+    const { idCellule, idUtilisateur } = req.body;
     services_1.default
-        .supprimerCellule(idCellule)
+        .supprimerCellule(idCellule, idUtilisateur)
         .then((result) => {
         if (result) {
             res.status(200).send({ status: 1, data: result });
         }
         else {
-            res.status(400).send({ status: 0, errors: 'Cellule non trouvée' });
+            res.status(400).send({ status: 0, errors: "Cellule non trouvee" });
         }
     })
         .catch((errors) => res.status(400).send({ status: 0, errors }));
@@ -57,7 +53,7 @@ const modifierCellule = (req, res) => {
         .catch((errors) => res.status(400).send({ status: 0, errors }));
 };
 const recupCelluleByIdUtilsateur = (req, res) => {
-    const { idUtilisateur } = req === null || req === void 0 ? void 0 : req.params;
+    const { idUtilisateur } = req.params;
     services_1.default
         .recupCelluleByIdUtilsateur(idUtilisateur)
         .then((result) => {
@@ -70,6 +66,6 @@ exports.default = {
     ajouterCellule,
     supprimerCellule,
     modifierCellule,
-    recupCelluleByIdUtilsateur
+    recupCelluleByIdUtilsateur,
 };
 //# sourceMappingURL=controllers.js.map

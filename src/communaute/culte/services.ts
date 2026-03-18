@@ -44,10 +44,10 @@ const recupCulteByIdUtilsateur = (idUtilisateur: any) => {
 };
 
 
-const supprimerCulte = (idCulte: number) => {
+const supprimerCulte = (idCulte: number, idUtilisateur: number) => {
   return new Promise(async (resolve, reject) => {
     try {
-      await functions.supprimerCulte(idCulte)
+      await functions.supprimerCulte(idCulte, idUtilisateur)
       resolve({idCulte:idCulte})
     } catch (error) {
       reject(error)
@@ -74,4 +74,3 @@ export default {
   modifierCulte,
   recupCulteByIdUtilsateur
 }
-

@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Client :  localhost
--- Généré le :  Mar 20 Janvier 2026 à 19:42
+-- Généré le :  Mar 17 Mars 2026 à 12:26
 -- Version du serveur :  5.7.11
 -- Version de PHP :  5.6.18
 
@@ -80,6 +80,62 @@ INSERT INTO `comptabilite` (`idComptabilite`, `nomComptabilite`, `entreeComptabi
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `culte`
+--
+
+CREATE TABLE `culte` (
+  `idCulte` int(11) NOT NULL,
+  `typeCulte` varchar(225) DEFAULT NULL,
+  `dateCulte` varchar(100) DEFAULT NULL,
+  `dirigeant` varchar(100) DEFAULT NULL,
+  `predication` varchar(255) DEFAULT NULL,
+  `passageBiblique` varchar(255) DEFAULT NULL,
+  `themePredication` varchar(255) DEFAULT NULL,
+  `nombreHommeCulte` varchar(50) DEFAULT NULL,
+  `nombreFemmeCulte` varchar(50) DEFAULT NULL,
+  `offrandeCulte` varchar(50) DEFAULT NULL,
+  `ecodim` varchar(50) DEFAULT NULL,
+  `filleEcodim` varchar(225) CHARACTER SET utf8 DEFAULT NULL,
+  `offrandeEcodim` varchar(50) DEFAULT NULL,
+  `resumePredication` text,
+  `idUtilisateur` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Contenu de la table `culte`
+--
+
+INSERT INTO `culte` (`idCulte`, `typeCulte`, `dateCulte`, `dirigeant`, `predication`, `passageBiblique`, `themePredication`, `nombreHommeCulte`, `nombreFemmeCulte`, `offrandeCulte`, `ecodim`, `filleEcodim`, `offrandeEcodim`, `resumePredication`, `idUtilisateur`) VALUES
+(1, '3', '2026-01-17', 'Respo komoe', 'Past Honoré', 'jean 6v6', 'La Patience', '41', '23', '120000', '53', '48', '25000', 'jbhghjijibbbbbbbbbbbbbb k k nk', NULL),
+(2, '4', '2026-02-01', 'Respo Assi', 'Pasteur Troh', 'Romains 8 v 22', 'Sois un modèle de consécration', '55', '45', NULL, '100', '', NULL, 'JHJGHBEHFEBFHRBGRNGNRJGNTNTJN', NULL),
+(3, '4', '2026-02-18', 'Respo komoe', 'Ancien ZOE', 'Ephésien 6 v 10', 'La FOI', '45', '29', '15000', '', '', '', '', NULL),
+(4, '5', '2026-02-20', 'Respo komoe', 'Ancien ZOE', 'Romains 8 v 22', 'L\'AMOUR', '145', '250', '10000', '45', '62', '14000', '', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `deces`
+--
+
+CREATE TABLE `deces` (
+  `idDeces` int(11) NOT NULL,
+  `nomMembreDeces` varchar(100) DEFAULT NULL,
+  `dateDeces` varchar(255) DEFAULT NULL,
+  `lieuDeces` varchar(255) DEFAULT NULL,
+  `causeDeces` varchar(255) DEFAULT NULL,
+  `idUtilisateur` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Contenu de la table `deces`
+--
+
+INSERT INTO `deces` (`idDeces`, `nomMembreDeces`, `dateDeces`, `lieuDeces`, `causeDeces`, `idUtilisateur`) VALUES
+(1, 'N\'dri narcisse', '2024-06-12', 'CHU', 'Arrêt cardiaque automatique', 1);
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `departement`
 --
 
@@ -97,10 +153,12 @@ CREATE TABLE `departement` (
 --
 
 INSERT INTO `departement` (`idDepartement`, `libelleLongDepartement`, `libelleCourtDepartement`, `sloganDepartement`, `responsableDepartement`, `idUtilisateur`) VALUES
-(1, 'Action des Ouvrière du Christ', 'AOC', 'Une AOC, toujours forte, Une AOC toujours unie, Une AOC toujours conquerante, conquerante,conquerante', 'Obrou Samuel', 1),
-(2, 'Homme Actif Pour Christ', 'HAC', 'Servir,Christ', '', 1),
-(6, 'Jeunesse des Assemblées de Dieu de Côte d\'Ivoire', 'JADCI', 'Jeune gens, nous sommes puissant,puissant,puissant', '', 1),
-(7, 'Groupe des Elèves et Etudiant de CI', 'GEEADCI', 'Christ est merveilleux, alleluia ', '', 1);
+(1, 'Action des Ouvrière du Christ', 'AOC', 'AOC TOUJOURS FORT,AOC TOUJOURS CONQUERANTE', 'Moni kouka', 1),
+(6, 'Jeunesse des Assemblées de Dieu de Côte d\'Ivoire', 'JADCI', 'Christ est merveilleux, alleluiaaa ', 'Jean François', 1),
+(9, 'Departement Enfant des Assemblées de Dieu', 'DEEADCI', 'L\'enfant, l\'église de demain', 'Diokri henri joel', 1),
+(10, 'Hommes ACTIFS POUR CHRIST', 'HACH', 'Hommes pour Jesus', 'ARNAUD', 1),
+(11, 'ACCUEIL', 'AC', 'Bien reçevoir', 'Togon serge', 1),
+(12, 'TEMOIN ET CONSEILLER', 'TC', 'Accompagner jusqu\'au bâptème', 'Respo kouka', 1);
 
 -- --------------------------------------------------------
 
@@ -176,6 +234,33 @@ INSERT INTO `groupe` (`idGroupe`, `libelleGroupe`, `descriptionGroupe`, `respons
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `mariage`
+--
+
+CREATE TABLE `mariage` (
+  `idMariage` int(11) NOT NULL,
+  `nomFrereMariage` varchar(225) DEFAULT NULL,
+  `nomSoeurMariage` varchar(225) DEFAULT NULL,
+  `dateMariage` varchar(225) DEFAULT NULL,
+  `lieuMariage` varchar(255) DEFAULT NULL,
+  `culteMariage` varchar(255) DEFAULT NULL,
+  `temoin1Mariage` varchar(100) DEFAULT NULL,
+  `temoin2Mariage` varchar(100) DEFAULT NULL,
+  `lieuReception` varchar(255) DEFAULT NULL,
+  `contactMariage` varchar(100) DEFAULT NULL,
+  `idUtilisateur` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Contenu de la table `mariage`
+--
+
+INSERT INTO `mariage` (`idMariage`, `nomFrereMariage`, `nomSoeurMariage`, `dateMariage`, `lieuMariage`, `culteMariage`, `temoin1Mariage`, `temoin2Mariage`, `lieuReception`, `contactMariage`, `idUtilisateur`) VALUES
+(1, 'Kouame franck', 'Konan juliette', '11-05-2024', 'Cocody', 'andokoi', 'Maman kanga', 'Diacre koffi', 'Franciscains', '010302546', 1);
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `membre`
 --
 
@@ -226,10 +311,30 @@ CREATE TABLE `membre` (
 --
 
 INSERT INTO `membre` (`idMembre`, `nomMembre`, `prenomMembre`, `dateNaissMembre`, `lieuNaissMembre`, `sexeMembre`, `emailMembre`, `nationaliteMembre`, `fonctionMembre`, `contactMembre`, `ethnieMembre`, `residenceMembre`, `civiliteMembre`, `nouvelleAmeMembre`, `dateConversionMembre`, `baptemeEauMembre`, `dateBaptemeMembre`, `dateMariageMembre`, `capaciteSpirituelleMembre`, `situationMatrimonialeMembre`, `nomFiance`, `photoMembre`, `lieuBaptemeEauMembre`, `baptemeSaintEspritMembre`, `dateBaptemeSaintEspritMembre`, `egliseOrigineMembre`, `nomAmiEglise`, `visiteMembre`, `raisonNonVisiteMembre`, `heureVisiteMembre`, `dateDecisionMembre`, `lieuTravailMembre`, `idNiveauEtude`, `idEglise`, `idCellule`, `idDepartement`, `idGroupe`, `idResponsabilite`, `idUtilisateur`) VALUES
-(19, 'Seri', 'Ange', '1990-05-11', 'Divo', 'M', 'seriange@gmail.com', 'IVOIRIENNE', 'Infographe', '0564178820', 'Bété', 'Micao', '', 'Oui', NULL, 'Non', NULL, NULL, 'Bonne', 'Célibataire sans enfant', '', NULL, '', 'Non', NULL, 'AD ', NULL, 'Non', 'Mes parents ne veulent pas', NULL, NULL, NULL, 1, NULL, 1, 6, 2, NULL, 1),
-(26, 'Kouame', 'Arnaud Romaric', '1998-01-09', 'Sikensi', '1', 'kouamearnaud@gmail.com', 'IVOIRIENNE', 'Enseignant', '078548520', 'AGNI', NULL, NULL, '2', '2014-01-24', '1', NULL, NULL, '1', '1', '', '', '', NULL, NULL, 'AD', NULL, NULL, NULL, NULL, '', 'Bouafle', 8, NULL, 3, 2, 3, NULL, NULL),
-(31, 'KOKO', 'YVES AYMARD', '', 'GAGNOA', '1', '', 'IVOIRIENNE', 'INFORMATICIEN', '0140256850', '', 'TOUMODI', '1', NULL, '', '1', '', '', NULL, NULL, '', 'membre_31.jpg', '', NULL, '', '', '', NULL, '', '', '', '', 6, NULL, NULL, NULL, NULL, NULL, NULL),
-(32, 'KOKO', 'YVES AYMARD', '', 'GAGNOA', '1', '', 'IVOIRIENNE', '', '0140256850', '', 'TOUMODI', '2', '1', '', '1', NULL, NULL, NULL, '4', '', '', '', NULL, NULL, '', 'Aucune', '2', '', '', '', '', 6, NULL, NULL, NULL, NULL, NULL, NULL);
+(19, 'Seri', 'Ange', '1990-05-11', 'Divo', '1', 'seriange@gmail.com', 'IVOIRIENNE', 'Infographe', '0564178820', 'Bété', 'Micao', '', '1', '2026-02-04', NULL, NULL, NULL, NULL, '1', '', 'membre_19.jpg', '', NULL, NULL, 'AD ', 'kouame', '1', 'Mes parents ne veulent pas', '03:13', NULL, 'Bouafle', 2, NULL, 1, 6, 2, NULL, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `naissance`
+--
+
+CREATE TABLE `naissance` (
+  `idNaissance` int(11) NOT NULL,
+  `nomCoupleNaissance` varchar(100) DEFAULT NULL,
+  `dateNaissance` varchar(225) DEFAULT NULL,
+  `lieuNaissance` varchar(255) DEFAULT NULL,
+  `nomEnfantNaissance` varchar(100) DEFAULT NULL,
+  `datePresentationNaissance` varchar(225) DEFAULT NULL,
+  `idUtilisateur` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Contenu de la table `naissance`
+--
+
+INSERT INTO `naissance` (`idNaissance`, `nomCoupleNaissance`, `dateNaissance`, `lieuNaissance`, `nomEnfantNaissance`, `datePresentationNaissance`, `idUtilisateur`) VALUES
+(1, 'Kouame', '2024-06-04', 'AGEFORMA', 'KOUAME ANGE NOEL', '2024-06-01', 1);
 
 -- --------------------------------------------------------
 
@@ -401,6 +506,20 @@ ALTER TABLE `comptabilite`
   ADD KEY `idUtilisateur` (`idUtilisateur`);
 
 --
+-- Index pour la table `culte`
+--
+ALTER TABLE `culte`
+  ADD PRIMARY KEY (`idCulte`),
+  ADD KEY `idUtilisateur` (`idUtilisateur`);
+
+--
+-- Index pour la table `deces`
+--
+ALTER TABLE `deces`
+  ADD PRIMARY KEY (`idDeces`),
+  ADD KEY `idUtilisateur` (`idUtilisateur`);
+
+--
 -- Index pour la table `departement`
 --
 ALTER TABLE `departement`
@@ -429,6 +548,13 @@ ALTER TABLE `groupe`
   ADD KEY `idUtilisateur` (`idUtilisateur`);
 
 --
+-- Index pour la table `mariage`
+--
+ALTER TABLE `mariage`
+  ADD PRIMARY KEY (`idMariage`),
+  ADD KEY `idUtilisateur` (`idUtilisateur`);
+
+--
 -- Index pour la table `membre`
 --
 ALTER TABLE `membre`
@@ -439,6 +565,13 @@ ALTER TABLE `membre`
   ADD KEY `fk_membre_departement` (`idDepartement`),
   ADD KEY `fk_membre_groupe` (`idGroupe`),
   ADD KEY `idResponsabilite` (`idResponsabilite`),
+  ADD KEY `idUtilisateur` (`idUtilisateur`);
+
+--
+-- Index pour la table `naissance`
+--
+ALTER TABLE `naissance`
+  ADD PRIMARY KEY (`idNaissance`),
   ADD KEY `idUtilisateur` (`idUtilisateur`);
 
 --
@@ -509,10 +642,20 @@ ALTER TABLE `cellule`
 ALTER TABLE `comptabilite`
   MODIFY `idComptabilite` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 --
+-- AUTO_INCREMENT pour la table `culte`
+--
+ALTER TABLE `culte`
+  MODIFY `idCulte` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+--
+-- AUTO_INCREMENT pour la table `deces`
+--
+ALTER TABLE `deces`
+  MODIFY `idDeces` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+--
 -- AUTO_INCREMENT pour la table `departement`
 --
 ALTER TABLE `departement`
-  MODIFY `idDepartement` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `idDepartement` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 --
 -- AUTO_INCREMENT pour la table `domaine_activite`
 --
@@ -529,10 +672,20 @@ ALTER TABLE `eglise`
 ALTER TABLE `groupe`
   MODIFY `idGroupe` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 --
+-- AUTO_INCREMENT pour la table `mariage`
+--
+ALTER TABLE `mariage`
+  MODIFY `idMariage` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+--
 -- AUTO_INCREMENT pour la table `membre`
 --
 ALTER TABLE `membre`
-  MODIFY `idMembre` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `idMembre` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+--
+-- AUTO_INCREMENT pour la table `naissance`
+--
+ALTER TABLE `naissance`
+  MODIFY `idNaissance` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 --
 -- AUTO_INCREMENT pour la table `niveau_etude`
 --
@@ -570,6 +723,18 @@ ALTER TABLE `comptabilite`
   ADD CONSTRAINT `comptabilite_ibfk_1` FOREIGN KEY (`idUtilisateur`) REFERENCES `utilisateur` (`idUtilisateur`);
 
 --
+-- Contraintes pour la table `culte`
+--
+ALTER TABLE `culte`
+  ADD CONSTRAINT `culte_ibfk_1` FOREIGN KEY (`idUtilisateur`) REFERENCES `utilisateur` (`idUtilisateur`);
+
+--
+-- Contraintes pour la table `deces`
+--
+ALTER TABLE `deces`
+  ADD CONSTRAINT `deces_ibfk_1` FOREIGN KEY (`idUtilisateur`) REFERENCES `utilisateur` (`idUtilisateur`);
+
+--
 -- Contraintes pour la table `departement`
 --
 ALTER TABLE `departement`
@@ -589,6 +754,12 @@ ALTER TABLE `groupe`
   ADD CONSTRAINT `groupe_ibfk_1` FOREIGN KEY (`idUtilisateur`) REFERENCES `utilisateur` (`idUtilisateur`);
 
 --
+-- Contraintes pour la table `mariage`
+--
+ALTER TABLE `mariage`
+  ADD CONSTRAINT `mariage_ibfk_1` FOREIGN KEY (`idUtilisateur`) REFERENCES `utilisateur` (`idUtilisateur`);
+
+--
 -- Contraintes pour la table `membre`
 --
 ALTER TABLE `membre`
@@ -598,6 +769,12 @@ ALTER TABLE `membre`
   ADD CONSTRAINT `membre_ibfk_2` FOREIGN KEY (`idEglise`) REFERENCES `eglise` (`idEglise`),
   ADD CONSTRAINT `membre_ibfk_3` FOREIGN KEY (`idResponsabilite`) REFERENCES `responsabilite` (`idResponsabilite`),
   ADD CONSTRAINT `membre_ibfk_5` FOREIGN KEY (`idUtilisateur`) REFERENCES `utilisateur` (`idUtilisateur`);
+
+--
+-- Contraintes pour la table `naissance`
+--
+ALTER TABLE `naissance`
+  ADD CONSTRAINT `naissance_ibfk_1` FOREIGN KEY (`idUtilisateur`) REFERENCES `utilisateur` (`idUtilisateur`);
 
 --
 -- Contraintes pour la table `questions`

@@ -14,16 +14,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions_1 = __importDefault(require("./functions"));
 /**
- *
-Permet d'ajouter une cellule
- * @returns
+ * Permet d'ajouter une eglise.
  */
 const ajouterEglise = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const idEglise = yield functions_1.default.ajouterEglise(Object.assign({}, data));
             const eglise = yield functions_1.default.recupEgliseById(idEglise);
-            console.log("🚀 ~ file: services.ts:14 ~ returnnewPromise ~ eglise:", eglise);
             resolve(eglise);
         }
         catch (error) {
@@ -42,11 +39,23 @@ const recupEglise = () => {
         }
     }));
 };
-const supprimerEglise = (idEglise) => {
+// Renvoie l'eglise de l'utilisateur connecte.
+const recupEgliseByUtilisateur = (idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            yield functions_1.default.supprimerEglise(idEglise);
-            resolve({ idEglise: idEglise });
+            const eglise = yield functions_1.default.recupEgliseByUtilisateur(idUtilisateur);
+            resolve(eglise);
+        }
+        catch (error) {
+            reject(error);
+        }
+    }));
+};
+const supprimerEglise = (idEglise, idUtilisateur) => {
+    return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            yield functions_1.default.supprimerEglise(idEglise, idUtilisateur);
+            resolve({ idEglise });
         }
         catch (error) {
             reject(error);
@@ -67,6 +76,7 @@ const modifierEglise = (data) => {
 exports.default = {
     ajouterEglise,
     recupEglise,
+    recupEgliseByUtilisateur,
     supprimerEglise,
     modifierEglise,
 };

@@ -2,6 +2,7 @@ import express, { NextFunction, Request, Response } from "express";
 import { SERVER_NAME } from "./helpers/constants";
 import communauteRouter from "./communaute/routes";
 import mysqlDB from "./db/mysqlDB";
+import sqliteDB from "./db/sqliteDB";
 const qrcode = require('qrcode-terminal');
 const path = require('path');
 const dotenv = require('dotenv')
@@ -75,6 +76,20 @@ app.get("/test", function (_: any, res: any) {
 app.use("/communaute", communauteRouter);
 
 app.get("/db-test", (req, res) => {
+  if (sqliteDB.isSqliteMode()) {
+    sqliteDB.selectSqlite("SELECT 1 AS status")
+      .then(() => {
+        res.json({ status: "SQLite connecte" });
+      })
+      .catch((error) => {
+        res.status(500).json({
+          status: "ERREUR",
+          error: error.message,
+        });
+      });
+    return;
+  }
+
   mysqlDB.query("SELECT 1", (err) => {
     if (err) {
       return res.status(500).json({
@@ -115,6 +130,28 @@ Start: ${new Date().toLocaleString("fr-FR")}
 ============================
 `;
 
+/**
+ * Affiche le moteur de base de donnees actif et prepare SQLite si besoin.
+ */
+const logDatabaseStartup = async () => {
+  const databaseMode = sqliteDB.getDatabaseMode();
+
+  if (databaseMode === "sqlite") {
+    const defaultDatabasePath = await sqliteDB.ensureDefaultSqliteDatabase();
+    const updatedDatabases = await sqliteDB.ensureAllSqliteDatabasesSchemasUpdated();
+    console.log(`[DB] Mode actif: sqlite`);
+    console.log(`[DB] Dossier SQLite: ${sqliteDB.getSqliteDirectory()}`);
+    console.log(`[DB] Base SQLite active: ${defaultDatabasePath}`);
+    console.log(`[DB] Bases SQLite verifiees: ${updatedDatabases.length}`);
+    return;
+  }
+
+  console.log(`[DB] Mode actif: mysql`);
+  console.log(
+    `[DB] Cible MySQL: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`
+  );
+};
+
 // httpServer.listen(PORT, () => {
 //   console.log(welcomeMsg);
 // });
@@ -123,6 +160,9 @@ Start: ${new Date().toLocaleString("fr-FR")}
 httpServer.listen(PORT, () => {
   try {
     console.log(welcomeMsg);
+    logDatabaseStartup().catch((error) => {
+      console.error("[DB] Erreur lors de l'initialisation de la base:", error);
+    });
   } catch (err) {
     console.error('Erreur lors du démarrage du serveur:', err);
   }
@@ -134,5 +174,3 @@ const qrValue = {
   tunnel: 'non configuré',
 }
 qrcode.generate(JSON.stringify(qrValue));
-
-

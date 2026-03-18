@@ -10,17 +10,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("../../db");
-//   
+// Ajoute une eglise pour un utilisateur donne.
 const ajouterEglise = (data) => {
-    const values = [
-        data.nomEglise,
-        data.idComptabilite,
-        data.idUtilisateur
-    ];
+    const values = [data.nomEglise, data.idComptabilite, data.idUtilisateur];
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const sql = `INSERT INTO eglise(nomEglise,idComptabilite,idUtilisateur) VALUES (?,?,?)`;
-            const egliseData = yield (0, db_1._executeSql)(sql, [...values]);
+            const egliseData = yield (0, db_1._executeSql)(sql, values);
             resolve(egliseData.insertId);
         }
         catch (error) {
@@ -29,8 +25,7 @@ const ajouterEglise = (data) => {
     }));
 };
 /**
- * recupererer toute les eglises
- * @returns
+ * Recupere toutes les eglises.
  */
 const recupEglise = () => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
@@ -45,13 +40,12 @@ const recupEglise = () => {
     }));
 };
 /**
- * recupererer toute les eglises
- * @returns
+ * Recupere une eglise par son identifiant.
  */
 const recupEgliseById = (id) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `SELECT * FROM eglise WHERE idEglise =? ;`;
+            const sql = `SELECT * FROM eglise WHERE idEglise = ? ;`;
             const eglise = yield (0, db_1._selectSql)(sql, [id]);
             resolve(eglise);
         }
@@ -60,11 +54,31 @@ const recupEgliseById = (id) => {
         }
     }));
 };
-const supprimerEglise = (idEglise) => {
+/**
+ * Recupere l'eglise rattachee a un utilisateur.
+ */
+const recupEgliseByUtilisateur = (idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `DELETE FROM eglise WHERE idEglise = ?`;
-            yield (0, db_1._executeSql)(sql, [idEglise]);
+            const sql = `SELECT * FROM eglise WHERE idUtilisateur = ? ORDER BY idEglise ASC ;`;
+            const eglise = yield (0, db_1._selectSql)(sql, [idUtilisateur]);
+            resolve(eglise);
+        }
+        catch (error) {
+            reject(error);
+        }
+    }));
+};
+// Supprime l'eglise. Quand idUtilisateur est fourni, on verrouille la suppression.
+const supprimerEglise = (idEglise, idUtilisateur) => {
+    return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const hasUserScope = typeof idUtilisateur === "number";
+            const sql = hasUserScope
+                ? `DELETE FROM eglise WHERE idEglise = ? AND idUtilisateur = ?`
+                : `DELETE FROM eglise WHERE idEglise = ?`;
+            const params = hasUserScope ? [idEglise, idUtilisateur] : [idEglise];
+            yield (0, db_1._executeSql)(sql, params);
             resolve(true);
         }
         catch (error) {
@@ -72,15 +86,18 @@ const supprimerEglise = (idEglise) => {
         }
     }));
 };
+// Modifie l'eglise de l'utilisateur cible sans toucher aux autres eglises.
 const modifierEglise = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `UPDATE eglise SET nomEglise=?,idComptabilite=? WHERE idEglise=?`;
-            yield (0, db_1._executeSql)(sql, [
-                data.nomEglise,
-                data.idComptabilite,
-                data.idEglise,
-            ]);
+            const hasUserScope = typeof data.idUtilisateur === "number";
+            const sql = hasUserScope
+                ? `UPDATE eglise SET nomEglise=?,idComptabilite=? WHERE idEglise=? AND idUtilisateur=?`
+                : `UPDATE eglise SET nomEglise=?,idComptabilite=? WHERE idEglise=?`;
+            const params = hasUserScope
+                ? [data.nomEglise, data.idComptabilite, data.idEglise, data.idUtilisateur]
+                : [data.nomEglise, data.idComptabilite, data.idEglise];
+            yield (0, db_1._executeSql)(sql, params);
             resolve(true);
         }
         catch (error) {
@@ -93,6 +110,7 @@ exports.default = {
     ajouterEglise,
     supprimerEglise,
     modifierEglise,
-    recupEgliseById
+    recupEgliseById,
+    recupEgliseByUtilisateur,
 };
 //# sourceMappingURL=functions.js.map

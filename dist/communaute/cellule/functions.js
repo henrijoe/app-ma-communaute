@@ -10,7 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("../../db");
-//   
 const ajouterCellule = (data) => {
     const values = [
         data.nomCellule,
@@ -18,18 +17,18 @@ const ajouterCellule = (data) => {
         data.nombreMembreCellule,
         data.responsableCellule,
         data.responsableVisiteCellule,
-        data.idUtilisateur
+        data.idUtilisateur,
     ];
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sqlCheck = `SELECT COUNT(*) as count FROM cellule WHERE nomCellule = ?`;
-            const [result] = yield (0, db_1._selectSql)(sqlCheck, [data.nomCellule]);
+            // On limite la verification de doublon a l'utilisateur connecte.
+            const sqlCheck = `SELECT COUNT(*) as count FROM cellule WHERE idUtilisateur = ? AND nomCellule = ?`;
+            const [result] = yield (0, db_1._selectSql)(sqlCheck, [data.idUtilisateur, data.nomCellule]);
             if (result.count > 0) {
-                // Si les libellés existent déjà, rejeter avec un message approprié
-                return reject(new Error('Cette cellule existe déjà.'));
+                return reject(new Error("Cette cellule existe deja."));
             }
             const sql = `INSERT INTO cellule(nomCellule,lieuCellule,nombreMembreCellule,responsableCellule,responsableVisiteCellule,idUtilisateur) VALUES (?,?,?,?,?,?)`;
-            const celluleData = yield (0, db_1._executeSql)(sql, [...values]);
+            const celluleData = yield (0, db_1._executeSql)(sql, values);
             resolve(celluleData.insertId);
         }
         catch (error) {
@@ -37,10 +36,6 @@ const ajouterCellule = (data) => {
         }
     }));
 };
-/**
- * recupererer toute les cellules
- * @returns
- */
 const recupCellule = () => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
@@ -53,11 +48,10 @@ const recupCellule = () => {
         }
     }));
 };
-// Fetcher une seule cellule
 const recupCelluleId = (id) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `SELECT * FROM cellule WHERE idCellule =? ;`;
+            const sql = `SELECT * FROM cellule WHERE idCellule = ? ;`;
             const cellule = yield (0, db_1._selectSql)(sql, [id]);
             resolve(cellule);
         }
@@ -71,8 +65,9 @@ const recupCelluleByIdUtilsateur = (idUtilisateur) => {
         try {
             const sql = `SELECT * FROM cellule WHERE idUtilisateur= ?;`;
             const cellule = yield (0, db_1._selectSql)(sql, [idUtilisateur]);
-            if (!cellule.length)
-                return reject({ name: "Erreur_cellule", message: "Aucune cellule trouvée" });
+            if (!cellule.length) {
+                return reject({ name: "Erreur_cellule", message: "Aucune cellule trouvee" });
+            }
             resolve(cellule);
         }
         catch (error) {
@@ -80,11 +75,16 @@ const recupCelluleByIdUtilsateur = (idUtilisateur) => {
         }
     }));
 };
-const supprimerCellule = (idCellule) => {
+// Quand l'ID utilisateur est fourni, on empeche la suppression hors perimetre.
+const supprimerCellule = (idCellule, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `DELETE FROM cellule WHERE idCellule = ?`;
-            yield (0, db_1._executeSql)(sql, [idCellule]);
+            const hasUserScope = typeof idUtilisateur === "number";
+            const sql = hasUserScope
+                ? `DELETE FROM cellule WHERE idCellule = ? AND idUtilisateur = ?`
+                : `DELETE FROM cellule WHERE idCellule = ?`;
+            const params = hasUserScope ? [idCellule, idUtilisateur] : [idCellule];
+            yield (0, db_1._executeSql)(sql, params);
             resolve(true);
         }
         catch (error) {
@@ -95,16 +95,31 @@ const supprimerCellule = (idCellule) => {
 const modifierCellule = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `UPDATE cellule SET nomCellule=?,lieuCellule=?,nombreMembreCellule=?,responsableCellule=?,responsableVisiteCellule=?,idUtilisateur=? WHERE idCellule=?`;
-            yield (0, db_1._executeSql)(sql, [
-                data.nomCellule,
-                data.lieuCellule,
-                data.nombreMembreCellule,
-                data.responsableCellule,
-                data.responsableVisiteCellule,
-                data.idUtilisateur,
-                data.idCellule,
-            ]);
+            const hasUserScope = typeof data.idUtilisateur === "number";
+            const sql = hasUserScope
+                ? `UPDATE cellule SET nomCellule=?,lieuCellule=?,nombreMembreCellule=?,responsableCellule=?,responsableVisiteCellule=?,idUtilisateur=? WHERE idCellule=? AND idUtilisateur=?`
+                : `UPDATE cellule SET nomCellule=?,lieuCellule=?,nombreMembreCellule=?,responsableCellule=?,responsableVisiteCellule=?,idUtilisateur=? WHERE idCellule=?`;
+            const params = hasUserScope
+                ? [
+                    data.nomCellule,
+                    data.lieuCellule,
+                    data.nombreMembreCellule,
+                    data.responsableCellule,
+                    data.responsableVisiteCellule,
+                    data.idUtilisateur,
+                    data.idCellule,
+                    data.idUtilisateur,
+                ]
+                : [
+                    data.nomCellule,
+                    data.lieuCellule,
+                    data.nombreMembreCellule,
+                    data.responsableCellule,
+                    data.responsableVisiteCellule,
+                    data.idUtilisateur,
+                    data.idCellule,
+                ];
+            yield (0, db_1._executeSql)(sql, params);
             resolve(true);
         }
         catch (error) {
@@ -118,6 +133,6 @@ exports.default = {
     supprimerCellule,
     modifierCellule,
     recupCelluleId,
-    recupCelluleByIdUtilsateur
+    recupCelluleByIdUtilsateur,
 };
 //# sourceMappingURL=functions.js.map

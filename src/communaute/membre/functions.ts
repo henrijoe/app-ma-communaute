@@ -192,11 +192,11 @@ const recupMembreByIdUtilsateur = (idUtilisateur: number) => {
     });
 };
 
-const supprimerMembre = (idMembre: number): Promise<boolean> => {
+const supprimerMembre = (idMembre: number, idUtilisateur: number): Promise<boolean> => {
     return new Promise(async (resolve, reject) => {
         try {
-            const sql = `DELETE FROM membre WHERE idMembre = ?`;
-            await _executeSql(sql, [idMembre]);
+            const sql = `DELETE FROM membre WHERE idMembre = ? AND idUtilisateur = ?`;
+            await _executeSql(sql, [idMembre, idUtilisateur]);
             resolve(true)
         } catch (error) {
             reject(error);
@@ -231,7 +231,7 @@ const modifierMembre = (data: IMembre): Promise<boolean> => {
             idNiveauEtude=?,
             idCellule=?, 
             idDepartement=?,idGroupe=?,idResponsabilite=?, 
-            idUtilisateur=? WHERE idMembre=?`;
+            idUtilisateur=? WHERE idMembre=? AND idUtilisateur=?`;
             await _executeSql(sql, [
                 data.nomMembre,
                 data.prenomMembre,
@@ -270,7 +270,8 @@ const modifierMembre = (data: IMembre): Promise<boolean> => {
                 data.idGroupe,
                 data.idResponsabilite,
                 data.idUtilisateur,
-                data.idMembre
+                data.idMembre,
+                data.idUtilisateur
             ])
             resolve(true)
         } catch (error) {

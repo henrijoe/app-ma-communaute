@@ -10,7 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("../../db");
-//   
 const ajouterNaissance = (data) => {
     const values = [
         data.nomCoupleNaissance,
@@ -18,18 +17,12 @@ const ajouterNaissance = (data) => {
         data.lieuNaissance,
         data.nomEnfantNaissance,
         data.datePresentationNaissance,
-        data.idUtilisateur
+        data.idUtilisateur,
     ];
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            // const sqlCheck = `SELECT COUNT(*) as count FROM naissance WHERE nomNaissance = ?`;
-            // const [result] = await _selectSql(sqlCheck, [data.nomNaissance]);
-            // if (result.count > 0) {
-            //     // Si les libellés existent déjà, rejeter avec un message approprié
-            //     return reject(new Error('Cette naissance existe déjà.'));
-            //   }
             const sql = `INSERT INTO naissance(nomCoupleNaissance,dateNaissance,lieuNaissance,nomEnfantNaissance,datePresentationNaissance,idUtilisateur) VALUES (?,?,?,?,?,?)`;
-            const naissanceData = yield (0, db_1._executeSql)(sql, [...values]);
+            const naissanceData = yield (0, db_1._executeSql)(sql, values);
             resolve(naissanceData.insertId);
         }
         catch (error) {
@@ -37,10 +30,6 @@ const ajouterNaissance = (data) => {
         }
     }));
 };
-/**
- * recupererer toute les naissances
- * @returns
- */
 const recupNaissance = () => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
@@ -53,11 +42,10 @@ const recupNaissance = () => {
         }
     }));
 };
-// Fetcher une seule naissance
 const recupNaissanceId = (id) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `SELECT * FROM naissance WHERE idNaissance =? ;`;
+            const sql = `SELECT * FROM naissance WHERE idNaissance = ? ;`;
             const naissance = yield (0, db_1._selectSql)(sql, [id]);
             resolve(naissance);
         }
@@ -71,8 +59,9 @@ const recupNaissanceByIdUtilsateur = (idUtilisateur) => {
         try {
             const sql = `SELECT * FROM naissance WHERE idUtilisateur= ?;`;
             const naissance = yield (0, db_1._selectSql)(sql, [idUtilisateur]);
-            if (!naissance.length)
-                return reject({ name: "Erreur_naissance", message: "Aucune naissance trouvée" });
+            if (!naissance.length) {
+                return reject({ name: "Erreur_naissance", message: "Aucune naissance trouvee" });
+            }
             resolve(naissance);
         }
         catch (error) {
@@ -80,11 +69,15 @@ const recupNaissanceByIdUtilsateur = (idUtilisateur) => {
         }
     }));
 };
-const supprimerNaissance = (idNaissance) => {
+const supprimerNaissance = (idNaissance, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `DELETE FROM naissance WHERE idNaissance = ?`;
-            yield (0, db_1._executeSql)(sql, [idNaissance]);
+            const hasUserScope = typeof idUtilisateur === "number";
+            const sql = hasUserScope
+                ? `DELETE FROM naissance WHERE idNaissance = ? AND idUtilisateur = ?`
+                : `DELETE FROM naissance WHERE idNaissance = ?`;
+            const params = hasUserScope ? [idNaissance, idUtilisateur] : [idNaissance];
+            yield (0, db_1._executeSql)(sql, params);
             resolve(true);
         }
         catch (error) {
@@ -95,16 +88,31 @@ const supprimerNaissance = (idNaissance) => {
 const modifierNaissance = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `UPDATE naissance SET nomCoupleNaissance=?,dateNaissance=?,lieuNaissance=?,nomEnfantNaissance=?,datePresentationNaissance=?,idUtilisateur=? WHERE idNaissance=?`;
-            yield (0, db_1._executeSql)(sql, [
-                data.nomCoupleNaissance,
-                data.dateNaissance,
-                data.lieuNaissance,
-                data.nomEnfantNaissance,
-                data.datePresentationNaissance,
-                data.idUtilisateur,
-                data.idNaissance,
-            ]);
+            const hasUserScope = typeof data.idUtilisateur === "number";
+            const sql = hasUserScope
+                ? `UPDATE naissance SET nomCoupleNaissance=?,dateNaissance=?,lieuNaissance=?,nomEnfantNaissance=?,datePresentationNaissance=?,idUtilisateur=? WHERE idNaissance=? AND idUtilisateur=?`
+                : `UPDATE naissance SET nomCoupleNaissance=?,dateNaissance=?,lieuNaissance=?,nomEnfantNaissance=?,datePresentationNaissance=?,idUtilisateur=? WHERE idNaissance=?`;
+            const params = hasUserScope
+                ? [
+                    data.nomCoupleNaissance,
+                    data.dateNaissance,
+                    data.lieuNaissance,
+                    data.nomEnfantNaissance,
+                    data.datePresentationNaissance,
+                    data.idUtilisateur,
+                    data.idNaissance,
+                    data.idUtilisateur,
+                ]
+                : [
+                    data.nomCoupleNaissance,
+                    data.dateNaissance,
+                    data.lieuNaissance,
+                    data.nomEnfantNaissance,
+                    data.datePresentationNaissance,
+                    data.idUtilisateur,
+                    data.idNaissance,
+                ];
+            yield (0, db_1._executeSql)(sql, params);
             resolve(true);
         }
         catch (error) {
@@ -118,6 +126,6 @@ exports.default = {
     supprimerNaissance,
     modifierNaissance,
     recupNaissanceId,
-    recupNaissanceByIdUtilsateur
+    recupNaissanceByIdUtilsateur,
 };
 //# sourceMappingURL=functions.js.map

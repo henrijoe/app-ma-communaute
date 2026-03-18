@@ -14,16 +14,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions_1 = __importDefault(require("./functions"));
 /**
- *
-Permet d'ajouter une groupe
- * @returns
+ * Permet d'ajouter un groupe.
  */
 const ajouterGroupe = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const idGroupe = yield functions_1.default.ajouterGroupe(Object.assign({}, data));
             const groupe = yield functions_1.default.recupGroupeId(idGroupe);
-            // console.log("🚀 ~ returnnewPromise ~ groupe:", groupe)
             resolve(groupe);
         }
         catch (error) {
@@ -49,30 +46,15 @@ const recupGroupeByIdUtilsateur = (idUtilisateur) => {
             resolve(groupeByUtilisateur);
         }
         catch (error) {
-            console.log("🚀 ~ file: services.ts:830 ~ returnnewPromise ~ error:", error);
             reject(error);
         }
     }));
 };
-// const recupGroupeByIdUtilsateur = (idUtilisateur: any) => {
-//   return new Promise<GroupeResponse>(async (resolve, reject) => {
-//       try {
-//           const groupeByUtilisateur: GroupeResponse = await functions.recupGroupeByIdUtilsateur(idUtilisateur);
-//           if (groupeByUtilisateur.status !== 1) {
-//               return reject(groupeByUtilisateur.error);
-//           }
-//           resolve(groupeByUtilisateur.data);
-//       } catch (error) {
-//           console.log("🚀 ~ file: services.ts:830 ~ returnnewPromise ~ error:", error);
-//           reject(error);
-//       }
-//   });
-// }
-const supprimerGroupe = (idGroupe) => {
+const supprimerGroupe = (idGroupe, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            yield functions_1.default.supprimerGroupe(idGroupe);
-            resolve({ idGroupe: idGroupe });
+            yield functions_1.default.supprimerGroupe(idGroupe, idUtilisateur);
+            resolve({ idGroupe });
         }
         catch (error) {
             reject(error);
@@ -95,6 +77,6 @@ exports.default = {
     recupGroupe,
     supprimerGroupe,
     modifierGroupe,
-    recupGroupeByIdUtilsateur
+    recupGroupeByIdUtilsateur,
 };
 //# sourceMappingURL=services.js.map

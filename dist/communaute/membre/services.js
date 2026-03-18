@@ -102,11 +102,11 @@ const recupMembreByIdUtilsateur = (idUtilisateur) => {
         }
     }));
 };
-const supprimerMembre = (idMembre) => {
+const supprimerMembre = (idMembre, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             // Appelle la fonction pour supprimer un membre
-            yield functions_1.default.supprimerMembre(idMembre);
+            yield functions_1.default.supprimerMembre(idMembre, idUtilisateur);
             // Renvoie l'objet contenant l'id du membre supprimé
             resolve({ idMembre: idMembre });
         }

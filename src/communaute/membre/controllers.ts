@@ -27,9 +27,12 @@ const recupMembre = (req: Request, res: Response) => {
 };
 
 const supprimerMembre = (req: Request, res: Response) => {
-    const { idMembre } = req.body
+    const { idMembre, idUtilisateur } = req.body
+    if (!idUtilisateur) {
+      return res.status(400).send({ status: 0, error: 'idUtilisateur requis' })
+    }
     services
-      .supprimerMembre(idMembre)
+      .supprimerMembre(idMembre, idUtilisateur)
       .then((result: any) => {
         if (result) {
           (req as any).io.emit("supprimerMembre", result)

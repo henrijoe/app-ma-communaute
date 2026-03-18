@@ -35,9 +35,12 @@ const recupCulte = (req, res) => {
         .catch((error) => res.status(400).send({ status: 0, error }));
 };
 const supprimerCulte = (req, res) => {
-    const { idCulte } = req.body;
+    const { idCulte, idUtilisateur } = req.body;
+    if (!idUtilisateur) {
+        return res.status(400).send({ status: 0, error: 'idUtilisateur requis' });
+    }
     services_1.default
-        .supprimerCulte(idCulte)
+        .supprimerCulte(idCulte, idUtilisateur)
         .then((result) => {
         if (result) {
             res.status(200).send({ status: 1, data: result });

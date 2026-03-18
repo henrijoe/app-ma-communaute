@@ -10,9 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("../../db");
-//   
 const ajouterCulte = (data) => {
-    // console.log("🚀 ~ ajouterCulte ~ data:", data)
     const values = [
         data.typeCulte,
         data.dateCulte,
@@ -27,18 +25,18 @@ const ajouterCulte = (data) => {
         data.filleEcodim,
         data.offrandeEcodim,
         data.resumePredication,
-        data.idUtilisateur
+        data.idUtilisateur,
     ];
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sqlCheck = `SELECT COUNT(*) as count FROM culte WHERE dateCulte = ?`;
-            const [result] = yield (0, db_1._selectSql)(sqlCheck, [data.dateCulte]);
+            // Un culte identique ne doit pas bloquer une autre eglise.
+            const sqlCheck = `SELECT COUNT(*) as count FROM culte WHERE idUtilisateur = ? AND dateCulte = ?`;
+            const [result] = yield (0, db_1._selectSql)(sqlCheck, [data.idUtilisateur, data.dateCulte]);
             if (result.count > 0) {
-                // Si les libellés existent déjà, rejeter avec un message approprié
-                return reject(new Error('Ce culte existe déjà.'));
+                return reject(new Error("Ce culte existe deja."));
             }
             const sql = `INSERT INTO culte(typeCulte,dateCulte,dirigeant,predication,passageBiblique,themePredication,nombreHommeCulte,nombreFemmeCulte,offrandeCulte,ecodim,filleEcodim,offrandeEcodim,resumePredication,idUtilisateur) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-            const culteData = yield (0, db_1._executeSql)(sql, [...values]);
+            const culteData = yield (0, db_1._executeSql)(sql, values);
             resolve(culteData.insertId);
         }
         catch (error) {
@@ -46,10 +44,6 @@ const ajouterCulte = (data) => {
         }
     }));
 };
-/**
- * recupererer toute les cultes
- * @returns
- */
 const recupCulte = () => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
@@ -62,11 +56,10 @@ const recupCulte = () => {
         }
     }));
 };
-// Fetcher un seul culte
 const recupCulteId = (id) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `SELECT * FROM culte WHERE idCulte =? ;`;
+            const sql = `SELECT * FROM culte WHERE idCulte = ? ;`;
             const culte = yield (0, db_1._selectSql)(sql, [id]);
             resolve(culte);
         }
@@ -80,8 +73,9 @@ const recupCulteByIdUtilsateur = (idUtilisateur) => {
         try {
             const sql = `SELECT * FROM culte WHERE idUtilisateur= ?;`;
             const culte = yield (0, db_1._selectSql)(sql, [idUtilisateur]);
-            if (!culte.length)
-                return reject({ name: "Erreur_culte", message: "Aucun culte trouvé" });
+            if (!culte.length) {
+                return reject({ name: "Erreur_culte", message: "Aucun culte trouve" });
+            }
             resolve(culte);
         }
         catch (error) {
@@ -89,11 +83,11 @@ const recupCulteByIdUtilsateur = (idUtilisateur) => {
         }
     }));
 };
-const supprimerCulte = (idCulte) => {
+const supprimerCulte = (idCulte, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `DELETE FROM culte WHERE idCulte = ?`;
-            yield (0, db_1._executeSql)(sql, [idCulte]);
+            const sql = `DELETE FROM culte WHERE idCulte = ? AND idUtilisateur = ?`;
+            yield (0, db_1._executeSql)(sql, [idCulte, idUtilisateur]);
             resolve(true);
         }
         catch (error) {
@@ -104,7 +98,7 @@ const supprimerCulte = (idCulte) => {
 const modifierCulte = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `UPDATE culte SET typeCulte=?,dateCulte=?,dirigeant=?,predication=?,passageBiblique=?,themePredication=?,nombreHommeCulte=?,nombreFemmeCulte=?,offrandeCulte=?,ecodim=?,filleEcodim=?,offrandeEcodim=?,resumePredication=?,idUtilisateur=? WHERE idCulte=?`;
+            const sql = `UPDATE culte SET typeCulte=?,dateCulte=?,dirigeant=?,predication=?,passageBiblique=?,themePredication=?,nombreHommeCulte=?,nombreFemmeCulte=?,offrandeCulte=?,ecodim=?,filleEcodim=?,offrandeEcodim=?,resumePredication=? WHERE idCulte=? AND idUtilisateur=?`;
             yield (0, db_1._executeSql)(sql, [
                 data.typeCulte,
                 data.dateCulte,
@@ -119,8 +113,8 @@ const modifierCulte = (data) => {
                 data.filleEcodim,
                 data.offrandeEcodim,
                 data.resumePredication,
-                data.idUtilisateur,
                 data.idCulte,
+                data.idUtilisateur,
             ]);
             resolve(true);
         }
@@ -135,6 +129,6 @@ exports.default = {
     supprimerCulte,
     modifierCulte,
     recupCulteId,
-    recupCulteByIdUtilsateur
+    recupCulteByIdUtilsateur,
 };
 //# sourceMappingURL=functions.js.map

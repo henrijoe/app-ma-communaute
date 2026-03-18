@@ -1,6 +1,29 @@
-https://www.atlassian.com/fr/git/tutorials/saving-changes/gitignore
+﻿https://www.atlassian.com/fr/git/tutorials/saving-changes/gitignore
 
 /node_modules
 notes.txt
 /backup
 /yarn.lock
+
+# environment variables and local secrets
+.env
+.env.*
+!.env.example
+
+# local sqlite runtime files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.sqlite-journal
+*.sqlite3-journal
+
+# local generated files for desktop/server runtime
+*.log
+logs/
+coverage/
+dist/
+build/
+
+# local machine storage used by the desktop backend
+C:/base-communaute/

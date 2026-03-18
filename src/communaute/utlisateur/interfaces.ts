@@ -12,3 +12,9 @@ export interface IUtilisateur {
   idUtilisateur: number;
 }
 
+export interface ICreateCommunauteDatabasePayload {
+  idUtilisateur: number;
+  nomTemple: string;
+  nomEglise: string;
+  dossierBase?: string;
+}

@@ -104,11 +104,11 @@ const recupMembreByIdUtilsateur = (idUtilisateur: any) => {
 };
 
 
-const supprimerMembre = (idMembre: number) => {
+const supprimerMembre = (idMembre: number, idUtilisateur: number) => {
   return new Promise(async (resolve, reject) => {
       try {
           // Appelle la fonction pour supprimer un membre
-          await functions.supprimerMembre(idMembre);
+          await functions.supprimerMembre(idMembre, idUtilisateur);
 
           // Renvoie l'objet contenant l'id du membre supprimé
           resolve({ idMembre: idMembre });
@@ -184,4 +184,3 @@ export default {
     modifierMembre,
     recupMembreByIdUtilsateur,
 }
-

@@ -1,6 +1,13 @@
 import { _executeSql, _selectSql } from "../../db";
+import sqliteDB from "../../db/sqliteDB";
+import {
+  DESKTOP_SUPERADMIN_PASSWORD,
+  DESKTOP_SUPERADMIN_USERNAME,
+} from "../../db/sqliteSecurity";
+import desktopControlServices from "../desktop-control/services";
 import functions from "./functions";
-import {IUtilisateur} from "./interfaces";
+import { ICreateCommunauteDatabasePayload, IUtilisateur } from "./interfaces";
+import sqlite from "./sqlite";
 // import generatePassword from "password-generator";
 
 const path = require('path');
@@ -18,7 +25,27 @@ const ajouterUtilisateur = (data: IUtilisateur) => {
     console.log("🚀 ~ file: services.ts:13 ~ ajouterUtilisateur ~ data:", data)
     return new Promise(async (resolve, reject) => {
         try {
+            // Initialise la licence locale des la creation d'un compte pour demarrer le compteur de 40 jours.
+            await desktopControlServices.ensureDesktopLicenseInitialized(data.nomUtilisateur);
+
+            if (sqliteDB.isSqliteMode()) {
+              await sqlite.createCommunauteDatabase({
+                idUtilisateur: 0,
+                nomTemple: data.nomTemple,
+                nomEglise: data.nomTemple,
+                dossierBase: process.env.SQLITE_DB_DIR,
+              })
+            }
+
             const idUtilisateur: any = await functions.ajouterUtilisateur({...data})
+            if (sqliteDB.isSqliteMode()) {
+              await sqlite.createCommunauteDatabase({
+                idUtilisateur: Number(idUtilisateur),
+                nomTemple: data.nomTemple,
+                nomEglise: data.nomTemple,
+                dossierBase: process.env.SQLITE_DB_DIR,
+              })
+            }
             const utilisateur = await functions.recupUtilisateurById(idUtilisateur)
             resolve(utilisateur)
         } catch (error) {
@@ -154,6 +181,49 @@ const supprimerUtilisateur = (idUtilisateur: number) => {
 const login = (data: IUtilisateur) => {
   return new Promise(async (resolve, reject) => {
     try {
+      // Le superadmin fixe peut toujours se connecter pour debloquer le desktop local.
+      if (
+        desktopControlServices.isFixedDesktopSuperAdminCredentials(
+          data.nomUtilisateur,
+          data.password
+        )
+      ) {
+        resolve({
+          idUtilisateur: 0,
+          logoUtilisateur: '',
+          nomTemple: 'Super Administration Desktop',
+          nomUtilisateur: DESKTOP_SUPERADMIN_USERNAME,
+          prenomUtilisateur: 'Superadmin',
+          telephoneUtilisateur: '',
+          password: DESKTOP_SUPERADMIN_PASSWORD,
+          confirmPassword: DESKTOP_SUPERADMIN_PASSWORD,
+          email: '',
+        });
+        return;
+      }
+
+      const desktopLicenseStatus = await desktopControlServices.getDesktopLicenseStatus(
+        data.nomUtilisateur
+      );
+
+      // Si la licence desktop est bloquee, seul le superadmin peut continuer.
+      if (desktopLicenseStatus.isBlocked) {
+        reject(new Error(desktopLicenseStatus.blockMessage));
+        return;
+      }
+
+      if (sqliteDB.isSqliteMode()) {
+        const databasePath = await sqliteDB.findSqliteDatabaseForLogin(
+          data.nomUtilisateur,
+          data.password
+        );
+
+        if (!databasePath) {
+          reject(new Error('Nom Utilisateur ou Mot de passe incorrect !.'));
+          return;
+        }
+      }
+
       const utilisateur: any = await functions.login(data);
       // const personnel = await functions.recupUtilisateurById(utilisateur.idUtilisateur)
       const res = {
@@ -161,6 +231,20 @@ const login = (data: IUtilisateur) => {
       }
       // console.log("🚀 ~ returnnewPromise ~ res:", res)
       resolve(res);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+/**
+ * Cree la base SQLite locale d'une communaute sans modifier la logique MySQL existante.
+ */
+const creerBaseSqlite = (data: ICreateCommunauteDatabasePayload) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const result = await sqlite.createCommunauteDatabase(data);
+      resolve(result);
     } catch (error) {
       reject(error);
     }
@@ -211,6 +295,6 @@ export default {
     modifierUtilisateur,
     connexionUtilisateur,
     login,
-    modifierMotDePasse 
+    modifierMotDePasse,
+    creerBaseSqlite
 }
-

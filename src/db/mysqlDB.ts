@@ -1,6 +1,7 @@
 const dotenv = require ("dotenv");
 dotenv.config();
 const mysql = require("mysql2");
+import sqliteDB from "./sqliteDB";
 
 // const mysqlDB = mysql.createPool({
 //     connectionLimit: 10,
@@ -27,27 +28,29 @@ const mysql = require("mysql2");
   port: Number(process.env.DB_PORT),
 });
 
-console.log("🚀 ~ file: mysqlDB.ts:16 ~ database:")
-mysqlDB.getConnection((err: any, connection: any) => {
-    if (err) {
-        if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-            console.error('Database connection was closed.')
-        }
-        else if (err.code === 'ER_CON_COUNT_ERROR') {
-            console.error('Database has too many connections.')
-        }
-        else if (err.code === 'ECONNREFUSED') {
-            console.error('Database connection was refused.')
-        }
-        else
-            console.error('error ++++++++', err)
+if (!sqliteDB.isSqliteMode()) {
+    console.log("🚀 ~ file: mysqlDB.ts:16 ~ database:")
+    mysqlDB.getConnection((err: any, connection: any) => {
+        if (err) {
+            if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+                console.error('Database connection was closed.')
+            }
+            else if (err.code === 'ER_CON_COUNT_ERROR') {
+                console.error('Database has too many connections.')
+            }
+            else if (err.code === 'ECONNREFUSED') {
+                console.error('Database connection was refused.')
+            }
+            else
+                console.error('error ++++++++', err)
 
-    } else {
-        console.log('Sucessfully connected to the mySQL database!')
-    }
+        } else {
+            console.log('Sucessfully connected to the mySQL database!')
+        }
 
-    if (connection) connection.release()
-    return
-})
+        if (connection) connection.release()
+        return
+    })
+}
 
 export default mysqlDB;

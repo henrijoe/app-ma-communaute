@@ -6,8 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const services_1 = __importDefault(require("./services"));
 const ajouterGroupe = (req, res) => {
     const data = req.body;
-    console.log("🚀 ~ ajouterGroupe ~ data:", data);
-    const io = req.io;
     services_1.default
         .ajouterGroupe(data)
         .then((result) => {
@@ -15,10 +13,6 @@ const ajouterGroupe = (req, res) => {
     })
         .catch((error) => res.status(400).send({ status: 0, error }));
 };
-/**
- * Récupérer une cellule
- * @returns
- */
 const recupGroupe = (req, res) => {
     services_1.default
         .recupGroupe()
@@ -28,7 +22,7 @@ const recupGroupe = (req, res) => {
         .catch((error) => res.status(400).send({ status: 0, error }));
 };
 const recupGroupeByIdUtilsateur = (req, res) => {
-    const { idUtilisateur } = req === null || req === void 0 ? void 0 : req.params;
+    const { idUtilisateur } = req.params;
     services_1.default
         .recupGroupeByIdUtilsateur(idUtilisateur)
         .then((result) => {
@@ -37,15 +31,15 @@ const recupGroupeByIdUtilsateur = (req, res) => {
         .catch((error) => res.status(400).send({ status: 0, error }));
 };
 const supprimerGroupe = (req, res) => {
-    const { idCellule } = req.body;
+    const { idGroupe, idUtilisateur } = req.body;
     services_1.default
-        .supprimerGroupe(idCellule)
+        .supprimerGroupe(idGroupe, idUtilisateur)
         .then((result) => {
         if (result) {
             res.status(200).send({ status: 1, data: result });
         }
         else {
-            res.status(400).send({ status: 0, errors: 'Groupe non trouvé' });
+            res.status(400).send({ status: 0, errors: "Groupe non trouve" });
         }
     })
         .catch((errors) => res.status(400).send({ status: 0, errors }));
@@ -64,6 +58,6 @@ exports.default = {
     recupGroupe,
     supprimerGroupe,
     modifierGroupe,
-    recupGroupeByIdUtilsateur
+    recupGroupeByIdUtilsateur,
 };
 //# sourceMappingURL=controllers.js.map

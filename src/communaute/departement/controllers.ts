@@ -1,17 +1,16 @@
-import { Request, Response, Errback } from "express";
+﻿import { Request, Response, Errback } from "express";
 import services from "./services";
 
 
 const ajouterDepartement = (req: Request, res: Response) => {
   const data = req.body;
-  const io = (req as any).io;
   services
     .ajouterDepartement(data)
     .then((result: any) => {
       res.status(200).send({ status: 1, data: result });
     })
     .catch((error: any) => {
-      if (error.message.includes('Ce département existe déjà.')) {
+      if (error?.message?.includes('Ce département existe déjà.')) {
         res.status(400).send({ status: 0, error: error.message });
       } else {
         res.status(400).send({ status: 0, error });
@@ -21,7 +20,7 @@ const ajouterDepartement = (req: Request, res: Response) => {
 
 
 /**
- * Récupérer une departement
+ * RÃ©cupÃ©rer une departement
  * @returns 
  */
 const recupDepartement = (req: Request, res: Response) => {
@@ -44,28 +43,31 @@ const recupDepartementByIdUtilsateur = (req: Request, res: Response) => {
 };
 
 const supprimerDepartement = (req: Request, res: Response) => {
-    const { idDepartement } = req.body
+    const { idDepartement, idUtilisateur } = req.body
+    if (!idUtilisateur) {
+      return res.status(400).send({ status: 0, error: 'idUtilisateur requis' })
+    }
     services
-      .supprimerDepartement(idDepartement)
+      .supprimerDepartement(idDepartement, idUtilisateur)
       .then((result: any) => {
         if (result) {
           res.status(200).send({ status: 1, data: result })
         } else {
-          res.status(400).send({ status: 0, errors: 'Departement non trouvé' })
+          res.status(400).send({ status: 0, error: 'Departement non trouve' })
         }
       })
-      .catch((errors: any) => res.status(400).send({ status: 0, errors }))
+      .catch((error: any) => res.status(400).send({ status: 0, error }))
 }
   
 const modifierDepartement = (req: Request, res: Response) => {
     const data = req.body
-    // console.log("🚀 ~ modifierDepartement ~ data:", data)
+    // console.log("ðŸš€ ~ modifierDepartement ~ data:", data)
     services
       .modifierDepartement(data)
       .then((result: any) => {
         res.status(200).send({ status: 1, data: result })
       })
-      .catch((errors: any) => res.status(400).send({ status: 0, errors }))
+      .catch((error: any) => res.status(400).send({ status: 0, error }))
   }
 
 export default {
@@ -75,3 +77,4 @@ export default {
     modifierDepartement,
     recupDepartementByIdUtilsateur
 }
+

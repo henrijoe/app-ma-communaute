@@ -192,11 +192,11 @@ const recupMembreByIdUtilsateur = (idUtilisateur) => {
         }
     }));
 };
-const supprimerMembre = (idMembre) => {
+const supprimerMembre = (idMembre, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `DELETE FROM membre WHERE idMembre = ?`;
-            yield (0, db_1._executeSql)(sql, [idMembre]);
+            const sql = `DELETE FROM membre WHERE idMembre = ? AND idUtilisateur = ?`;
+            yield (0, db_1._executeSql)(sql, [idMembre, idUtilisateur]);
             resolve(true);
         }
         catch (error) {
@@ -231,7 +231,7 @@ const modifierMembre = (data) => {
             idNiveauEtude=?,
             idCellule=?, 
             idDepartement=?,idGroupe=?,idResponsabilite=?, 
-            idUtilisateur=? WHERE idMembre=?`;
+            idUtilisateur=? WHERE idMembre=? AND idUtilisateur=?`;
             yield (0, db_1._executeSql)(sql, [
                 data.nomMembre,
                 data.prenomMembre,
@@ -270,7 +270,8 @@ const modifierMembre = (data) => {
                 data.idGroupe,
                 data.idResponsabilite,
                 data.idUtilisateur,
-                data.idMembre
+                data.idMembre,
+                data.idUtilisateur
             ]);
             resolve(true);
         }

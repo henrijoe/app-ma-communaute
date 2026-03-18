@@ -55,10 +55,10 @@ const recupCulteByIdUtilsateur = (idUtilisateur) => {
         }
     }));
 };
-const supprimerCulte = (idCulte) => {
+const supprimerCulte = (idCulte, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            yield functions_1.default.supprimerCulte(idCulte);
+            yield functions_1.default.supprimerCulte(idCulte, idUtilisateur);
             resolve({ idCulte: idCulte });
         }
         catch (error) {

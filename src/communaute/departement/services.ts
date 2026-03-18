@@ -1,4 +1,4 @@
-import functions from "./functions";
+﻿import functions from "./functions";
 import { IDepartement, } from "./interfaces";
 import functions_utilisateur from "../utlisateur/functions";
 
@@ -8,8 +8,8 @@ const ajouterDepartement = (data: IDepartement) => {
     try {
       const idDepartement: any = await functions.ajouterDepartement({ ...data });
       const departement = await functions.recupDepartementById(idDepartement);
-      console.log("🚀 ~ file: services.ts:14 ~ returnnewPromise ~ departement:", departement);
-      resolve(departement);
+      const departementItem = Array.isArray(departement) ? departement[0] : departement;
+      resolve(departementItem);
     } catch (error) {
       reject(error);
     }
@@ -35,16 +35,16 @@ const recupDepartementByIdUtilsateur = (idUtilisateur: any) => {
           const departementByUtilisateur = await functions.recupDepartementByIdUtilsateur(idUtilisateur)
           resolve(departementByUtilisateur)
       } catch (error) {
-          console.log("🚀 ~ file: services.ts:830 ~ returnnewPromise ~ error:", error)
+          console.log("ðŸš€ ~ file: services.ts:830 ~ returnnewPromise ~ error:", error)
           reject(error);
       }
   });
 };
 
-const supprimerDepartement = (idDepartement: number) => {
+const supprimerDepartement = (idDepartement: number, idUtilisateur: number) => {
   return new Promise(async (resolve, reject) => {
     try {
-      await functions.supprimerDepartement(idDepartement)
+      await functions.supprimerDepartement(idDepartement, idUtilisateur)
       resolve({idDepartement:idDepartement})
     } catch (error) {
       reject(error)
@@ -70,4 +70,5 @@ export default {
   modifierDepartement,
   recupDepartementByIdUtilsateur
 }
+
 

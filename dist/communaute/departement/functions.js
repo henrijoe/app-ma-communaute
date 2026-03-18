@@ -20,16 +20,18 @@ const ajouterDepartement = (data) => {
     ];
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            // Vérification de l'existence des libellés
-            const sqlCheck = `SELECT COUNT(*) as count FROM departement WHERE libelleLongDepartement = ? OR libelleCourtDepartement = ?`;
-            const [result] = yield (0, db_1._selectSql)(sqlCheck, [data.libelleLongDepartement, data.libelleCourtDepartement]);
+            // La verification de doublon reste locale a l'utilisateur pour ne pas bloquer une autre eglise.
+            const sqlCheck = `SELECT COUNT(*) as count FROM departement WHERE idUtilisateur = ? AND (libelleLongDepartement = ? OR libelleCourtDepartement = ?)`;
+            const [result] = yield (0, db_1._selectSql)(sqlCheck, [
+                data.idUtilisateur,
+                data.libelleLongDepartement,
+                data.libelleCourtDepartement,
+            ]);
             if (result.count > 0) {
-                // Si les libellés existent déjà, rejeter avec un message approprié
-                return reject(new Error('Ce département existe déjà.'));
+                return reject(new Error("Ce departement existe deja."));
             }
-            // Si les libellés n'existent pas, insérer le nouveau département
             const sqlInsert = `INSERT INTO departement(libelleLongDepartement,libelleCourtDepartement,sloganDepartement,responsableDepartement,idUtilisateur) VALUES (?,?,?,?,?)`;
-            const departement = yield (0, db_1._executeSql)(sqlInsert, [...values]);
+            const departement = yield (0, db_1._executeSql)(sqlInsert, values);
             resolve(departement.insertId);
         }
         catch (error) {
@@ -37,10 +39,6 @@ const ajouterDepartement = (data) => {
         }
     }));
 };
-/**
- * recupererer toute les departements
- * @returns
- */
 const recupDepartement = () => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
@@ -70,8 +68,9 @@ const recupDepartementByIdUtilsateur = (idUtilisateur) => {
         try {
             const sql = `SELECT * FROM departement WHERE idUtilisateur= ?;`;
             const departements = yield (0, db_1._selectSql)(sql, [idUtilisateur]);
-            if (!departements.length)
-                return reject({ name: "Erreur_departement", message: "Aucun departement trouvé" });
+            if (!departements.length) {
+                return reject({ name: "Erreur_departement", message: "Aucun departement trouve" });
+            }
             resolve(departements);
         }
         catch (error) {
@@ -79,11 +78,11 @@ const recupDepartementByIdUtilsateur = (idUtilisateur) => {
         }
     }));
 };
-const supprimerDepartement = (idDepartement) => {
+const supprimerDepartement = (idDepartement, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `DELETE FROM departement WHERE idDepartement = ?`;
-            yield (0, db_1._executeSql)(sql, [idDepartement]);
+            const sql = `DELETE FROM departement WHERE idDepartement = ? AND idUtilisateur = ?`;
+            yield (0, db_1._executeSql)(sql, [idDepartement, idUtilisateur]);
             resolve(true);
         }
         catch (error) {
@@ -94,14 +93,14 @@ const supprimerDepartement = (idDepartement) => {
 const modifierDepartement = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `UPDATE departement SET libelleLongDepartement=?,libelleCourtDepartement=?,sloganDepartement=?,responsableDepartement=?,idUtilisateur=? WHERE idDepartement=?`;
+            const sql = `UPDATE departement SET libelleLongDepartement=?,libelleCourtDepartement=?,sloganDepartement=?,responsableDepartement=? WHERE idDepartement=? AND idUtilisateur=?`;
             yield (0, db_1._executeSql)(sql, [
                 data.libelleLongDepartement,
                 data.libelleCourtDepartement,
                 data.sloganDepartement,
                 data.responsableDepartement,
-                data.idUtilisateur,
                 data.idDepartement,
+                data.idUtilisateur,
             ]);
             resolve(true);
         }
@@ -116,6 +115,6 @@ exports.default = {
     supprimerDepartement,
     modifierDepartement,
     recupDepartementById,
-    recupDepartementByIdUtilsateur
+    recupDepartementByIdUtilsateur,
 };
 //# sourceMappingURL=functions.js.map

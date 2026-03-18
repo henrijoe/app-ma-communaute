@@ -26,6 +26,18 @@ const ajouterUtilisateur = (req, res) => {
     })
         .catch((error) => res.status(400).send({ status: 0, error }));
 };
+/**
+ * Cree la base SQLite physique de la communaute dans le dossier cible.
+ */
+const creerBaseSqlite = (req, res) => {
+    const data = req.body;
+    services_1.default
+        .creerBaseSqlite(data)
+        .then((result) => {
+        res.status(200).send({ status: 1, data: result });
+    })
+        .catch((error) => res.status(400).send({ status: 0, error }));
+};
 const recupUtilisateur = (req, res) => {
     services_1.default
         .recupUtilisateur()
@@ -108,6 +120,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 // };
 exports.default = {
     ajouterUtilisateur,
+    creerBaseSqlite,
     recupUtilisateur,
     supprimerUtilisateur,
     modifierUtilisateur,

@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -7,6 +16,7 @@ const express_1 = __importDefault(require("express"));
 const constants_1 = require("./helpers/constants");
 const routes_1 = __importDefault(require("./communaute/routes"));
 const mysqlDB_1 = __importDefault(require("./db/mysqlDB"));
+const sqliteDB_1 = __importDefault(require("./db/sqliteDB"));
 const qrcode = require('qrcode-terminal');
 const path = require('path');
 const dotenv = require('dotenv');
@@ -69,6 +79,19 @@ app.get("/test", function (_, res) {
 });
 app.use("/communaute", routes_1.default);
 app.get("/db-test", (req, res) => {
+    if (sqliteDB_1.default.isSqliteMode()) {
+        sqliteDB_1.default.selectSqlite("SELECT 1 AS status")
+            .then(() => {
+            res.json({ status: "SQLite connecte" });
+        })
+            .catch((error) => {
+            res.status(500).json({
+                status: "ERREUR",
+                error: error.message,
+            });
+        });
+        return;
+    }
     mysqlDB_1.default.query("SELECT 1", (err) => {
         if (err) {
             return res.status(500).json({
@@ -101,6 +124,23 @@ Url: "http://localhost:49300"
 Start: ${new Date().toLocaleString("fr-FR")}
 ============================
 `;
+/**
+ * Affiche le moteur de base de donnees actif et prepare SQLite si besoin.
+ */
+const logDatabaseStartup = () => __awaiter(void 0, void 0, void 0, function* () {
+    const databaseMode = sqliteDB_1.default.getDatabaseMode();
+    if (databaseMode === "sqlite") {
+        const defaultDatabasePath = yield sqliteDB_1.default.ensureDefaultSqliteDatabase();
+        const updatedDatabases = yield sqliteDB_1.default.ensureAllSqliteDatabasesSchemasUpdated();
+        console.log(`[DB] Mode actif: sqlite`);
+        console.log(`[DB] Dossier SQLite: ${sqliteDB_1.default.getSqliteDirectory()}`);
+        console.log(`[DB] Base SQLite active: ${defaultDatabasePath}`);
+        console.log(`[DB] Bases SQLite verifiees: ${updatedDatabases.length}`);
+        return;
+    }
+    console.log(`[DB] Mode actif: mysql`);
+    console.log(`[DB] Cible MySQL: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
+});
 // httpServer.listen(PORT, () => {
 //   console.log(welcomeMsg);
 // });
@@ -108,6 +148,9 @@ Start: ${new Date().toLocaleString("fr-FR")}
 httpServer.listen(PORT, () => {
     try {
         console.log(welcomeMsg);
+        logDatabaseStartup().catch((error) => {
+            console.error("[DB] Erreur lors de l'initialisation de la base:", error);
+        });
     }
     catch (err) {
         console.error('Erreur lors du démarrage du serveur:', err);

@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const controllers_1 = __importDefault(require("./controllers"));
 const utilisateurRouter = express_1.default.Router();
 utilisateurRouter.post("/ajouterutilisateur", controllers_1.default.ajouterUtilisateur);
+utilisateurRouter.post("/creer-base-sqlite", controllers_1.default.creerBaseSqlite);
 utilisateurRouter.get("/listeutilisateur", controllers_1.default.recupUtilisateur);
 utilisateurRouter.post("/supprimerutilisateur", controllers_1.default.supprimerUtilisateur);
 utilisateurRouter.post("/modifierutilisateur", controllers_1.default.modifierUtilisateur);

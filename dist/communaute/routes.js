@@ -22,6 +22,7 @@ const routes_14 = __importDefault(require("./culte/routes"));
 const routes_15 = __importDefault(require("./mariage/routes"));
 const routes_16 = __importDefault(require("./naissance/routes"));
 const routes_17 = __importDefault(require("./deces/routes"));
+const routes_18 = __importDefault(require("./desktop-control/routes"));
 const communauteRouter = express_1.default.Router();
 const getDataEgliseRouter = express_1.default.Router();
 getDataEgliseRouter.get("/getDataEglise/:idUtilisateur", controllers_1.default.getDataEglise);
@@ -43,5 +44,6 @@ communauteRouter.use(routes_14.default);
 communauteRouter.use(routes_15.default);
 communauteRouter.use(routes_16.default);
 communauteRouter.use(routes_17.default);
+communauteRouter.use(routes_18.default);
 exports.default = communauteRouter;
 //# sourceMappingURL=routes.js.map

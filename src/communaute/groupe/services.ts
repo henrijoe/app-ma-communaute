@@ -1,18 +1,15 @@
-import functions from "./functions";
-import {GroupeResponse, IGroupe} from "./interfaces";
+﻿import functions from "./functions";
+import { IGroupe } from "./interfaces";
 
 /**
- * 
-Permet d'ajouter une groupe
- * @returns 
+ * Permet d'ajouter un groupe.
  */
 const ajouterGroupe = (data: IGroupe) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const idGroupe: any = await functions.ajouterGroupe({ ...data })
-      const groupe = await functions.recupGroupeId(idGroupe)
-      // console.log("🚀 ~ returnnewPromise ~ groupe:", groupe)
-      resolve(groupe)
+      const idGroupe: any = await functions.ajouterGroupe({ ...data });
+      const groupe = await functions.recupGroupeId(idGroupe);
+      resolve(groupe);
     } catch (error) {
       reject(error);
     }
@@ -22,8 +19,8 @@ const ajouterGroupe = (data: IGroupe) => {
 const recupGroupe = () => {
   return new Promise(async (resolve, reject) => {
     try {
-      const groupes = await functions.recupGroupe()
-      resolve(groupes)
+      const groupes = await functions.recupGroupe();
+      resolve(groupes);
     } catch (error) {
       reject(error);
     }
@@ -32,61 +29,41 @@ const recupGroupe = () => {
 
 const recupGroupeByIdUtilsateur = (idUtilisateur: any) => {
   return new Promise(async (resolve, reject) => {
-      try {
-          const groupeByUtilisateur = await functions.recupGroupeByIdUtilsateur(idUtilisateur)
-          resolve(groupeByUtilisateur)
-      } catch (error) {
-          console.log("🚀 ~ file: services.ts:830 ~ returnnewPromise ~ error:", error)
-          reject(error);
-      }
+    try {
+      const groupeByUtilisateur = await functions.recupGroupeByIdUtilsateur(idUtilisateur);
+      resolve(groupeByUtilisateur);
+    } catch (error) {
+      reject(error);
+    }
   });
 };
 
-
-// const recupGroupeByIdUtilsateur = (idUtilisateur: any) => {
-//   return new Promise<GroupeResponse>(async (resolve, reject) => {
-//       try {
-//           const groupeByUtilisateur: GroupeResponse = await functions.recupGroupeByIdUtilsateur(idUtilisateur);
-//           if (groupeByUtilisateur.status !== 1) {
-//               return reject(groupeByUtilisateur.error);
-//           }
-//           resolve(groupeByUtilisateur.data);
-//       } catch (error) {
-//           console.log("🚀 ~ file: services.ts:830 ~ returnnewPromise ~ error:", error);
-//           reject(error);
-//       }
-//   });
-// }
-
-
-const supprimerGroupe = (idGroupe: number) => {
+const supprimerGroupe = (idGroupe: number, idUtilisateur?: number) => {
   return new Promise(async (resolve, reject) => {
     try {
-      await functions.supprimerGroupe(idGroupe)
-      resolve({idGroupe:idGroupe})
+      await functions.supprimerGroupe(idGroupe, idUtilisateur);
+      resolve({ idGroupe });
     } catch (error) {
-      reject(error)
+      reject(error);
     }
-  })
-}
+  });
+};
 
 const modifierGroupe = (data: IGroupe) => {
   return new Promise(async (resolve, reject) => {
     try {
-      await functions.modifierGroupe(data)
-      resolve(data)
+      await functions.modifierGroupe(data);
+      resolve(data);
     } catch (error) {
-      reject(error)
+      reject(error);
     }
-  })
-}
+  });
+};
 
 export default {
   ajouterGroupe,
   recupGroupe,
   supprimerGroupe,
   modifierGroupe,
-  recupGroupeByIdUtilsateur
-  
-}
-
+  recupGroupeByIdUtilsateur,
+};

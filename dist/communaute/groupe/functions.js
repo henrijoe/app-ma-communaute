@@ -10,26 +10,23 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("../../db");
-//   
 const ajouterGroupe = (data) => {
     const values = [
         data.libelleGroupe,
         data.descriptionGroupe,
         data.responsableGroupe,
-        data.idUtilisateur
+        data.idUtilisateur,
     ];
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            // Vérification de l'existence des libellés
-            const sqlCheck = `SELECT COUNT(*) as count FROM groupe WHERE libelleGroupe = ?`;
-            const [result] = yield (0, db_1._selectSql)(sqlCheck, [data.libelleGroupe]);
+            // Le doublon doit etre verifie par utilisateur pour isoler les eglises.
+            const sqlCheck = `SELECT COUNT(*) as count FROM groupe WHERE idUtilisateur = ? AND libelleGroupe = ?`;
+            const [result] = yield (0, db_1._selectSql)(sqlCheck, [data.idUtilisateur, data.libelleGroupe]);
             if (result.count > 0) {
-                // Si les libellés existent déjà, rejeter avec un message approprié
-                return reject(new Error('Ce groupe existe déjà.'));
+                return reject(new Error("Ce groupe existe deja."));
             }
-            // Si les libellés n'existent pas, insérer le nouveau département
             const sql = `INSERT INTO groupe(libelleGroupe,descriptionGroupe,responsableGroupe,idUtilisateur) VALUES (?,?,?,?)`;
-            const groupeData = yield (0, db_1._executeSql)(sql, [...values]);
+            const groupeData = yield (0, db_1._executeSql)(sql, values);
             resolve(groupeData.insertId);
         }
         catch (error) {
@@ -37,10 +34,6 @@ const ajouterGroupe = (data) => {
         }
     }));
 };
-/**
- * recupererer toute les groupes
- * @returns
- */
 const recupGroupe = () => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
@@ -53,11 +46,10 @@ const recupGroupe = () => {
         }
     }));
 };
-// Fetcher une seule groupe
 const recupGroupeId = (id) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `SELECT * FROM groupe WHERE idGroupe =? ;`;
+            const sql = `SELECT * FROM groupe WHERE idGroupe = ? ;`;
             const groupe = yield (0, db_1._selectSql)(sql, [id]);
             resolve(groupe);
         }
@@ -66,25 +58,13 @@ const recupGroupeId = (id) => {
         }
     }));
 };
-// const recupGroupeByIdUtilsateur = (idUtilisateur: number) => {
-//     return new Promise(async (resolve, reject) => {
-//         try {
-//             const sql = `SELECT * FROM groupe WHERE idUtilisateur= ?;`
-//             const groupes = await _selectSql(sql, [idUtilisateur]);
-//             if (!groupes.length) return reject({ name: "Erreur_groupe", message: "Aucun groupe trouvé" })
-//             resolve(groupes)
-//         } catch (error) {
-//             reject(error);
-//         }
-//     });
-// };
 const recupGroupeByIdUtilsateur = (idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const sql = `SELECT * FROM groupe WHERE idUtilisateur= ?;`;
             const groupes = yield (0, db_1._selectSql)(sql, [idUtilisateur]);
             if (groupes.length === 0) {
-                return reject({ name: "Erreur_groupe", message: "Aucun groupe trouvé" });
+                return reject({ name: "Erreur_groupe", message: "Aucun groupe trouve" });
             }
             resolve(groupes);
         }
@@ -93,11 +73,15 @@ const recupGroupeByIdUtilsateur = (idUtilisateur) => {
         }
     }));
 };
-const supprimerGroupe = (idGroupe) => {
+const supprimerGroupe = (idGroupe, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `DELETE FROM groupe WHERE idGroupe = ?`;
-            yield (0, db_1._executeSql)(sql, [idGroupe]);
+            const hasUserScope = typeof idUtilisateur === "number";
+            const sql = hasUserScope
+                ? `DELETE FROM groupe WHERE idGroupe = ? AND idUtilisateur = ?`
+                : `DELETE FROM groupe WHERE idGroupe = ?`;
+            const params = hasUserScope ? [idGroupe, idUtilisateur] : [idGroupe];
+            yield (0, db_1._executeSql)(sql, params);
             resolve(true);
         }
         catch (error) {
@@ -108,14 +92,28 @@ const supprimerGroupe = (idGroupe) => {
 const modifierGroupe = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `UPDATE groupe SET libelleGroupe=?, descriptionGroupe=?,responsableGroupe=?,idUtilisateur=? WHERE idGroupe=?`;
-            yield (0, db_1._executeSql)(sql, [
-                data.libelleGroupe,
-                data.descriptionGroupe,
-                data.responsableGroupe,
-                data.idGroupe,
-                data.idUtilisateur,
-            ]);
+            // Correction importante: l'ordre des parametres doit suivre l'ordre des placeholders SQL.
+            const hasUserScope = typeof data.idUtilisateur === "number";
+            const sql = hasUserScope
+                ? `UPDATE groupe SET libelleGroupe=?, descriptionGroupe=?, responsableGroupe=?, idUtilisateur=? WHERE idGroupe=? AND idUtilisateur=?`
+                : `UPDATE groupe SET libelleGroupe=?, descriptionGroupe=?, responsableGroupe=?, idUtilisateur=? WHERE idGroupe=?`;
+            const params = hasUserScope
+                ? [
+                    data.libelleGroupe,
+                    data.descriptionGroupe,
+                    data.responsableGroupe,
+                    data.idUtilisateur,
+                    data.idGroupe,
+                    data.idUtilisateur,
+                ]
+                : [
+                    data.libelleGroupe,
+                    data.descriptionGroupe,
+                    data.responsableGroupe,
+                    data.idUtilisateur,
+                    data.idGroupe,
+                ];
+            yield (0, db_1._executeSql)(sql, params);
             resolve(true);
         }
         catch (error) {
@@ -129,6 +127,6 @@ exports.default = {
     supprimerGroupe,
     modifierGroupe,
     recupGroupeId,
-    recupGroupeByIdUtilsateur
+    recupGroupeByIdUtilsateur,
 };
 //# sourceMappingURL=functions.js.map
