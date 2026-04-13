@@ -17,8 +17,10 @@ import culteRouter from "./culte/routes";
 import mariageRouter from "./mariage/routes";
 import naissanceRouter from "./naissance/routes";
 import decesRouter from "./deces/routes";
+import maladieRouter from "./maladie/routes";
 import desktopControlRouter from "./desktop-control/routes";
-
+import galerieRouter from "./galerie/routes";
+import agendaRouter from "./agenda/routes";
 
 const communauteRouter: Router = express.Router();
 const getDataEgliseRouter: Router = express.Router();
@@ -42,6 +44,9 @@ communauteRouter.use(culteRouter);
 communauteRouter.use(mariageRouter);
 communauteRouter.use(naissanceRouter);
 communauteRouter.use(decesRouter);
+communauteRouter.use(maladieRouter);
 communauteRouter.use(desktopControlRouter);
+communauteRouter.use(galerieRouter);
+communauteRouter.use(agendaRouter);
 
 export default communauteRouter;

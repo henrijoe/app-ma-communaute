@@ -1,4 +1,4 @@
-// Mot de passe de reference choisi pour la protection locale SQLite.
+﻿// Mot de passe de reference choisi pour la protection locale SQLite.
 // IMPORTANT :
 // - Avec le driver `sqlite3` standard utilise actuellement, ce mot de passe
 //   ne chiffre PAS nativement le fichier `.db`.
@@ -12,7 +12,6 @@ export const SQLITE_REFERENCE_PASSWORD = "com2026!";
 export const SQLITE_SECURITY_NOTE =
   "SQLite standard n'applique pas de vrai mot de passe natif. La reference actuelle est com2026! en attendant une migration vers une base chiffree.";
 
-
-// Identifiants superadmin fixes demandes pour reprendre la main sur le desktop.
-export const DESKTOP_SUPERADMIN_USERNAME = "Henri";
-export const DESKTOP_SUPERADMIN_PASSWORD = "dihj060195";
+// Les identifiants superadmin desktop peuvent etre surcharges via le .env du serveur.
+export const DESKTOP_SUPERADMIN_USERNAME = process.env.DESKTOP_SUPERADMIN_USERNAME || "Henri";
+export const DESKTOP_SUPERADMIN_PASSWORD = process.env.DESKTOP_SUPERADMIN_PASSWORD || "dihj060195";

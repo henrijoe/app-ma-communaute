@@ -42,8 +42,18 @@ const DESKTOP_LICENSE_FILE = path.join(
   sqliteDB.getSqliteDirectory(),
   ".desktop-license.secure"
 );
+// const DESKTOP_LICENSE_ALGORITHM = "aes-256-cbc";
+// const DESKTOP_LICENSE_KEY = crypto.scryptSync(SQLITE_REFERENCE_PASSWORD, "ma-communaute-desktop", 32);
+// const toUint8Array = (value: Buffer): Uint8Array => Uint8Array.from(value);
+
 const DESKTOP_LICENSE_ALGORITHM = "aes-256-cbc";
-const DESKTOP_LICENSE_KEY = crypto.scryptSync(SQLITE_REFERENCE_PASSWORD, "ma-communaute-desktop", 32);
+const DESKTOP_LICENSE_KEY = crypto.scryptSync(
+  SQLITE_REFERENCE_PASSWORD,
+  "ma-communaute-desktop",
+  32
+);
+const toUint8Array = (value: Buffer): Uint8Array => Uint8Array.from(value);
+
 
 // Retourne la date ISO correspondant a maintenant + N jours.
 const buildExpirationDate = (days: number): string => {
@@ -65,7 +75,7 @@ const encryptDesktopLicenseConfig = (config: DesktopLicenseConfig): string => {
   // Chaque ecriture genere un IV aleatoire pour eviter un chiffrement trop previsible.
   const iv = crypto.randomBytes(16);
   // On cree le moteur de chiffrement avec l'algorithme choisi et la cle derivee du secret local.
-  const cipher = crypto.createCipheriv(DESKTOP_LICENSE_ALGORITHM, DESKTOP_LICENSE_KEY, iv);
+  const cipher = crypto.createCipheriv(DESKTOP_LICENSE_ALGORITHM, toUint8Array(DESKTOP_LICENSE_KEY), toUint8Array(iv));
   // On serialise la configuration pour pouvoir la chiffrer comme un simple texte JSON.
   const serializedConfig = JSON.stringify(config);
   // On concatene les morceaux chiffres pour produire un seul bloc binaire complet.
@@ -88,13 +98,13 @@ const decryptDesktopLicenseConfig = (rawContent: string): DesktopLicenseConfig =
   // On recree le moteur de dechiffrement avec le meme algorithme, la meme cle et l'IV stocke.
   const decipher = crypto.createDecipheriv(
     DESKTOP_LICENSE_ALGORITHM,
-    DESKTOP_LICENSE_KEY,
-    Buffer.from(parsedContent.iv, "hex")
+    toUint8Array(DESKTOP_LICENSE_KEY),
+    toUint8Array(Buffer.from(parsedContent.iv, "hex"))
   );
 
   // On dechiffre le contenu puis on le retransforme en texte JSON lisible.
   const decryptedContent = Buffer.concat([
-    decipher.update(Buffer.from(parsedContent.content, "hex")),
+    decipher.update(toUint8Array(Buffer.from(parsedContent.content, "hex"))),
     decipher.final(),
   ]).toString("utf8");
 
@@ -255,14 +265,15 @@ export const ensureDesktopLicenseInitialized = async (
 // Renouvelle l'acces desktop local apres verification du createur de l'application.
 export const unlockDesktopLicense = async (payload: {
   nomUtilisateur: string;
+  password: string;
   extendDays?: number;
 }): Promise<DesktopLicenseStatus> => {
   // On lit la licence actuelle avant toute modification.
   const config = await readDesktopLicenseConfig(payload.nomUtilisateur);
 
-  if (!isSuperAdminUser(payload.nomUtilisateur, config)) {
-    // Seul un createur de l'application peut prolonger ou debloquer la licence desktop locale.
-    throw new Error("Seul un createur de l'application peut debloquer l'application desktop.");
+  if (!isFixedDesktopSuperAdminCredentials(payload.nomUtilisateur, payload.password)) {
+    // Le renouvellement manuel n'est autorise qu'au superadmin fixe du projet.
+    throw new Error("Seul le superadmin fixe peut debloquer l'application desktop.");
   }
 
   const nextConfig: DesktopLicenseConfig = {
@@ -305,4 +316,9 @@ export default {
   getServerNetworkInfo,
   isFixedDesktopSuperAdminCredentials,
 };
+
+
+
+
+
 

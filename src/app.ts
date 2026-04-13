@@ -24,6 +24,8 @@ const httpServer = require("http").createServer(app);
  */
 const htmlPath = path.join(__dirname, '..','views')
 const albumDir = path.join(__dirname, '..','albums');
+const memberPhotosDir = path.join(process.env.SQLITE_DB_DIR || 'C:\\base-communaute', 'photo-membre');
+const galerieMediaDir = path.join(process.env.SQLITE_DB_DIR || 'C:\\base-communaute', 'galerie-evenements');
 
 // =================================== MIDDLEWARES =========================================================
 
@@ -32,7 +34,10 @@ app.use(express.json({ limit: '100mb' }));
 app.use(cors({ credentials: true, optionsSuccessStatus: 200, origin: true }));
 app.use(compression());
 app.use(bodyParser.json());
+app.use('/photos', express.static(memberPhotosDir));
+app.use('/photos', express.static(memberPhotosDir));
 app.use('/photos', express.static(albumDir));
+app.use('/galerie-media', express.static(galerieMediaDir));
 
 // ===================================Socket.io configuration =======================================
 const options = {
@@ -63,7 +68,7 @@ require("./socket/socketIO").initializeSocket(io, cnxInfos)
 
 //public routes 
 app.get("/test", function (_: any, res: any) {
-  const msg = `Connecté au serveur ${SERVER_NAME} avec succès!`;
+  const msg = `ConnectÃƒÆ’Ã‚Â© au serveur ${SERVER_NAME} avec succÃƒÆ’Ã‚Â¨s!`;
   console.log(msg);
   res.status(201).send({
     status: 1,
@@ -97,12 +102,12 @@ app.get("/db-test", (req, res) => {
         error: err.message,
       });
     }
-    res.json({ status: "MySQL connecté 🎉" });
+    res.json({ status: "MySQL connectÃƒÆ’Ã‚Â© ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â‚¬Â°" });
   });
 });
 
 
-// Middleware personnalisé qui définit un cookie
+// Middleware personnalisÃƒÆ’Ã‚Â© qui dÃƒÆ’Ã‚Â©finit un cookie
 const setAppCookie = (req, res, next) => {
   const serverUrl = `${req.protocol}://${req.get('host')}`
   res.cookie(
@@ -113,7 +118,7 @@ const setAppCookie = (req, res, next) => {
   next();
 };
 
-app.use(setAppCookie); // utilise le middleware personnalisé qui définit le cookie
+app.use(setAppCookie); // utilise le middleware personnalisÃƒÆ’Ã‚Â© qui dÃƒÆ’Ã‚Â©finit le cookie
 app.use('/', express.static(htmlPath));
 app.get("/*", function (req, res) {
   res.sendFile(`${htmlPath}/index.html`);
@@ -164,13 +169,16 @@ httpServer.listen(PORT, () => {
       console.error("[DB] Erreur lors de l'initialisation de la base:", error);
     });
   } catch (err) {
-    console.error('Erreur lors du démarrage du serveur:', err);
+    console.error('Erreur lors du dÃƒÆ’Ã‚Â©marrage du serveur:', err);
   }
 });
 
 
 const qrValue = {
   wifi: `http://${IP}:${PORT}`,
-  tunnel: 'non configuré',
+  tunnel: 'non configurÃƒÆ’Ã‚Â©',
 }
 qrcode.generate(JSON.stringify(qrValue));
+
+
+

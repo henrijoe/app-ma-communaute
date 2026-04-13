@@ -8,12 +8,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const fs_1 = __importDefault(require("fs"));
 const db_1 = require("../../db");
 const functions_1 = require("../functions");
-//  ajouter  
 const ajouterMembre = (data) => {
-    // Préparer les valeurs AVEC la photo
+    var _a, _b;
     const values = [
         data.nomMembre || '',
         data.prenomMembre || '',
@@ -51,108 +54,93 @@ const ajouterMembre = (data) => {
         data.idDepartement || null,
         data.idGroupe || null,
         data.idResponsabilite || null,
-        data.idUtilisateur || null
+        (_a = data.estDecede) !== null && _a !== void 0 ? _a : 0,
+        (_b = data.dateDecesMembre) !== null && _b !== void 0 ? _b : null,
+        data.idUtilisateur || null,
     ];
-    console.log("Nombre de valeurs préparées:", values.length); // Doit être 37
-    console.log("Valeurs:", values);
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             let fileName = null;
-            // Gestion de la photo (optionnelle - seulement si photo fournie)
             if (data.photoMembre && data.photoMembre.trim() !== '' && data.photoMembre.startsWith('data:image/')) {
-                // Extraire la partie base64
                 const base64Data = data.photoMembre.replace(/^data:image\/\w+;base64,/, '');
-                // Générer un nom de fichier temporaire
                 fileName = `temp_${Date.now()}.jpg`;
-                // Sauvegarder le fichier
                 const filePath = (0, functions_1.getAvatarsPath)(fileName);
                 yield (0, functions_1.saveFileToBase64)(filePath, base64Data);
-                // Mettre à jour la valeur dans le tableau
-                values[20] = fileName; // photoMembre est à l'index 20
+                values[20] = fileName;
             }
-            const sql = `INSERT INTO 
-            membre(nomMembre,
-                prenomMembre,
-                dateNaissMembre,
-                lieuNaissMembre,
-                sexeMembre,
-                emailMembre,
-                nationaliteMembre,
-                fonctionMembre,
-                contactMembre,
-                ethnieMembre,
-                residenceMembre,
-                civiliteMembre,
-                nouvelleAmeMembre,
-                dateConversionMembre,
-                baptemeEauMembre,
-                dateBaptemeMembre,
-                dateMariageMembre,
-                capaciteSpirituelleMembre,
-                situationMatrimonialeMembre,
-                nomFiance,
-                photoMembre,
-                lieuBaptemeEauMembre,
-                baptemeSaintEspritMembre,
-                dateBaptemeSaintEspritMembre,
-                egliseOrigineMembre,
-                nomAmiEglise,
-                visiteMembre,
-                raisonNonVisiteMembre,
-                heureVisiteMembre,
-                dateDecisionMembre,
-                lieuTravailMembre,
-                idNiveauEtude,
-                idCellule,
-                idDepartement,
-                idGroupe,
-                idResponsabilite,
-                idUtilisateur
-                ) 
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-            console.log("Requête SQL:", sql);
-            console.log("Nombre de ? dans la requête:", (sql.match(/\?/g) || []).length);
+            const sql = `INSERT INTO membre(
+        nomMembre,
+        prenomMembre,
+        dateNaissMembre,
+        lieuNaissMembre,
+        sexeMembre,
+        emailMembre,
+        nationaliteMembre,
+        fonctionMembre,
+        contactMembre,
+        ethnieMembre,
+        residenceMembre,
+        civiliteMembre,
+        nouvelleAmeMembre,
+        dateConversionMembre,
+        baptemeEauMembre,
+        dateBaptemeMembre,
+        dateMariageMembre,
+        capaciteSpirituelleMembre,
+        situationMatrimonialeMembre,
+        nomFiance,
+        photoMembre,
+        lieuBaptemeEauMembre,
+        baptemeSaintEspritMembre,
+        dateBaptemeSaintEspritMembre,
+        egliseOrigineMembre,
+        nomAmiEglise,
+        visiteMembre,
+        raisonNonVisiteMembre,
+        heureVisiteMembre,
+        dateDecisionMembre,
+        lieuTravailMembre,
+        idNiveauEtude,
+        idCellule,
+        idDepartement,
+        idGroupe,
+        idResponsabilite,
+        estDecede,
+        dateDecesMembre,
+        idUtilisateur
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
             const membreInserted = yield (0, db_1._executeSql)(sql, values);
             const insertedId = membreInserted.insertId;
-            // Renommage du fichier si nécessaire
             if (fileName && fileName.startsWith('temp_') && insertedId) {
                 try {
-                    const fs = require('fs');
                     const oldPath = (0, functions_1.getAvatarsPath)(fileName);
                     const newFileName = `membre_${insertedId}.jpg`;
                     const newPath = (0, functions_1.getAvatarsPath)(newFileName);
-                    if (fs.existsSync(oldPath)) {
-                        fs.renameSync(oldPath, newPath);
-                        // Mettre à jour le nom de fichier dans la base
-                        const updateSql = `UPDATE membre SET photoMembre = ? WHERE idMembre = ?`;
-                        yield (0, db_1._executeSql)(updateSql, [newFileName, insertedId]);
+                    if (fs_1.default.existsSync(oldPath)) {
+                        fs_1.default.renameSync(oldPath, newPath);
+                        yield (0, db_1._executeSql)('UPDATE membre SET photoMembre = ? WHERE idMembre = ?', [newFileName, insertedId]);
                     }
                 }
                 catch (renameError) {
                     console.error('Erreur lors du renommage:', renameError);
                 }
             }
-            // Récupérer le membre créé
             const membre = yield recupMembreById(insertedId);
             resolve(membre[0]);
         }
         catch (error) {
-            console.error("Erreur dans ajouterMembre:", error);
+            console.error('Erreur dans ajouterMembre:', error);
             reject(error);
         }
     }));
 };
-/**
- * recupererer tout les membres
- * @returns
- */
 const recupMembre = () => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `SELECT * FROM membre ORDER BY idMembre ASC ;`;
+            const sql = 'SELECT * FROM membre ORDER BY idMembre ASC;';
             const membre = yield (0, db_1._selectSql)(sql, []);
             if (!membre.length)
-                return reject({ name: "Erreur_membre", message: "Aucun membre trouvé" });
+                return reject({ name: 'Erreur_membre', message: 'Aucun membre trouve' });
             resolve(membre);
         }
         catch (error) {
@@ -160,17 +148,13 @@ const recupMembre = () => {
         }
     }));
 };
-/**
- * recupererer tout les membres
- * @returns
- */
 const recupMembreById = (id) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `SELECT * FROM membre WHERE idMembre= ?;`;
+            const sql = 'SELECT * FROM membre WHERE idMembre = ?;';
             const membre = yield (0, db_1._selectSql)(sql, [id]);
             if (!membre.length)
-                return reject({ name: "Erreur_membre", message: "Aucun membre trouvé" });
+                return reject({ name: 'Erreur_membre', message: 'Aucun membre trouve' });
             resolve(membre);
         }
         catch (error) {
@@ -181,10 +165,10 @@ const recupMembreById = (id) => {
 const recupMembreByIdUtilsateur = (idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `SELECT * FROM membre WHERE idUtilisateur= ?;`;
+            const sql = 'SELECT * FROM membre WHERE idUtilisateur = ?;';
             const membre = yield (0, db_1._selectSql)(sql, [idUtilisateur]);
             if (!membre.length)
-                return reject({ name: "Erreur_membre", message: "Aucun membre trouvé" });
+                return reject({ name: 'Erreur_membre', message: 'Aucun membre trouve' });
             resolve(membre);
         }
         catch (error) {
@@ -195,9 +179,11 @@ const recupMembreByIdUtilsateur = (idUtilisateur) => {
 const supprimerMembre = (idMembre, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `DELETE FROM membre WHERE idMembre = ? AND idUtilisateur = ?`;
-            yield (0, db_1._executeSql)(sql, [idMembre, idUtilisateur]);
-            resolve(true);
+            const sql = idUtilisateur
+                ? 'DELETE FROM membre WHERE idMembre = ? AND idUtilisateur = ?'
+                : 'DELETE FROM membre WHERE idMembre = ?';
+            const result = yield (0, db_1._executeSql)(sql, idUtilisateur ? [idMembre, idUtilisateur] : [idMembre]);
+            resolve(Boolean(result === null || result === void 0 ? void 0 : result.affectedRows));
         }
         catch (error) {
             reject(error);
@@ -205,33 +191,50 @@ const supprimerMembre = (idMembre, idUtilisateur) => {
     }));
 };
 const modifierMembre = (data) => {
-    // console.log("🚀 ~ file: functions.ts:131 ~ modifierMembre ~ data:", data)
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a, _b;
         try {
-            const sql = `UPDATE membre SET nomMembre=?,prenomMembre=?,
-            dateNaissMembre=?,lieuNaissMembre=?,sexeMembre=?,emailMembre=?,
-            nationaliteMembre=?,fonctionMembre=?,contactMembre=?,ethnieMembre=?, 
-            residenceMembre=?,civiliteMembre=?,
-            nouvelleAmeMembre=?,
-            dateConversionMembre=?,baptemeEauMembre=?, 
-            dateBaptemeMembre=?,dateMariageMembre=?,capaciteSpirituelleMembre=?, 
-            situationMatrimonialeMembre=?,
-            nomFiance=?,
-            photoMembre=?, 
-            lieuBaptemeEauMembre=?,
-            baptemeSaintEspritMembre=?, 
-            dateBaptemeSaintEspritMembre=?,
-            egliseOrigineMembre=?, 
-            nomAmiEglise=?,
-            visiteMembre=?,
-            raisonNonVisiteMembre=?,
-            heureVisiteMembre=?,
-            dateDecisionMembre=?,
-            lieuTravailMembre=?,
-            idNiveauEtude=?,
-            idCellule=?, 
-            idDepartement=?,idGroupe=?,idResponsabilite=?, 
-            idUtilisateur=? WHERE idMembre=? AND idUtilisateur=?`;
+            const sql = `UPDATE membre SET
+        nomMembre = ?,
+        prenomMembre = ?,
+        dateNaissMembre = ?,
+        lieuNaissMembre = ?,
+        sexeMembre = ?,
+        emailMembre = ?,
+        nationaliteMembre = ?,
+        fonctionMembre = ?,
+        contactMembre = ?,
+        ethnieMembre = ?,
+        residenceMembre = ?,
+        civiliteMembre = ?,
+        nouvelleAmeMembre = ?,
+        dateConversionMembre = ?,
+        baptemeEauMembre = ?,
+        dateBaptemeMembre = ?,
+        dateMariageMembre = ?,
+        capaciteSpirituelleMembre = ?,
+        situationMatrimonialeMembre = ?,
+        nomFiance = ?,
+        photoMembre = ?,
+        lieuBaptemeEauMembre = ?,
+        baptemeSaintEspritMembre = ?,
+        dateBaptemeSaintEspritMembre = ?,
+        egliseOrigineMembre = ?,
+        nomAmiEglise = ?,
+        visiteMembre = ?,
+        raisonNonVisiteMembre = ?,
+        heureVisiteMembre = ?,
+        dateDecisionMembre = ?,
+        lieuTravailMembre = ?,
+        idNiveauEtude = ?,
+        idCellule = ?,
+        idDepartement = ?,
+        idGroupe = ?,
+        idResponsabilite = ?,
+        estDecede = ?,
+        dateDecesMembre = ?,
+        idUtilisateur = ?
+        WHERE idMembre = ? AND idUtilisateur = ?`;
             yield (0, db_1._executeSql)(sql, [
                 data.nomMembre,
                 data.prenomMembre,
@@ -269,9 +272,11 @@ const modifierMembre = (data) => {
                 data.idDepartement,
                 data.idGroupe,
                 data.idResponsabilite,
+                (_a = data.estDecede) !== null && _a !== void 0 ? _a : 0,
+                (_b = data.dateDecesMembre) !== null && _b !== void 0 ? _b : null,
                 data.idUtilisateur,
                 data.idMembre,
-                data.idUtilisateur
+                data.idUtilisateur,
             ]);
             resolve(true);
         }

@@ -10,7 +10,11 @@ const ajouterMembre = (req: Request, res: Response) => {
           (req as any).io.emit("ajouterMembre", result)
             res.status(200).send({ status: 1, data: result });
         })
-        .catch((error: any) => res.status(400).send({ status: 0, error }));
+        .catch((error: any) => res.status(400).send({
+            status: 0,
+            error,
+            message: error?.message || 'Erreur lors de la creation du membre',
+        }));
 };
 
 /**
@@ -28,9 +32,6 @@ const recupMembre = (req: Request, res: Response) => {
 
 const supprimerMembre = (req: Request, res: Response) => {
     const { idMembre, idUtilisateur } = req.body
-    if (!idUtilisateur) {
-      return res.status(400).send({ status: 0, error: 'idUtilisateur requis' })
-    }
     services
       .supprimerMembre(idMembre, idUtilisateur)
       .then((result: any) => {
@@ -74,3 +75,4 @@ export default {
     modifierMembre,
     recupMembreByIdUtilsateur
 }
+

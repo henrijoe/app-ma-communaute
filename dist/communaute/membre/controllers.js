@@ -13,7 +13,11 @@ const ajouterMembre = (req, res) => {
         req.io.emit("ajouterMembre", result);
         res.status(200).send({ status: 1, data: result });
     })
-        .catch((error) => res.status(400).send({ status: 0, error }));
+        .catch((error) => res.status(400).send({
+        status: 0,
+        error,
+        message: (error === null || error === void 0 ? void 0 : error.message) || 'Erreur lors de la creation du membre',
+    }));
 };
 /**
  * Récupérer un membre
@@ -29,9 +33,6 @@ const recupMembre = (req, res) => {
 };
 const supprimerMembre = (req, res) => {
     const { idMembre, idUtilisateur } = req.body;
-    if (!idUtilisateur) {
-        return res.status(400).send({ status: 0, error: 'idUtilisateur requis' });
-    }
     services_1.default
         .supprimerMembre(idMembre, idUtilisateur)
         .then((result) => {

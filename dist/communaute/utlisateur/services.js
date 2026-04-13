@@ -29,7 +29,7 @@ Permet d'ajouter un utilisateur
  * @returns
  */
 const ajouterUtilisateur = (data) => {
-    console.log("🚀 ~ file: services.ts:13 ~ ajouterUtilisateur ~ data:", data);
+    console.log("ajouterUtilisateur data:", data);
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             // Initialise la licence locale des la creation d'un compte pour demarrer le compteur de 40 jours.
@@ -82,7 +82,7 @@ const supprimerUtilisateur = (idUtilisateur) => {
                     resolve(true);
                 }
                 else {
-                    return reject('utilisateur non trouvé');
+                    return reject('utilisateur non trouvÃ©');
                 }
             }
         }
@@ -106,60 +106,60 @@ const modifierUtilisateur = (data) => {
 //   const connexionUtilisateur = (nomUtilisateur: string, motDePasse: string) => {
 //     return new Promise(async (resolve, reject) => {
 //       try {
-//         // Récupérer l'utilisateur par son nom d'utilisateur depuis la base de données
+//         // RÃ©cupÃ©rer l'utilisateur par son nom d'utilisateur depuis la base de donnÃ©es
 //         const utilisateur = await _selectSql(`SELECT * FROM utilisateur WHERE nomUtilisateur = ?`, [nomUtilisateur]);
-//         // Vérifier si l'utilisateur existe et si le mot de passe est valide
+//         // VÃ©rifier si l'utilisateur existe et si le mot de passe est valide
 //         if (utilisateur && utilisateur.length > 0) {
 //           const isValidPassword = await bcrypt.compare(motDePasse, utilisateur[0].password);
 //           if (isValidPassword) {
-//             resolve(utilisateur[0]); // Renvoyer l'utilisateur s'il est authentifié avec succès
+//             resolve(utilisateur[0]); // Renvoyer l'utilisateur s'il est authentifiÃ© avec succÃ¨s
 //           } else {
 //             reject('Mot de passe incorrect'); // Renvoyer une erreur si le mot de passe est incorrect
 //           }
 //         } else {
-//           reject('Utilisateur non trouvé'); // Renvoyer une erreur si l'utilisateur n'est pas trouvé
+//           reject('Utilisateur non trouvÃ©'); // Renvoyer une erreur si l'utilisateur n'est pas trouvÃ©
 //         }
 //       } catch (error) {
-//         reject(error); // Renvoyer une erreur en cas d'échec de la requête SQL
+//         reject(error); // Renvoyer une erreur en cas d'Ã©chec de la requÃªte SQL
 //       }
 //     });
 //   };
 // // 
 // const connexionUtilisateur = async (nomUtilisateur: string, motDePasse: string) => {
 //   try {
-//       // Utilisez des paramètres sécurisés dans la requête SQL
+//       // Utilisez des paramÃ¨tres sÃ©curisÃ©s dans la requÃªte SQL
 //       const utilisateur = await _selectSql(`SELECT * FROM utilisateur WHERE nomUtilisateur = ?`, [nomUtilisateur]);
-//       // Gérez le cas où l'utilisateur n'est pas trouvé
+//       // GÃ©rez le cas oÃ¹ l'utilisateur n'est pas trouvÃ©
 //       if (!utilisateur || utilisateur.length === 0) {
-//           throw new Error('Utilisateur non trouvé');
+//           throw new Error('Utilisateur non trouvÃ©');
 //       }
-//       // Vérifiez le mot de passe en utilisant bcrypt.compare
+//       // VÃ©rifiez le mot de passe en utilisant bcrypt.compare
 //       const isValidPassword = await bcrypt.compare(motDePasse, utilisateur[0].password);
-//       console.log("🚀 ~ connexionUtilisateur ~ isValidPassword:", isValidPassword)
-//       // Renvoyez l'utilisateur s'il est authentifié avec succès
+//       console.log("connexionUtilisateur isValidPassword:", isValidPassword)
+//       // Renvoyez l'utilisateur s'il est authentifiÃ© avec succÃ¨s
 //       if (isValidPassword) {
 //           return utilisateur[0];
 //       } else {
 //           throw new Error('Mot de passe incorrect');
 //       }
 //   } catch (error) {
-//       // Gérez les erreurs et renvoyez des messages d'erreur appropriés
+//       // GÃ©rez les erreurs et renvoyez des messages d'erreur appropriÃ©s
 //       throw new Error(`Erreur lors de la connexion de l'utilisateur : ${error.message}`);
 //   }
 // };
 const connexionUtilisateur = (nomUtilisateur, motDePasse) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Utilisez des paramètres sécurisés dans la requête SQL
+        // Utilisez des paramÃ¨tres sÃ©curisÃ©s dans la requÃªte SQL
         const utilisateur = yield (0, db_1._selectSql)(`SELECT * FROM utilisateur WHERE nomUtilisateur = ?`, [nomUtilisateur]);
-        // console.log("🚀 ~ connexionUtilisateur ~ utilisateur+++++:", utilisateur)
-        // Gérez le cas où l'utilisateur n'est pas trouvé
+        // console.log("connexionUtilisateur utilisateur:", utilisateur)
+        // GÃ©rez le cas oÃ¹ l'utilisateur n'est pas trouvÃ©
         if (!utilisateur || utilisateur.length === 0) {
-            throw new Error('Utilisateur non trouvé');
+            throw new Error('Utilisateur non trouvÃ©');
         }
-        // Vérifiez le mot de passe en utilisant bcrypt.compare
+        // VÃ©rifiez le mot de passe en utilisant bcrypt.compare
         const isValidPassword = yield bcrypt.compare(motDePasse, utilisateur[0].password);
-        console.log("🚀 ~ connexionUtilisateur ~ isValidPassword-----:", isValidPassword);
-        // Renvoyez l'utilisateur s'il est authentifié avec succès
+        console.log("connexionUtilisateur isValidPassword:", isValidPassword);
+        // Renvoyez l'utilisateur s'il est authentifiÃ© avec succÃ¨s
         if (!isValidPassword) {
             return utilisateur[0];
         }
@@ -168,7 +168,7 @@ const connexionUtilisateur = (nomUtilisateur, motDePasse) => __awaiter(void 0, v
         }
     }
     catch (error) {
-        // Gérez les erreurs et renvoyez des messages d'erreur appropriés
+        // GÃ©rez les erreurs et renvoyez des messages d'erreur appropriÃ©s
         throw new Error(`Erreur lors de la connexion de l'utilisateur : ${error.message}`);
     }
 });
@@ -206,7 +206,7 @@ const login = (data) => {
             const utilisateur = yield functions_1.default.login(data);
             // const personnel = await functions.recupUtilisateurById(utilisateur.idUtilisateur)
             const res = Object.assign({}, utilisateur);
-            // console.log("🚀 ~ returnnewPromise ~ res:", res)
+            // console.log("returnnewPromise res:", res)
             resolve(res);
         }
         catch (error) {
@@ -231,16 +231,16 @@ const creerBaseSqlite = (data) => {
 const modifierMotDePasse = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            // console.log("🚀 ~ file: services.ts:93 ~ data", data.idUtilisateur)
+            // console.log("services data", data.idUtilisateur)
             const utilisateur = yield functions_1.default.recupUtilisateurById(data.idUtilisateur);
-            // console.log("🚀 ~ file: services.ts:108 ~ returnnewPromise ~ utilisateur", utilisateur)
+            // console.log("returnnewPromise utilisateur", utilisateur)
             if (!utilisateur) {
                 return reject({ message: "Une erreur s'est produite" });
             }
             // const mdpInitial = generatePassword(6, false);
             // const mdp = bcrypt.hashSync(mdpInitial.trim(), 12);
             const res = yield functions_1.default.modifierLogin(data.idUtilisateur, data.nomUtilisateur, data.confirmPassword);
-            // console.log("🚀 ~ file: services.ts:117 ~ returnnewPromise ~ res", res)
+            // console.log("returnnewPromise res", res)
             if (res) {
                 const resultat = yield functions_1.default.recupUtilisateurById(data.idUtilisateur);
                 resolve(resultat[0]);

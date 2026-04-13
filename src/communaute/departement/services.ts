@@ -1,4 +1,4 @@
-﻿import functions from "./functions";
+import functions from "./functions";
 import { IDepartement, } from "./interfaces";
 import functions_utilisateur from "../utlisateur/functions";
 
@@ -35,7 +35,7 @@ const recupDepartementByIdUtilsateur = (idUtilisateur: any) => {
           const departementByUtilisateur = await functions.recupDepartementByIdUtilsateur(idUtilisateur)
           resolve(departementByUtilisateur)
       } catch (error) {
-          console.log("ðŸš€ ~ file: services.ts:830 ~ returnnewPromise ~ error:", error)
+          console.log("Erreur service departement :", error)
           reject(error);
       }
   });

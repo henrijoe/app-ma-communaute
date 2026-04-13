@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Client :  localhost
--- Généré le :  Mar 17 Mars 2026 à 12:26
+-- GÃ©nÃ©rÃ© le :  Mar 17 Mars 2026 Ã  12:26
 -- Version du serveur :  5.7.11
 -- Version de PHP :  5.6.18
 
@@ -17,7 +17,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Base de données :  `ma-communaute`
+-- Base de donnÃ©es :  `ma-communaute`
 --
 
 -- --------------------------------------------------------
@@ -45,9 +45,9 @@ INSERT INTO `cellule` (`idCellule`, `nomCellule`, `lieuCellule`, `nombreMembreCe
 (2, 'Morijah', 'ANDOKOI MARCHE', 23, NULL, NULL, 1),
 (3, 'Aser A', 'Andokoi Zompleu', 16, 'Dah Iyorka rose', NULL, 1),
 (4, 'Siloe', 'Zone Eglise', 20, NULL, NULL, 1),
-(5, 'Carmel', 'Andokoi Derriere Marché', 12, NULL, NULL, 1),
+(5, 'Carmel', 'Andokoi Derriere MarchÃ©', 12, NULL, NULL, 1),
 (6, 'El Kaboth', 'Andokopi Cheveaux', 22, NULL, NULL, 1),
-(8, 'Reoboth', 'Cité Ado', 10, 'DIOKRI HENRI JOEL', 'Henri joel', 1);
+(8, 'Reoboth', 'CitÃ© Ado', 10, 'DIOKRI HENRI JOEL', 'Henri joel', 1);
 
 -- --------------------------------------------------------
 
@@ -106,9 +106,9 @@ CREATE TABLE `culte` (
 --
 
 INSERT INTO `culte` (`idCulte`, `typeCulte`, `dateCulte`, `dirigeant`, `predication`, `passageBiblique`, `themePredication`, `nombreHommeCulte`, `nombreFemmeCulte`, `offrandeCulte`, `ecodim`, `filleEcodim`, `offrandeEcodim`, `resumePredication`, `idUtilisateur`) VALUES
-(1, '3', '2026-01-17', 'Respo komoe', 'Past Honoré', 'jean 6v6', 'La Patience', '41', '23', '120000', '53', '48', '25000', 'jbhghjijibbbbbbbbbbbbbb k k nk', NULL),
-(2, '4', '2026-02-01', 'Respo Assi', 'Pasteur Troh', 'Romains 8 v 22', 'Sois un modèle de consécration', '55', '45', NULL, '100', '', NULL, 'JHJGHBEHFEBFHRBGRNGNRJGNTNTJN', NULL),
-(3, '4', '2026-02-18', 'Respo komoe', 'Ancien ZOE', 'Ephésien 6 v 10', 'La FOI', '45', '29', '15000', '', '', '', '', NULL),
+(1, '3', '2026-01-17', 'Respo komoe', 'Past HonorÃ©', 'jean 6v6', 'La Patience', '41', '23', '120000', '53', '48', '25000', 'jbhghjijibbbbbbbbbbbbbb k k nk', NULL),
+(2, '4', '2026-02-01', 'Respo Assi', 'Pasteur Troh', 'Romains 8 v 22', 'Sois un modÃ¨le de consÃ©cration', '55', '45', NULL, '100', '', NULL, 'JHJGHBEHFEBFHRBGRNGNRJGNTNTJN', NULL),
+(3, '4', '2026-02-18', 'Respo komoe', 'Ancien ZOE', 'EphÃ©sien 6 v 10', 'La FOI', '45', '29', '15000', '', '', '', '', NULL),
 (4, '5', '2026-02-20', 'Respo komoe', 'Ancien ZOE', 'Romains 8 v 22', 'L\'AMOUR', '145', '250', '10000', '45', '62', '14000', '', NULL);
 
 -- --------------------------------------------------------
@@ -119,6 +119,7 @@ INSERT INTO `culte` (`idCulte`, `typeCulte`, `dateCulte`, `dirigeant`, `predicat
 
 CREATE TABLE `deces` (
   `idDeces` int(11) NOT NULL,
+  `idMembre` int(11) DEFAULT NULL,
   `nomMembreDeces` varchar(100) DEFAULT NULL,
   `dateDeces` varchar(255) DEFAULT NULL,
   `lieuDeces` varchar(255) DEFAULT NULL,
@@ -130,8 +131,8 @@ CREATE TABLE `deces` (
 -- Contenu de la table `deces`
 --
 
-INSERT INTO `deces` (`idDeces`, `nomMembreDeces`, `dateDeces`, `lieuDeces`, `causeDeces`, `idUtilisateur`) VALUES
-(1, 'N\'dri narcisse', '2024-06-12', 'CHU', 'Arrêt cardiaque automatique', 1);
+INSERT INTO `deces` (`idDeces`, `idMembre`, `nomMembreDeces`, `dateDeces`, `lieuDeces`, `causeDeces`, `idUtilisateur`) VALUES
+(1, NULL, 'N\'dri narcisse', '2024-06-12', 'CHU', 'ArrÃªt cardiaque automatique', 1);
 
 -- --------------------------------------------------------
 
@@ -153,12 +154,12 @@ CREATE TABLE `departement` (
 --
 
 INSERT INTO `departement` (`idDepartement`, `libelleLongDepartement`, `libelleCourtDepartement`, `sloganDepartement`, `responsableDepartement`, `idUtilisateur`) VALUES
-(1, 'Action des Ouvrière du Christ', 'AOC', 'AOC TOUJOURS FORT,AOC TOUJOURS CONQUERANTE', 'Moni kouka', 1),
-(6, 'Jeunesse des Assemblées de Dieu de Côte d\'Ivoire', 'JADCI', 'Christ est merveilleux, alleluiaaa ', 'Jean François', 1),
-(9, 'Departement Enfant des Assemblées de Dieu', 'DEEADCI', 'L\'enfant, l\'église de demain', 'Diokri henri joel', 1),
+(1, 'Action des OuvriÃ¨re du Christ', 'AOC', 'AOC TOUJOURS FORT,AOC TOUJOURS CONQUERANTE', 'Moni kouka', 1),
+(6, 'Jeunesse des AssemblÃ©es de Dieu de CÃ´te d\'Ivoire', 'JADCI', 'Christ est merveilleux, alleluiaaa ', 'Jean FranÃ§ois', 1),
+(9, 'Departement Enfant des AssemblÃ©es de Dieu', 'DEEADCI', 'L\'enfant, l\'Ã©glise de demain', 'Diokri henri joel', 1),
 (10, 'Hommes ACTIFS POUR CHRIST', 'HACH', 'Hommes pour Jesus', 'ARNAUD', 1),
-(11, 'ACCUEIL', 'AC', 'Bien reçevoir', 'Togon serge', 1),
-(12, 'TEMOIN ET CONSEILLER', 'TC', 'Accompagner jusqu\'au bâptème', 'Respo kouka', 1);
+(11, 'ACCUEIL', 'AC', 'Bien reÃ§evoir', 'Togon serge', 1),
+(12, 'TEMOIN ET CONSEILLER', 'TC', 'Accompagner jusqu\'au bÃ¢ptÃ¨me', 'Respo kouka', 1);
 
 -- --------------------------------------------------------
 
@@ -177,7 +178,7 @@ CREATE TABLE `domaine_activite` (
 
 INSERT INTO `domaine_activite` (`idDomaineActivite`, `libelleDomaineActivite`) VALUES
 (1, 'Professeur'),
-(2, 'Mécanicien'),
+(2, 'MÃ©canicien'),
 (3, 'couturier'),
 (4, 'Informaticien'),
 (6, 'Menusieur'),
@@ -202,7 +203,7 @@ CREATE TABLE `eglise` (
 --
 
 INSERT INTO `eglise` (`idEglise`, `nomEglise`, `idComptabilite`, `idUtilisateur`) VALUES
-(1, 'Assemblée de Dieu Andokoi Péniel', 1, 1),
+(1, 'AssemblÃ©e de Dieu Andokoi PÃ©niel', 1, 1),
 (2, 'Catholique', 2, 1);
 
 -- --------------------------------------------------------
@@ -224,13 +225,35 @@ CREATE TABLE `groupe` (
 --
 
 INSERT INTO `groupe` (`idGroupe`, `libelleGroupe`, `descriptionGroupe`, `responsableGroupe`, `idUtilisateur`) VALUES
-(1, 'BAOULE', 'GROUPE BAOULE', 'Tanella Tryphène', 1),
+(1, 'BAOULE', 'GROUPE BAOULE', 'Tanella TryphÃ¨ne', 1),
 (2, 'BETE', 'GROUPE BETE', NULL, 1),
 (3, 'DIDA', 'GROUPE DIDA', NULL, 1),
 (4, 'BAOULE', 'GROUPE BAOULE', NULL, 1),
 (5, 'AVICKAM', 'GROUPE AVICKAME', 'Offo Aya Benedicte', 1),
 (7, 'ATTIE', 'GROUPE ATTIE', 'DIOKRI HENRI JOEL', NULL);
 
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `maladie`
+--
+
+CREATE TABLE `maladie` (
+  `idMaladie` int(11) NOT NULL,
+  `nomMembreMaladie` varchar(100) DEFAULT NULL,
+  `typeMaladie` varchar(255) DEFAULT NULL,
+  `dateMaladie` varchar(255) DEFAULT NULL,
+  `lieuHospitalisation` varchar(255) DEFAULT NULL,
+  `observationMaladie` varchar(255) DEFAULT NULL,
+  `idUtilisateur` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Contenu de la table `maladie`
+--
+
+INSERT INTO `maladie` (`idMaladie`, `nomMembreMaladie`, `typeMaladie`, `dateMaladie`, `lieuHospitalisation`, `observationMaladie`, `idUtilisateur`) VALUES
+(1, 'Membre exemple', 'Hospitalisation', '2026-03-01', 'CHU', 'Suivi pastoral en cours', 1);
 -- --------------------------------------------------------
 
 --
@@ -303,6 +326,8 @@ CREATE TABLE `membre` (
   `idDepartement` int(11) DEFAULT NULL,
   `idGroupe` int(11) DEFAULT NULL,
   `idResponsabilite` int(11) DEFAULT NULL,
+  `estDecede` int(11) DEFAULT 0,
+  `dateDecesMembre` varchar(255) DEFAULT NULL,
   `idUtilisateur` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -310,8 +335,8 @@ CREATE TABLE `membre` (
 -- Contenu de la table `membre`
 --
 
-INSERT INTO `membre` (`idMembre`, `nomMembre`, `prenomMembre`, `dateNaissMembre`, `lieuNaissMembre`, `sexeMembre`, `emailMembre`, `nationaliteMembre`, `fonctionMembre`, `contactMembre`, `ethnieMembre`, `residenceMembre`, `civiliteMembre`, `nouvelleAmeMembre`, `dateConversionMembre`, `baptemeEauMembre`, `dateBaptemeMembre`, `dateMariageMembre`, `capaciteSpirituelleMembre`, `situationMatrimonialeMembre`, `nomFiance`, `photoMembre`, `lieuBaptemeEauMembre`, `baptemeSaintEspritMembre`, `dateBaptemeSaintEspritMembre`, `egliseOrigineMembre`, `nomAmiEglise`, `visiteMembre`, `raisonNonVisiteMembre`, `heureVisiteMembre`, `dateDecisionMembre`, `lieuTravailMembre`, `idNiveauEtude`, `idEglise`, `idCellule`, `idDepartement`, `idGroupe`, `idResponsabilite`, `idUtilisateur`) VALUES
-(19, 'Seri', 'Ange', '1990-05-11', 'Divo', '1', 'seriange@gmail.com', 'IVOIRIENNE', 'Infographe', '0564178820', 'Bété', 'Micao', '', '1', '2026-02-04', NULL, NULL, NULL, NULL, '1', '', 'membre_19.jpg', '', NULL, NULL, 'AD ', 'kouame', '1', 'Mes parents ne veulent pas', '03:13', NULL, 'Bouafle', 2, NULL, 1, 6, 2, NULL, 1);
+INSERT INTO `membre` (`idMembre`, `nomMembre`, `prenomMembre`, `dateNaissMembre`, `lieuNaissMembre`, `sexeMembre`, `emailMembre`, `nationaliteMembre`, `fonctionMembre`, `contactMembre`, `ethnieMembre`, `residenceMembre`, `civiliteMembre`, `nouvelleAmeMembre`, `dateConversionMembre`, `baptemeEauMembre`, `dateBaptemeMembre`, `dateMariageMembre`, `capaciteSpirituelleMembre`, `situationMatrimonialeMembre`, `nomFiance`, `photoMembre`, `lieuBaptemeEauMembre`, `baptemeSaintEspritMembre`, `dateBaptemeSaintEspritMembre`, `egliseOrigineMembre`, `nomAmiEglise`, `visiteMembre`, `raisonNonVisiteMembre`, `heureVisiteMembre`, `dateDecisionMembre`, `lieuTravailMembre`, `idNiveauEtude`, `idEglise`, `idCellule`, `idDepartement`, `idGroupe`, `idResponsabilite`, `estDecede`, `dateDecesMembre`, `idUtilisateur`) VALUES
+(19, 'Seri', 'Ange', '1990-05-11', 'Divo', '1', 'seriange@gmail.com', 'IVOIRIENNE', 'Infographe', '0564178820', 'BÃ©tÃ©', 'Micao', '', '1', '2026-02-04', NULL, NULL, NULL, NULL, '1', '', 'membre_19.jpg', '', NULL, NULL, 'AD ', 'kouame', '1', 'Mes parents ne veulent pas', '03:13', NULL, 'Bouafle', 2, NULL, 1, 6, 2, NULL, 0, NULL, 1);
 
 -- --------------------------------------------------------
 
@@ -353,9 +378,9 @@ CREATE TABLE `niveau_etude` (
 
 INSERT INTO `niveau_etude` (`idNiveauEtude`, `libelleNiveauEtude`) VALUES
 (1, 'Primaire'),
-(2, 'Collège'),
+(2, 'CollÃ¨ge'),
 (3, 'BEPC'),
-(4, 'Lycée'),
+(4, 'LycÃ©e'),
 (5, 'BAC'),
 (6, 'Bac+1'),
 (7, 'Bac+2'),
@@ -385,10 +410,10 @@ CREATE TABLE `questions` (
 --
 
 INSERT INTO `questions` (`idQuestion`, `question`, `options`, `correctOption`, `niveau`, `idEglise`) VALUES
-(1, 'Donner la signification de EEADCI', '["Eglise des Evangiles des Assemblées de Dieu de Dieu de Côte d\'Ivoire", "Eglise Evangélique des Assemblées de Dieu de Côte d\'Ivoire", "Eglise Evangéliste Assemblées de Dieu de Côte d\'Ivoire"]', 'Eglise Evangélique des Assemblées de Dieu de Côte d\'Ivoire', 'facile', 1),
-(2, 'Donner la signification de EEADCI', '["Eglise des Evangiles des Assemblées de Dieu de Dieu de Côte d\'Ivoire", "Eglise Evangélique des Assemblées de Dieu de Côte d\'Ivoire", "Eglise Evangéliste Assemblées de Dieu de Côte d\'Ivoire"]', 'Eglise Evangélique des Assemblées de Dieu de Côte d\'Ivoire', 'facile', 1),
-(3, 'Donner la signification de EEADCI', '["Eglise des Evangiles des Assemblées de Dieu de Dieu de Côte d\'Ivoire", "Eglise Evangélique des Assemblées de Dieu de Côte d\'Ivoire", "Eglise Evangéliste Assemblées de Dieu de Côte d\'Ivoire"]', 'Eglise Evangélique des Assemblées de Dieu de Côte d\'Ivoire', 'facile', 1),
-(4, 'Donner la signification de EEADCI', '["Eglise des Evangiles des Assemblées de Dieu de Dieu de Côte d\'Ivoire", "Eglise Evangélique des Assemblées de Dieu de Côte d\'Ivoire", "Eglise Evangéliste Assemblées de Dieu de Côte d\'Ivoire"]', 'Eglise Evangélique des Assemblées de Dieu de Côte d\'Ivoire', 'facile', 1);
+(1, 'Donner la signification de EEADCI', '["Eglise des Evangiles des AssemblÃ©es de Dieu de Dieu de CÃ´te d\'Ivoire", "Eglise EvangÃ©lique des AssemblÃ©es de Dieu de CÃ´te d\'Ivoire", "Eglise EvangÃ©liste AssemblÃ©es de Dieu de CÃ´te d\'Ivoire"]', 'Eglise EvangÃ©lique des AssemblÃ©es de Dieu de CÃ´te d\'Ivoire', 'facile', 1),
+(2, 'Donner la signification de EEADCI', '["Eglise des Evangiles des AssemblÃ©es de Dieu de Dieu de CÃ´te d\'Ivoire", "Eglise EvangÃ©lique des AssemblÃ©es de Dieu de CÃ´te d\'Ivoire", "Eglise EvangÃ©liste AssemblÃ©es de Dieu de CÃ´te d\'Ivoire"]', 'Eglise EvangÃ©lique des AssemblÃ©es de Dieu de CÃ´te d\'Ivoire', 'facile', 1),
+(3, 'Donner la signification de EEADCI', '["Eglise des Evangiles des AssemblÃ©es de Dieu de Dieu de CÃ´te d\'Ivoire", "Eglise EvangÃ©lique des AssemblÃ©es de Dieu de CÃ´te d\'Ivoire", "Eglise EvangÃ©liste AssemblÃ©es de Dieu de CÃ´te d\'Ivoire"]', 'Eglise EvangÃ©lique des AssemblÃ©es de Dieu de CÃ´te d\'Ivoire', 'facile', 1),
+(4, 'Donner la signification de EEADCI', '["Eglise des Evangiles des AssemblÃ©es de Dieu de Dieu de CÃ´te d\'Ivoire", "Eglise EvangÃ©lique des AssemblÃ©es de Dieu de CÃ´te d\'Ivoire", "Eglise EvangÃ©liste AssemblÃ©es de Dieu de CÃ´te d\'Ivoire"]', 'Eglise EvangÃ©lique des AssemblÃ©es de Dieu de CÃ´te d\'Ivoire', 'facile', 1);
 
 -- --------------------------------------------------------
 
@@ -408,18 +433,18 @@ CREATE TABLE `responsabilite` (
 --
 
 INSERT INTO `responsabilite` (`idResponsabilite`, `libelleResponsabilite`, `descriptionResponsabilite`, `idUtilisateur`) VALUES
-(1, 'Pasteur principal', 'Prémier responsable de l\'église', 1),
-(2, 'Pasteur second', 'Deuxième responsable de l\'église', 1),
-(3, 'Pasteur', 'responsable église', 1),
+(1, 'Pasteur principal', 'PrÃ©mier responsable de l\'Ã©glise', 1),
+(2, 'Pasteur second', 'DeuxiÃ¨me responsable de l\'Ã©glise', 1),
+(3, 'Pasteur', 'responsable Ã©glise', 1),
 (4, 'Ancien', 'subtitut du pasteur', 1),
-(5, 'Diacre', 'chargé de la propriété du temple', 1),
-(6, 'Diaconesse', 'chargé de la propriété du temple', 1),
-(7, 'Responsable de cellule', 'chargé des courses', 1),
-(8, 'Responsable de departement', 'chargé de veillée sur le temple', 1),
+(5, 'Diacre', 'chargÃ© de la propriÃ©tÃ© du temple', 1),
+(6, 'Diaconesse', 'chargÃ© de la propriÃ©tÃ© du temple', 1),
+(7, 'Responsable de cellule', 'chargÃ© des courses', 1),
+(8, 'Responsable de departement', 'chargÃ© de veillÃ©e sur le temple', 1),
 (9, 'Responsable de groupe ethnique', 'premier responsable de groupe ethnique', 1),
-(10, 'Responsable AOC', 'Prémière responsable du AOC', 1),
+(10, 'Responsable AOC', 'PrÃ©miÃ¨re responsable du AOC', 1),
 (11, 'Directeur/Diretrice de l\'ECODIM', 'Premier(e) responsable ECODIM', 1),
-(12, 'Président de Jeunesse', 'premier responsable de la jeunesse', 1);
+(12, 'PrÃ©sident de Jeunesse', 'premier responsable de la jeunesse', 1);
 
 -- --------------------------------------------------------
 
@@ -484,11 +509,11 @@ CREATE TABLE `utilisateur` (
 
 INSERT INTO `utilisateur` (`idUtilisateur`, `logoUtilisateur`, `nomTemple`, `nomUtilisateur`, `prenomUtilisateur`, `telephoneUtilisateur`, `password`, `confirmPassword`, `email`) VALUES
 (1, '', 'EEAD YABAYO', 'Henri', 'Joel', '0102030405', 'aa', '$2b$20$JWgvBof.ocjQS3Bwfr0cB.ZjnP1iKMjXQkB0r93RC9kiuEOeuxQ7u', 'joel@gmail.com'),
-(11, NULL, 'EGLISE EVANGELIQUE DES ASSEMBLEES DE DIEU ANDOKOI PENIEL', 'Tanella', 'Tryphène', '0102034566', 'cc', '$2b$20$YW4LCaajyaANWa9YtRVvQOH7kXCaz848MSHks.TuKQwOkaQmdqaBm', 'tryphe@gmail.com'),
+(11, NULL, 'EGLISE EVANGELIQUE DES ASSEMBLEES DE DIEU ANDOKOI PENIEL', 'Tanella', 'TryphÃ¨ne', '0102034566', 'cc', '$2b$20$YW4LCaajyaANWa9YtRVvQOH7kXCaz848MSHks.TuKQwOkaQmdqaBm', 'tryphe@gmail.com'),
 (12, NULL, 'EGLISE EVANGELIQUE DES ASSEMBLEES DE DIEU ANDOKOI PENIEL', 'KOUAME', 'ANGE', '0102030617', '0102030617', '$2b$20$KeDF4JJHSODI2LAQ0fDy.eccT07yyXdR6RO0s4Kj9Lv9i4iqSkKYu', 'kouame@gmail.com');
 
 --
--- Index pour les tables exportées
+-- Index pour les tables exportÃ©es
 --
 
 --
@@ -628,7 +653,7 @@ ALTER TABLE `utilisateur`
   ADD PRIMARY KEY (`idUtilisateur`);
 
 --
--- AUTO_INCREMENT pour les tables exportées
+-- AUTO_INCREMENT pour les tables exportÃ©es
 --
 
 --
@@ -707,7 +732,7 @@ ALTER TABLE `responsabilite`
 ALTER TABLE `utilisateur`
   MODIFY `idUtilisateur` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 --
--- Contraintes pour les tables exportées
+-- Contraintes pour les tables exportÃ©es
 --
 
 --
@@ -818,3 +843,70 @@ ALTER TABLE `responsable_groupe`
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `galerie`
+--
+
+CREATE TABLE `galerie` (
+  `idGalerie` int(11) NOT NULL,
+  `titreGalerie` varchar(255) DEFAULT NULL,
+  `typeEvenement` varchar(150) DEFAULT NULL,
+  `dateEvenement` varchar(100) DEFAULT NULL,
+  `lieuEvenement` varchar(255) DEFAULT NULL,
+  `descriptionGalerie` text,
+  `couvertureGalerie` varchar(255) DEFAULT NULL,
+  `dossierGalerie` varchar(255) DEFAULT NULL,
+  `dateCreation` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `idUtilisateur` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `galerie_image`
+--
+
+CREATE TABLE `galerie_image` (
+  `idGalerieImage` int(11) NOT NULL,
+  `idGalerie` int(11) NOT NULL,
+  `nomFichier` varchar(255) DEFAULT NULL,
+  `cheminImage` varchar(255) DEFAULT NULL,
+  `tailleImage` int(11) DEFAULT NULL,
+  `typeMime` varchar(120) DEFAULT NULL,
+  `legendeImage` varchar(255) DEFAULT NULL,
+  `dateAjout` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `idUtilisateur` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE `galerie`
+  ADD PRIMARY KEY (`idGalerie`),
+  ADD KEY `idUtilisateur` (`idUtilisateur`);
+
+ALTER TABLE `galerie_image`
+  ADD PRIMARY KEY (`idGalerieImage`),
+  ADD KEY `idGalerie` (`idGalerie`),
+  ADD KEY `idUtilisateur` (`idUtilisateur`);
+
+CREATE TABLE IF NOT EXISTS agenda (
+  idAgenda INTEGER PRIMARY KEY AUTOINCREMENT,
+  titreAgenda TEXT NOT NULL,
+  typeAgenda TEXT NOT NULL,
+  dateAgenda TEXT,
+  heureDebutAgenda TEXT,
+  heureFinAgenda TEXT,
+  lieuAgenda TEXT,
+  descriptionAgenda TEXT,
+  couleurAgenda TEXT DEFAULT '#0ea5e9',
+  statutAgenda TEXT DEFAULT 'Programme',
+  idUtilisateur INTEGER NOT NULL,
+  dateCreation DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (idUtilisateur) REFERENCES utilisateur(idUtilisateur) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_agenda_utilisateur ON agenda (idUtilisateur);
+CREATE INDEX IF NOT EXISTS idx_agenda_date ON agenda (dateAgenda);

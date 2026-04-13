@@ -1,4 +1,4 @@
-﻿import { Request, Response, Errback } from "express";
+import { Request, Response, Errback } from "express";
 import services from "./services";
 
 
@@ -61,7 +61,7 @@ const supprimerDepartement = (req: Request, res: Response) => {
   
 const modifierDepartement = (req: Request, res: Response) => {
     const data = req.body
-    // console.log("ðŸš€ ~ modifierDepartement ~ data:", data)
+    // console.log("modifierDepartement data:", data)
     services
       .modifierDepartement(data)
       .then((result: any) => {

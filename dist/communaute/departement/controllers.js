@@ -61,7 +61,7 @@ const supprimerDepartement = (req, res) => {
 };
 const modifierDepartement = (req, res) => {
     const data = req.body;
-    // console.log("ðŸš€ ~ modifierDepartement ~ data:", data)
+    // console.log("modifierDepartement data:", data)
     services_1.default
         .modifierDepartement(data)
         .then((result) => {

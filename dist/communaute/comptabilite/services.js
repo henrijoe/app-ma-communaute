@@ -13,60 +13,57 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions_1 = __importDefault(require("./functions"));
-/**
- *
-Permet d'ajouter une comptabilite
- * @returns
- */
-const ajouterComptablilite = (data) => {
-    return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
-        try {
-            const comptabiliteId = yield functions_1.default.ajouterComptablilite(Object.assign({}, data));
-            const comptabilite = yield functions_1.default.recupComptabiliteById(comptabiliteId);
-            console.log("🚀 ~ file: services.ts:14 ~ returnnewPromise ~ comptabilite:", comptabilite);
-            resolve(comptabilite);
-        }
-        catch (error) {
-            reject(error);
-        }
-    }));
-};
-const recupComptabilite = () => {
-    return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
-        try {
-            const comptabilites = yield functions_1.default.recupComptabilite();
-            resolve(comptabilites);
-        }
-        catch (error) {
-            reject(error);
-        }
-    }));
-};
-const supprimerComptabilite = (idComptabilite) => {
-    return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
-        try {
-            yield functions_1.default.supprimerComptabilite(idComptabilite);
-            resolve({ idCellule: idComptabilite });
-        }
-        catch (error) {
-            reject(error);
-        }
-    }));
-};
-const modifierComptabilite = (data) => {
-    return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
-        try {
-            yield functions_1.default.modifierComptabilite(data);
-            resolve(data);
-        }
-        catch (error) {
-            reject(error);
-        }
-    }));
-};
+const ajouterComptablilite = (data) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const comptabiliteId = yield functions_1.default.ajouterComptablilite(Object.assign({}, data));
+        const comptabilite = yield functions_1.default.recupComptabiliteById(comptabiliteId);
+        resolve(comptabilite);
+    }
+    catch (error) {
+        reject(error);
+    }
+}));
+const recupComptabilite = () => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const comptabilites = yield functions_1.default.recupComptabilite();
+        resolve(comptabilites);
+    }
+    catch (error) {
+        reject(error);
+    }
+}));
+const recupComptabiliteByUtilisateur = (idUtilisateur) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const comptabilites = yield functions_1.default.recupComptabiliteByUtilisateur(idUtilisateur);
+        resolve(comptabilites);
+    }
+    catch (error) {
+        reject(error);
+    }
+}));
+const supprimerComptabilite = (idComptabilite) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield functions_1.default.supprimerComptabilite(idComptabilite);
+        resolve({ idComptabilite });
+    }
+    catch (error) {
+        reject(error);
+    }
+}));
+const modifierComptabilite = (data) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield functions_1.default.modifierComptabilite(data);
+        const comptabilite = yield functions_1.default.recupComptabiliteById(data.idComptabilite);
+        resolve(comptabilite);
+    }
+    catch (error) {
+        reject(error);
+    }
+}));
 exports.default = {
     ajouterComptablilite,
     recupComptabilite,
+    recupComptabiliteByUtilisateur,
     supprimerComptabilite,
     modifierComptabilite,
 };

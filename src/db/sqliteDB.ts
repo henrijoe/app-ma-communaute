@@ -1,4 +1,4 @@
-import fs from "fs";
+﻿import fs from "fs";
 import path from "path";
 import sqlite3 from "sqlite3";
 
@@ -6,6 +6,7 @@ const DEFAULT_SQLITE_DIR = process.env.SQLITE_DB_DIR || "C:\\base-communaute";
 const ACTIVE_DB_FILE = path.join(DEFAULT_SQLITE_DIR, ".active-db.json");
 const DEFAULT_SQLITE_FILE = path.join(DEFAULT_SQLITE_DIR, "ma-communaute-local.db");
 const TEMPLATE_PATH = path.resolve(__dirname, "../../templates/ma-communaute.sql");
+const preparedSqliteDatabases = new Set<string>();
 
 type PrimaryKeyMap = Record<string, string[]>;
 
@@ -221,15 +222,21 @@ const convertMysqlDumpToSqliteStatements = (
   const indexes = extractIndexes(sanitizedDump);
   const createStatements = [...sanitizedDump.matchAll(/CREATE TABLE[\s\S]*?ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;/g)]
     .map((match) => convertCreateTableStatement(match[0], primaryKeys));
+  const sqliteNativeCreateStatements = [...sanitizedDump.matchAll(/CREATE TABLE IF NOT EXISTS[\s\S]*?;/gi)]
+    .map((match) => match[0].trim());
   const seedStatements = [...sanitizedDump.matchAll(/INSERT INTO[\s\S]*?;/g)]
     .map((match) => convertInsertStatement(match[0]));
   const indexStatements = indexes.map((index) => `CREATE INDEX IF NOT EXISTS "${index.indexName}" ON "${index.tableName}" (${index.columns.map((column) => `"${column}"`).join(", ")});`);
+  const sqliteNativeIndexStatements = [...sanitizedDump.matchAll(/CREATE INDEX IF NOT EXISTS[\s\S]*?;/gi)]
+    .map((match) => match[0].trim());
 
   return {
     schemaStatements: [
       "PRAGMA foreign_keys = OFF;",
       ...createStatements,
+      ...sqliteNativeCreateStatements,
       ...indexStatements,
+      ...sqliteNativeIndexStatements,
       "PRAGMA foreign_keys = ON;",
     ],
     seedStatements,
@@ -309,6 +316,165 @@ const executeStatements = (
   });
 });
 
+type SqliteTableInfoRow = {
+  name: string;
+  pk: number;
+  type: string;
+};
+
+const queryDatabase = (database: sqlite3.Database, sql: string): Promise<any[]> => new Promise((resolve, reject) => {
+  database.all(sql, (error, rows) => {
+    if (error) {
+      reject(error);
+      return;
+    }
+
+    resolve(rows || []);
+  });
+});
+
+const execDatabase = (database: sqlite3.Database, sql: string): Promise<void> => new Promise((resolve, reject) => {
+  database.exec(sql, (error) => {
+    if (error) {
+      reject(error);
+      return;
+    }
+
+    resolve();
+  });
+});
+
+const hasBrokenAutoIncrementPrimaryKey = async (
+  database: sqlite3.Database,
+  tableName: string,
+  primaryKeyName: string
+): Promise<boolean> => {
+  const rows = await queryDatabase(database, `PRAGMA table_info("${tableName}")`) as SqliteTableInfoRow[];
+  if (rows.length === 0) {
+    return false;
+  }
+
+  const primaryKeyRow = rows.find((row) => row.name === primaryKeyName);
+  if (!primaryKeyRow) {
+    return true;
+  }
+
+  return primaryKeyRow.pk != 1 || primaryKeyRow.type.toUpperCase() != "INTEGER";
+};
+
+const ensureColumnExists = async (
+  database: sqlite3.Database,
+  tableName: string,
+  columnName: string,
+  definition: string
+): Promise<void> => {
+  const rows = await queryDatabase(database, `PRAGMA table_info("${tableName}")`) as SqliteTableInfoRow[];
+  if (rows.some((row) => row.name === columnName)) {
+    return;
+  }
+
+  await execDatabase(database, `ALTER TABLE "${tableName}" ADD COLUMN "${columnName}" ${definition};`);
+};
+
+const ensureMembreAndDecesColumns = async (database: sqlite3.Database): Promise<void> => {
+  await ensureColumnExists(database, 'membre', 'estDecede', 'INTEGER DEFAULT 0');
+  await ensureColumnExists(database, 'membre', 'dateDecesMembre', 'TEXT');
+  await ensureColumnExists(database, 'deces', 'idMembre', 'INTEGER');
+  await execDatabase(database, 'UPDATE "membre" SET "estDecede" = 0 WHERE "estDecede" IS NULL;');
+};
+
+const repairBrokenGalerieTables = async (database: sqlite3.Database): Promise<void> => {
+  const galerieBroken = await hasBrokenAutoIncrementPrimaryKey(database, "galerie", "idGalerie");
+  if (galerieBroken) {
+    await execDatabase(database, `
+      DROP TABLE IF EXISTS "__galerie_repair";
+      CREATE TABLE "__galerie_repair" (
+        "idGalerie" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "titreGalerie" TEXT,
+        "typeEvenement" TEXT,
+        "dateEvenement" TEXT,
+        "lieuEvenement" TEXT,
+        "descriptionGalerie" TEXT,
+        "couvertureGalerie" TEXT,
+        "dossierGalerie" TEXT,
+        "dateCreation" TEXT DEFAULT CURRENT_TIMESTAMP,
+        "idUtilisateur" INTEGER
+      );
+      INSERT INTO "__galerie_repair" (
+        "idGalerie",
+        "titreGalerie",
+        "typeEvenement",
+        "dateEvenement",
+        "lieuEvenement",
+        "descriptionGalerie",
+        "couvertureGalerie",
+        "dossierGalerie",
+        "dateCreation",
+        "idUtilisateur"
+      )
+      SELECT
+        "idGalerie",
+        "titreGalerie",
+        "typeEvenement",
+        "dateEvenement",
+        "lieuEvenement",
+        "descriptionGalerie",
+        "couvertureGalerie",
+        "dossierGalerie",
+        "dateCreation",
+        "idUtilisateur"
+      FROM "galerie";
+      DROP TABLE "galerie";
+      ALTER TABLE "__galerie_repair" RENAME TO "galerie";
+      CREATE INDEX IF NOT EXISTS "idx_galerie_utilisateur_sqlite" ON "galerie" ("idUtilisateur");
+    `);
+  }
+
+  const galerieImageBroken = await hasBrokenAutoIncrementPrimaryKey(database, "galerie_image", "idGalerieImage");
+  if (galerieImageBroken) {
+    await execDatabase(database, `
+      DROP TABLE IF EXISTS "__galerie_image_repair";
+      CREATE TABLE "__galerie_image_repair" (
+        "idGalerieImage" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "idGalerie" INTEGER NOT NULL,
+        "nomFichier" TEXT,
+        "cheminImage" TEXT,
+        "tailleImage" INTEGER,
+        "typeMime" TEXT,
+        "legendeImage" TEXT,
+        "dateAjout" TEXT DEFAULT CURRENT_TIMESTAMP,
+        "idUtilisateur" INTEGER
+      );
+      INSERT INTO "__galerie_image_repair" (
+        "idGalerieImage",
+        "idGalerie",
+        "nomFichier",
+        "cheminImage",
+        "tailleImage",
+        "typeMime",
+        "legendeImage",
+        "dateAjout",
+        "idUtilisateur"
+      )
+      SELECT
+        "idGalerieImage",
+        "idGalerie",
+        "nomFichier",
+        "cheminImage",
+        "tailleImage",
+        "typeMime",
+        "legendeImage",
+        "dateAjout",
+        "idUtilisateur"
+      FROM "galerie_image";
+      DROP TABLE "galerie_image";
+      ALTER TABLE "__galerie_image_repair" RENAME TO "galerie_image";
+      CREATE INDEX IF NOT EXISTS "idx_galerie_image_galerie_sqlite" ON "galerie_image" ("idGalerie");
+      CREATE INDEX IF NOT EXISTS "idx_galerie_image_utilisateur_sqlite" ON "galerie_image" ("idUtilisateur");
+    `);
+  }
+};
+
 /**
  * Ajoute les tables et indexes manquants sur une base SQLite deja existante.
  */
@@ -321,6 +487,8 @@ const ensureSqliteSchemaUpdated = async (databasePath: string): Promise<void> =>
     // Ici on n'execute pas les INSERT du dump : on veut seulement
     // completer les tables et indexes manquants sans dupliquer les donnees.
     await executeStatements(database, schemaStatements);
+    await ensureMembreAndDecesColumns(database);
+    await repairBrokenGalerieTables(database);
   } finally {
     await new Promise<void>((resolve, reject) => {
       database.close((closeError) => {
@@ -393,6 +561,15 @@ export const getActiveSqliteDatabasePath = async (): Promise<string> => {
 /**
  * Execute une instruction sur une base SQLite puis retourne un resultat proche de MySQL.
  */
+const ensureSqliteDatabaseReady = async (databasePath: string): Promise<void> => {
+  if (preparedSqliteDatabases.has(databasePath)) {
+    return;
+  }
+
+  await initializeSqliteDatabase(databasePath);
+  preparedSqliteDatabases.add(databasePath);
+};
+
 export const executeSqlite = async (
   sql: string,
   params: any[] = [],
@@ -400,6 +577,8 @@ export const executeSqlite = async (
 ): Promise<{ insertId: number; affectedRows: number }> => {
   const resolvedDatabasePath = databasePath || await getActiveSqliteDatabasePath();
   await ensureSqliteDirectory();
+  await ensureSqliteDatabaseReady(resolvedDatabasePath);
+  await ensureSqliteDatabaseReady(resolvedDatabasePath);
 
   return new Promise((resolve, reject) => {
     const database = openDatabase(resolvedDatabasePath);
@@ -438,6 +617,7 @@ export const selectSqlite = async (
 ): Promise<any[]> => {
   const resolvedDatabasePath = databasePath || await getActiveSqliteDatabasePath();
   await ensureSqliteDirectory();
+  await ensureSqliteDatabaseReady(resolvedDatabasePath);
 
   return new Promise((resolve, reject) => {
     const database = openDatabase(resolvedDatabasePath);
@@ -565,7 +745,6 @@ export const findSqliteDatabaseForLogin = async (
       console.error(`Erreur lors de la verification SQLite sur ${databasePath}:`, error);
     }
   }
-
   return null;
 };
 
@@ -583,3 +762,4 @@ export default {
   ensureDefaultSqliteDatabase,
   ensureAllSqliteDatabasesSchemasUpdated,
 };
+

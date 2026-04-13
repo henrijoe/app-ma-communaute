@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.saveFileToBase64 = exports.getFileToBase64 = exports.getAvatarsPath = exports.errorMsg = exports.msg = exports.isProd = void 0;
+exports.sanitizeStorageName = exports.getGalerieEventDirectory = exports.getGalerieMediaRootDirectory = exports.getLegacyAvatarsDirectory = exports.getMemberPhotosDirectory = exports.saveFileToBase64 = exports.getFileToBase64 = exports.getAvatarsPath = exports.errorMsg = exports.msg = exports.isProd = void 0;
 const path_1 = __importDefault(require("path"));
 // import * as sharp from 'sharp';
 require('dotenv').config();
@@ -34,28 +34,49 @@ exports.errorMsg = errorMsg;
 const fs = require("fs");
 // const sharp = require("sharp");
 const _ = require("lodash");
-// Old fonction
-// const getAvatarsPath = (id: number) => {
-//   const avatarsPath = path.join(__dirname, '..', '..', `/albums/avatars/${id}_avatar.jpg`);
-//   return avatarsPath;
-// }
-// functions.ts - version corrigée
+const getLegacyAvatarsDirectory = () => path_1.default.join(__dirname, '..', '..', 'albums');
+exports.getLegacyAvatarsDirectory = getLegacyAvatarsDirectory;
+const getMemberPhotosDirectory = () => {
+    const sqliteRoot = process.env.SQLITE_DB_DIR || 'C:\\base-communaute';
+    const memberPhotosDir = path_1.default.join(sqliteRoot, 'photo-membre');
+    if (!fs.existsSync(memberPhotosDir)) {
+        fs.mkdirSync(memberPhotosDir, { recursive: true });
+    }
+    return memberPhotosDir;
+};
+exports.getMemberPhotosDirectory = getMemberPhotosDirectory;
+const getGalerieMediaRootDirectory = () => {
+    const sqliteRoot = process.env.SQLITE_DB_DIR || 'C:\\base-communaute';
+    const galerieDir = path_1.default.join(sqliteRoot, 'galerie-evenements');
+    if (!fs.existsSync(galerieDir)) {
+        fs.mkdirSync(galerieDir, { recursive: true });
+    }
+    return galerieDir;
+};
+exports.getGalerieMediaRootDirectory = getGalerieMediaRootDirectory;
+const sanitizeStorageName = (value) => (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, ' ')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase();
+exports.sanitizeStorageName = sanitizeStorageName;
+const getGalerieEventDirectory = (folderName) => {
+    const safeFolderName = sanitizeStorageName(folderName) || `evenement-${Date.now()}`;
+    const galleryDir = path_1.default.join(getGalerieMediaRootDirectory(), safeFolderName);
+    if (!fs.existsSync(galleryDir)) {
+        fs.mkdirSync(galleryDir, { recursive: true });
+    }
+    return galleryDir;
+};
+exports.getGalerieEventDirectory = getGalerieEventDirectory;
 const getAvatarsPath = (fileNameOrId) => {
-    let fileName;
-    // Si c'est un nombre, on génère un nom de fichier basé sur l'ID
-    if (typeof fileNameOrId === 'number') {
-        fileName = `${fileNameOrId}_avatar.jpg`;
-    }
-    else {
-        // Si c'est déjà une chaîne, on l'utilise directement
-        fileName = fileNameOrId;
-    }
-    const albumsDir = path_1.default.join(__dirname, '..', '..', 'albums');
-    // Créer le dossier s'il n'existe pas
-    if (!fs.existsSync(albumsDir)) {
-        fs.mkdirSync(albumsDir, { recursive: true });
-    }
-    return path_1.default.join(albumsDir, fileName);
+    const fileName = typeof fileNameOrId === 'number'
+        ? `${fileNameOrId}_avatar.jpg`
+        : fileNameOrId;
+    return path_1.default.join(getMemberPhotosDirectory(), fileName);
 };
 exports.getAvatarsPath = getAvatarsPath;
 // Fonction pour lire un fichier et retourner sa représentation en base64
@@ -64,15 +85,11 @@ const getFileToBase64 = (filePath) => {
         try {
             const file = filePath;
             if (fs.existsSync(file)) {
-                // Lire le fichier sous forme de buffer
                 const buffer = fs.readFileSync(file);
-                // Convertir le buffer en base64
                 const avatar = buffer.toString('base64');
-                // Résoudre la promesse avec une URL de données base64
                 resolve(`data:image/${path_1.default.extname(file).substring(1)};base64,${avatar}`);
             }
             else {
-                // Si le fichier n'existe pas, résoudre la promesse avec une chaîne vide
                 resolve('');
             }
         }
@@ -91,7 +108,10 @@ const saveFileToBase64 = (filePath, fileFromBase64) => {
         try {
             const file = filePath;
             const buffer = Buffer.from(fileFromBase64, "base64");
-            // Enregistrer le fichier sans conversion
+            const parentDir = path_1.default.dirname(file);
+            if (!fs.existsSync(parentDir)) {
+                fs.mkdirSync(parentDir, { recursive: true });
+            }
             fs.writeFileSync(file, buffer);
             resolve(true);
         }
