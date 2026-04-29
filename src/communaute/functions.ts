@@ -38,6 +38,17 @@ const getMemberPhotosDirectory = (): string => {
   return memberPhotosDir;
 };
 
+const getChurchLogosDirectory = (): string => {
+  const sqliteRoot = process.env.SQLITE_DB_DIR || 'C:\\base-communaute';
+  const churchLogosDir = path.join(sqliteRoot, 'logo-eglise');
+
+  if (!fs.existsSync(churchLogosDir)) {
+    fs.mkdirSync(churchLogosDir, { recursive: true });
+  }
+
+  return churchLogosDir;
+};
+
 const getGalerieMediaRootDirectory = (): string => {
   const sqliteRoot = process.env.SQLITE_DB_DIR || 'C:\\base-communaute';
   const galerieDir = path.join(sqliteRoot, 'galerie-evenements');
@@ -75,6 +86,14 @@ const getAvatarsPath = (fileNameOrId: string | number): string => {
     : fileNameOrId;
 
   return path.join(getMemberPhotosDirectory(), fileName);
+};
+
+const getChurchLogoPath = (fileNameOrId: string | number): string => {
+  const fileName = typeof fileNameOrId === 'number'
+    ? `eglise_${fileNameOrId}.jpg`
+    : fileNameOrId;
+
+  return path.join(getChurchLogosDirectory(), fileName);
 };
 
 // Fonction pour lire un fichier et retourner sa représentation en base64
@@ -121,9 +140,11 @@ const saveFileToBase64 = (filePath: string, fileFromBase64: string) => {
 
 export {
   getAvatarsPath,
+  getChurchLogoPath,
   getFileToBase64,
   saveFileToBase64,
   getMemberPhotosDirectory,
+  getChurchLogosDirectory,
   getLegacyAvatarsDirectory,
   getGalerieMediaRootDirectory,
   getGalerieEventDirectory,

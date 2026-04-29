@@ -47,8 +47,14 @@ const recupDecesByIdUtilsateur = (idUtilisateur: any) => {
 const supprimerDeces = (idDeces: number) => {
   return new Promise(async (resolve, reject) => {
     try {
+      const deletedDeces: any = await functions.recupDecesId(idDeces)
       await functions.supprimerDeces(idDeces)
-      resolve({idDeces:idDeces})
+      resolve({
+        idDeces,
+        idMembre: deletedDeces?.[0]?.idMembre || null,
+        idUtilisateur: deletedDeces?.[0]?.idUtilisateur || null,
+        nomMembreDeces: deletedDeces?.[0]?.nomMembreDeces || '',
+      })
     } catch (error) {
       reject(error)
     }

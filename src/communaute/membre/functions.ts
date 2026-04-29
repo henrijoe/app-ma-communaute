@@ -131,7 +131,7 @@ const ajouterMembre = (data: IMembre) => {
 const recupMembre = () => {
   return new Promise(async (resolve, reject) => {
     try {
-      const sql = 'SELECT * FROM membre ORDER BY idMembre ASC;';
+      const sql = 'SELECT * FROM membre WHERE COALESCE(estDecede, 0) <> 1 ORDER BY idMembre ASC;';
       const membre = await _selectSql(sql, []);
       if (!membre.length) return reject({ name: 'Erreur_membre', message: 'Aucun membre trouve' });
       resolve(membre);
@@ -157,7 +157,7 @@ const recupMembreById = (id: number) => {
 const recupMembreByIdUtilsateur = (idUtilisateur: number) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const sql = 'SELECT * FROM membre WHERE idUtilisateur = ?;';
+      const sql = 'SELECT * FROM membre WHERE idUtilisateur = ? AND COALESCE(estDecede, 0) <> 1;';
       const membre = await _selectSql(sql, [idUtilisateur]);
       if (!membre.length) return reject({ name: 'Erreur_membre', message: 'Aucun membre trouve' });
       resolve(membre);

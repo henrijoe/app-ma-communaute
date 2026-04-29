@@ -1,48 +1,74 @@
-import { _executeSql, _selectSql } from "../../db";
+import { _selectSql } from "../../db";
 import sqliteDB from "../../db/sqliteDB";
 import {
   DESKTOP_SUPERADMIN_PASSWORD,
   DESKTOP_SUPERADMIN_USERNAME,
 } from "../../db/sqliteSecurity";
+import { getChurchLogoPath, saveFileToBase64 } from "../functions";
 import desktopControlServices from "../desktop-control/services";
 import functions from "./functions";
 import { ICreateCommunauteDatabasePayload, IUtilisateur } from "./interfaces";
 import sqlite from "./sqlite";
-// import generatePassword from "password-generator";
-
-const path = require('path');
-const fs = require("fs");
 
 const bcrypt = require('bcrypt');
 
+const normalizeUtilisateurData = (data: Partial<IUtilisateur>): IUtilisateur => ({
+  idUtilisateur: Number(data.idUtilisateur || 0),
+  logoUtilisateur: data.logoUtilisateur || '',
+  logoEglise: data.logoEglise || '',
+  nomTemple: data.nomTemple || '',
+  lieuEglise: data.lieuEglise || '',
+  nomUtilisateur: data.nomUtilisateur || '',
+  prenomUtilisateur: data.prenomUtilisateur || '',
+  telephoneUtilisateur: data.telephoneUtilisateur || '',
+  telephoneSecretariatEglise: data.telephoneSecretariatEglise || '',
+  pasteurPrincipal: data.pasteurPrincipal || '',
+  pasteurSecondaire: data.pasteurSecondaire || '',
+  pasteurTroisieme: data.pasteurTroisieme || '',
+  telephonePasteurPrincipal: data.telephonePasteurPrincipal || '',
+  telephonePasteurSecondaire: data.telephonePasteurSecondaire || '',
+  telephonePasteurTroisieme: data.telephonePasteurTroisieme || '',
+  capaciteAccueilEglise: data.capaciteAccueilEglise || '',
+  nombreCultesDimanche: data.nombreCultesDimanche || '',
+  emailEglise: data.emailEglise || '',
+  boitePostaleEglise: data.boitePostaleEglise || '',
+  dateCreationEglise: data.dateCreationEglise || '',
+  nombrePasteursEglise: data.nombrePasteursEglise || '',
+  nombreAnciensEglise: data.nombreAnciensEglise || '',
+  nombreDiacresEglise: data.nombreDiacresEglise || '',
+  password: data.password || '',
+  confirmPassword: data.confirmPassword || '',
+  email: data.email || '',
+});
 
 /**
- * 
+ *
 Permet d'ajouter un utilisateur
- * @returns 
+ * @returns
  */
 const ajouterUtilisateur = (data: IUtilisateur) => {
-    console.log("ajouterUtilisateur data:", data)
     return new Promise(async (resolve, reject) => {
         try {
+            const normalizedData = normalizeUtilisateurData(data);
+
             // Initialise la licence locale des la creation d'un compte pour demarrer le compteur de 40 jours.
-            await desktopControlServices.ensureDesktopLicenseInitialized(data.nomUtilisateur);
+            await desktopControlServices.ensureDesktopLicenseInitialized(normalizedData.nomUtilisateur);
 
             if (sqliteDB.isSqliteMode()) {
               await sqlite.createCommunauteDatabase({
                 idUtilisateur: 0,
-                nomTemple: data.nomTemple,
-                nomEglise: data.nomTemple,
+                nomTemple: normalizedData.nomTemple,
+                nomEglise: normalizedData.nomTemple,
                 dossierBase: process.env.SQLITE_DB_DIR,
               })
             }
 
-            const idUtilisateur: any = await functions.ajouterUtilisateur({...data})
+            const idUtilisateur: any = await functions.ajouterUtilisateur(normalizedData)
             if (sqliteDB.isSqliteMode()) {
               await sqlite.createCommunauteDatabase({
                 idUtilisateur: Number(idUtilisateur),
-                nomTemple: data.nomTemple,
-                nomEglise: data.nomTemple,
+                nomTemple: normalizedData.nomTemple,
+                nomEglise: normalizedData.nomTemple,
                 dossierBase: process.env.SQLITE_DB_DIR,
               })
             }
@@ -65,8 +91,6 @@ const recupUtilisateur = () => {
   });
 };
 
-
-
 const supprimerUtilisateur = (idUtilisateur: number) => {
     return new Promise(async (resolve, reject) => {
       try {
@@ -78,7 +102,7 @@ const supprimerUtilisateur = (idUtilisateur: number) => {
             await functions.supprimerUtilisateur(idUtilisateur)
             resolve(true)
           } else {
-            return reject('utilisateur non trouvÃ©')
+            return reject('utilisateur non trouve')
           }
         }
       } catch (error) {
@@ -87,101 +111,63 @@ const supprimerUtilisateur = (idUtilisateur: number) => {
     })
   }
 
-  const modifierUtilisateur = (data: IUtilisateur) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        await functions.modifierUtilisateur(data)
-        resolve(data)
-      } catch (error) {
-        reject(error)
-      }
-    })
-  }
-
-  // Old fonction 
-//   const connexionUtilisateur = (nomUtilisateur: string, motDePasse: string) => {
-//     return new Promise(async (resolve, reject) => {
-//       try {
-//         // RÃ©cupÃ©rer l'utilisateur par son nom d'utilisateur depuis la base de donnÃ©es
-//         const utilisateur = await _selectSql(`SELECT * FROM utilisateur WHERE nomUtilisateur = ?`, [nomUtilisateur]);
-  
-//         // VÃ©rifier si l'utilisateur existe et si le mot de passe est valide
-//         if (utilisateur && utilisateur.length > 0) {
-//           const isValidPassword = await bcrypt.compare(motDePasse, utilisateur[0].password);
-//           if (isValidPassword) {
-//             resolve(utilisateur[0]); // Renvoyer l'utilisateur s'il est authentifiÃ© avec succÃ¨s
-//           } else {
-//             reject('Mot de passe incorrect'); // Renvoyer une erreur si le mot de passe est incorrect
-//           }
-//         } else {
-//           reject('Utilisateur non trouvÃ©'); // Renvoyer une erreur si l'utilisateur n'est pas trouvÃ©
-//         }
-//       } catch (error) {
-//         reject(error); // Renvoyer une erreur en cas d'Ã©chec de la requÃªte SQL
-//       }
-//     });
-//   };
-// // 
-
-
-// const connexionUtilisateur = async (nomUtilisateur: string, motDePasse: string) => {
-//   try {
-//       // Utilisez des paramÃ¨tres sÃ©curisÃ©s dans la requÃªte SQL
-//       const utilisateur = await _selectSql(`SELECT * FROM utilisateur WHERE nomUtilisateur = ?`, [nomUtilisateur]);
-
-//       // GÃ©rez le cas oÃ¹ l'utilisateur n'est pas trouvÃ©
-//       if (!utilisateur || utilisateur.length === 0) {
-//           throw new Error('Utilisateur non trouvÃ©');
-//       }
-
-//       // VÃ©rifiez le mot de passe en utilisant bcrypt.compare
-//       const isValidPassword = await bcrypt.compare(motDePasse, utilisateur[0].password);
-//       console.log("connexionUtilisateur isValidPassword:", isValidPassword)
-
-//       // Renvoyez l'utilisateur s'il est authentifiÃ© avec succÃ¨s
-//       if (isValidPassword) {
-//           return utilisateur[0];
-//       } else {
-//           throw new Error('Mot de passe incorrect');
-//       }
-//   } catch (error) {
-//       // GÃ©rez les erreurs et renvoyez des messages d'erreur appropriÃ©s
-//       throw new Error(`Erreur lors de la connexion de l'utilisateur : ${error.message}`);
-//   }
-// };
-  
-
-  const connexionUtilisateur = async (nomUtilisateur: string, motDePasse: string) => {
+const modifierUtilisateur = (data: IUtilisateur) => {
+  return new Promise(async (resolve, reject) => {
     try {
-        // Utilisez des paramÃ¨tres sÃ©curisÃ©s dans la requÃªte SQL
+      const normalizedData = normalizeUtilisateurData(data);
+      let logoEgliseFileName = normalizedData.logoEglise;
+
+      if (normalizedData.logoEglise && normalizedData.logoEglise.startsWith('data:image/')) {
+        const base64Data = normalizedData.logoEglise.replace(/^data:image\/\w+;base64,/, '');
+        logoEgliseFileName = `eglise_${normalizedData.idUtilisateur}.jpg`;
+        const filePath = getChurchLogoPath(logoEgliseFileName);
+        await saveFileToBase64(filePath, base64Data);
+      }
+
+      await functions.modifierUtilisateur({
+        ...normalizedData,
+        logoEglise: logoEgliseFileName,
+      })
+
+      const utilisateur: any = await functions.recupUtilisateurById(normalizedData.idUtilisateur);
+      if (Array.isArray(utilisateur) && utilisateur.length > 0) {
+        resolve(utilisateur[0])
+        return;
+      }
+
+      resolve({
+        ...normalizedData,
+        logoEglise: logoEgliseFileName,
+      })
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
+const connexionUtilisateur = async (nomUtilisateur: string, motDePasse: string) => {
+    try {
         const utilisateur = await _selectSql(`SELECT * FROM utilisateur WHERE nomUtilisateur = ?`, [nomUtilisateur]);
-  
-        // console.log("connexionUtilisateur utilisateur:", utilisateur)
-        // GÃ©rez le cas oÃ¹ l'utilisateur n'est pas trouvÃ©
+
         if (!utilisateur || utilisateur.length === 0) {
-            throw new Error('Utilisateur non trouvÃ©');
+            throw new Error('Utilisateur non trouve');
         }
-        // VÃ©rifiez le mot de passe en utilisant bcrypt.compare
-        const isValidPassword = await bcrypt.compare(motDePasse, utilisateur[0].password); 
+        const isValidPassword = await bcrypt.compare(motDePasse, utilisateur[0].password);
         console.log("connexionUtilisateur isValidPassword:", isValidPassword)
-  
-        // Renvoyez l'utilisateur s'il est authentifiÃ© avec succÃ¨s
+
         if (!isValidPassword) {
             return utilisateur[0];
         } else {
             throw new Error('Mot de passe incorrect');
         }
     } catch (error:any) {
-        // GÃ©rez les erreurs et renvoyez des messages d'erreur appropriÃ©s
         throw new Error(`Erreur lors de la connexion de l'utilisateur : ${error.message}`);
     }
   };
-  
 
 const login = (data: IUtilisateur) => {
   return new Promise(async (resolve, reject) => {
     try {
-      // Le superadmin fixe peut toujours se connecter pour debloquer le desktop local.
       if (
         desktopControlServices.isFixedDesktopSuperAdminCredentials(
           data.nomUtilisateur,
@@ -191,10 +177,27 @@ const login = (data: IUtilisateur) => {
         resolve({
           idUtilisateur: 0,
           logoUtilisateur: '',
+          logoEglise: '',
           nomTemple: 'Super Administration Desktop',
+          lieuEglise: '',
           nomUtilisateur: DESKTOP_SUPERADMIN_USERNAME,
           prenomUtilisateur: 'Superadmin',
           telephoneUtilisateur: '',
+          telephoneSecretariatEglise: '',
+          pasteurPrincipal: '',
+          pasteurSecondaire: '',
+          pasteurTroisieme: '',
+          telephonePasteurPrincipal: '',
+          telephonePasteurSecondaire: '',
+          telephonePasteurTroisieme: '',
+          capaciteAccueilEglise: '',
+          nombreCultesDimanche: '',
+          emailEglise: '',
+          boitePostaleEglise: '',
+          dateCreationEglise: '',
+          nombrePasteursEglise: '',
+          nombreAnciensEglise: '',
+          nombreDiacresEglise: '',
           password: DESKTOP_SUPERADMIN_PASSWORD,
           confirmPassword: DESKTOP_SUPERADMIN_PASSWORD,
           email: '',
@@ -206,7 +209,6 @@ const login = (data: IUtilisateur) => {
         data.nomUtilisateur
       );
 
-      // Si la licence desktop est bloquee, seul le superadmin peut continuer.
       if (desktopLicenseStatus.isBlocked) {
         reject(new Error(desktopLicenseStatus.blockMessage));
         return;
@@ -225,12 +227,10 @@ const login = (data: IUtilisateur) => {
       }
 
       const utilisateur: any = await functions.login(data);
-      // const personnel = await functions.recupUtilisateurById(utilisateur.idUtilisateur)
-      const res = {
-        ...utilisateur
-      }
-      // console.log("returnnewPromise res:", res)
-      resolve(res);
+      resolve({
+        ...normalizeUtilisateurData(utilisateur),
+        idUtilisateur: Number(utilisateur?.idUtilisateur || 0),
+      });
     } catch (error) {
       reject(error);
     }
@@ -253,34 +253,20 @@ const creerBaseSqlite = (data: ICreateCommunauteDatabasePayload) => {
 
 
 export const modifierMotDePasse = (data: { idUtilisateur: number, nomUtilisateur: string, confirmPassword: string }): Promise<
-  {
-    idUtilisateur: number;
-    logoUtilisateur:string
-    nomTemple: string;
-    nomUtilisateur: string;
-    prenomUtilisateur: string;
-    telephoneUtilisateur: string;
-    password: string;
-    confirmPassword: string;
-  }
+  IUtilisateur
 > => {
   return new Promise(async (resolve, reject) => {
     try {
-      // console.log("services data", data.idUtilisateur)
       const utilisateur = await functions.recupUtilisateurById(data.idUtilisateur);
-      // console.log("returnnewPromise utilisateur", utilisateur)
       if (!utilisateur) {
         return reject({message: "Une erreur s'est produite"})
       }
-      // const mdpInitial = generatePassword(6, false);
-      // const mdp = bcrypt.hashSync(mdpInitial.trim(), 12);
 
       const res = await functions.modifierLogin(data.idUtilisateur,data.nomUtilisateur,data.confirmPassword);
-      // console.log("returnnewPromise res", res)
 
       if (res) {
         const resultat:any = await functions.recupUtilisateurById(data.idUtilisateur);
-        resolve(resultat[0])
+        resolve(normalizeUtilisateurData(resultat[0]))
       }
     } catch (error) {
       reject(error);
@@ -298,4 +284,3 @@ export default {
     modifierMotDePasse,
     creerBaseSqlite
 }
-

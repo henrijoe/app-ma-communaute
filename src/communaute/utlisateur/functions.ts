@@ -1,32 +1,202 @@
 import { _executeSql, _selectSql } from "../../db";
+import sqliteDB from "../../db/sqliteDB";
 import { IUtilisateur } from "./interfaces";
 
 const bcrypt = require('bcrypt');
 
+const UTILISATEUR_OPTIONAL_TEXT_FIELDS = [
+  'logoEglise',
+  'lieuEglise',
+  'telephoneSecretariatEglise',
+  'pasteurPrincipal',
+  'pasteurSecondaire',
+  'pasteurTroisieme',
+  'telephonePasteurPrincipal',
+  'telephonePasteurSecondaire',
+  'telephonePasteurTroisieme',
+  'capaciteAccueilEglise',
+  'nombreCultesDimanche',
+  'emailEglise',
+  'boitePostaleEglise',
+  'dateCreationEglise',
+  'nombrePasteursEglise',
+  'nombreAnciensEglise',
+  'nombreDiacresEglise',
+] as const;
 
+const MYSQL_UTILISATEUR_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_FIELDS)[number], string> = {
+  logoEglise: 'TEXT NULL',
+  lieuEglise: 'VARCHAR(255) NULL',
+  telephoneSecretariatEglise: 'VARCHAR(30) NULL',
+  pasteurPrincipal: 'VARCHAR(255) NULL',
+  pasteurSecondaire: 'VARCHAR(255) NULL',
+  pasteurTroisieme: 'VARCHAR(255) NULL',
+  telephonePasteurPrincipal: 'VARCHAR(30) NULL',
+  telephonePasteurSecondaire: 'VARCHAR(30) NULL',
+  telephonePasteurTroisieme: 'VARCHAR(30) NULL',
+  capaciteAccueilEglise: 'VARCHAR(50) NULL',
+  nombreCultesDimanche: 'VARCHAR(50) NULL',
+  emailEglise: 'VARCHAR(255) NULL',
+  boitePostaleEglise: 'VARCHAR(255) NULL',
+  dateCreationEglise: 'VARCHAR(50) NULL',
+  nombrePasteursEglise: 'VARCHAR(50) NULL',
+  nombreAnciensEglise: 'VARCHAR(50) NULL',
+  nombreDiacresEglise: 'VARCHAR(50) NULL',
+};
 
-//   
-const ajouterUtilisateur = (data: IUtilisateur) => {
+const SQLITE_UTILISATEUR_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_FIELDS)[number], string> = {
+  logoEglise: 'TEXT',
+  lieuEglise: 'TEXT',
+  telephoneSecretariatEglise: 'TEXT',
+  pasteurPrincipal: 'TEXT',
+  pasteurSecondaire: 'TEXT',
+  pasteurTroisieme: 'TEXT',
+  telephonePasteurPrincipal: 'TEXT',
+  telephonePasteurSecondaire: 'TEXT',
+  telephonePasteurTroisieme: 'TEXT',
+  capaciteAccueilEglise: 'TEXT',
+  nombreCultesDimanche: 'TEXT',
+  emailEglise: 'TEXT',
+  boitePostaleEglise: 'TEXT',
+  dateCreationEglise: 'TEXT',
+  nombrePasteursEglise: 'TEXT',
+  nombreAnciensEglise: 'TEXT',
+  nombreDiacresEglise: 'TEXT',
+};
 
+const normalizeUtilisateurData = (data: Partial<IUtilisateur>): IUtilisateur => ({
+  idUtilisateur: Number(data.idUtilisateur || 0),
+  logoUtilisateur: data.logoUtilisateur || '',
+  logoEglise: data.logoEglise || '',
+  nomTemple: data.nomTemple || '',
+  lieuEglise: data.lieuEglise || '',
+  nomUtilisateur: data.nomUtilisateur || '',
+  prenomUtilisateur: data.prenomUtilisateur || '',
+  telephoneUtilisateur: data.telephoneUtilisateur || '',
+  telephoneSecretariatEglise: data.telephoneSecretariatEglise || '',
+  pasteurPrincipal: data.pasteurPrincipal || '',
+  pasteurSecondaire: data.pasteurSecondaire || '',
+  pasteurTroisieme: data.pasteurTroisieme || '',
+  telephonePasteurPrincipal: data.telephonePasteurPrincipal || '',
+  telephonePasteurSecondaire: data.telephonePasteurSecondaire || '',
+  telephonePasteurTroisieme: data.telephonePasteurTroisieme || '',
+  capaciteAccueilEglise: data.capaciteAccueilEglise || '',
+  nombreCultesDimanche: data.nombreCultesDimanche || '',
+  emailEglise: data.emailEglise || '',
+  boitePostaleEglise: data.boitePostaleEglise || '',
+  dateCreationEglise: data.dateCreationEglise || '',
+  nombrePasteursEglise: data.nombrePasteursEglise || '',
+  nombreAnciensEglise: data.nombreAnciensEglise || '',
+  nombreDiacresEglise: data.nombreDiacresEglise || '',
+  password: data.password || '',
+  confirmPassword: data.confirmPassword || '',
+  email: data.email || '',
+});
+
+const ensureUtilisateurColumns = async (): Promise<void> => {
+  if (sqliteDB.isSqliteMode()) {
+    for (const columnName of UTILISATEUR_OPTIONAL_TEXT_FIELDS) {
+      try {
+        await _executeSql(
+          `ALTER TABLE utilisateur ADD COLUMN ${columnName} ${SQLITE_UTILISATEUR_COLUMNS[columnName]}`,
+          []
+        );
+      } catch (error: any) {
+        const message = String(error?.message || error || '').toLowerCase();
+        if (
+          message.includes('duplicate column')
+          || message.includes('already exists')
+          || message.includes('duplicate column name')
+        ) {
+          continue;
+        }
+        throw error;
+      }
+    }
+    return;
+  }
+
+  const columns: any[] = await _selectSql('SHOW COLUMNS FROM utilisateur', []);
+  const existingColumns = new Set((Array.isArray(columns) ? columns : []).map((item: any) => item.Field));
+
+  for (const columnName of UTILISATEUR_OPTIONAL_TEXT_FIELDS) {
+    if (existingColumns.has(columnName)) {
+      continue;
+    }
+
+    await _executeSql(
+      `ALTER TABLE utilisateur ADD COLUMN ${columnName} ${MYSQL_UTILISATEUR_COLUMNS[columnName]}`,
+      []
+    );
+  }
+};
+
+const ajouterUtilisateur = (rawData: IUtilisateur) => {
   return new Promise(async (resolve, reject) => {
-    // Hachage du mot de passe
-    const hashedPassword = await bcrypt.hash(data.password, 20);
+    const data = normalizeUtilisateurData(rawData);
     const hashedconfirmPassword = await bcrypt.hash(data.confirmPassword, 20);
+
     try {
+      await ensureUtilisateurColumns();
+
+      const sql = `INSERT INTO utilisateur(
+        logoUtilisateur,
+        logoEglise,
+        nomTemple,
+        lieuEglise,
+        nomUtilisateur,
+        prenomUtilisateur,
+        telephoneUtilisateur,
+        telephoneSecretariatEglise,
+        pasteurPrincipal,
+        pasteurSecondaire,
+        pasteurTroisieme,
+        telephonePasteurPrincipal,
+        telephonePasteurSecondaire,
+        telephonePasteurTroisieme,
+        capaciteAccueilEglise,
+        nombreCultesDimanche,
+        emailEglise,
+        boitePostaleEglise,
+        dateCreationEglise,
+        nombrePasteursEglise,
+        nombreAnciensEglise,
+        nombreDiacresEglise,
+        password,
+        confirmPassword,
+        email
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+
       const values = [
         data.logoUtilisateur,
+        data.logoEglise,
         data.nomTemple,
+        data.lieuEglise,
         data.nomUtilisateur,
         data.prenomUtilisateur,
         data.telephoneUtilisateur,
+        data.telephoneSecretariatEglise,
+        data.pasteurPrincipal,
+        data.pasteurSecondaire,
+        data.pasteurTroisieme,
+        data.telephonePasteurPrincipal,
+        data.telephonePasteurSecondaire,
+        data.telephonePasteurTroisieme,
+        data.capaciteAccueilEglise,
+        data.nombreCultesDimanche,
+        data.emailEglise,
+        data.boitePostaleEglise,
+        data.dateCreationEglise,
+        data.nombrePasteursEglise,
+        data.nombreAnciensEglise,
+        data.nombreDiacresEglise,
         data.password,
         hashedconfirmPassword,
-        data.email
-      ]
-      const sql = `INSERT INTO utilisateur(logoUtilisateur,nomTemple,nomUtilisateur,prenomUtilisateur,telephoneUtilisateur,password,confirmPassword,email) VALUES (?,?,?,?,?,?,?,?)`;
-      // const sql = `INSERT INTO utilisateur SET ?`;
-      const departement: any = await _executeSql(sql, [...values]);
-      resolve(departement.insertId)
+        data.email,
+      ];
+
+      const utilisateur: any = await _executeSql(sql, values);
+      resolve(utilisateur.insertId);
     } catch (error) {
       reject(error);
     }
@@ -36,9 +206,10 @@ const ajouterUtilisateur = (data: IUtilisateur) => {
 const recupUtilisateur = () => {
   return new Promise(async (resolve, reject) => {
     try {
-      const sql = `SELECT * FROM utilisateur ORDER BY idUtilisateur ASC ;`
-      const urilisateur = await _selectSql(sql, []);
-      resolve(urilisateur)
+      await ensureUtilisateurColumns();
+      const sql = `SELECT * FROM utilisateur ORDER BY idUtilisateur ASC ;`;
+      const utilisateur = await _selectSql(sql, []);
+      resolve(utilisateur);
     } catch (error) {
       reject(error);
     }
@@ -48,9 +219,10 @@ const recupUtilisateur = () => {
 const recupUtilisateurById = (id: number) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const sql = `SELECT * FROM utilisateur WHERE idUtilisateur = ?;`
-      const urilisateur = await _selectSql(sql, [id]);
-      resolve(urilisateur)
+      await ensureUtilisateurColumns();
+      const sql = `SELECT * FROM utilisateur WHERE idUtilisateur = ?;`;
+      const utilisateur = await _selectSql(sql, [id]);
+      resolve(utilisateur);
     } catch (error) {
       reject(error);
     }
@@ -70,69 +242,112 @@ const supprimerUtilisateur = (idUtilisateur: number): Promise<boolean> => {
   });
 };
 
-const modifierUtilisateur = (data: IUtilisateur): Promise<boolean> => {
+const modifierUtilisateur = (rawData: IUtilisateur): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
     try {
-      const sql = `UPDATE utilisateur SET logoUtilisateur=?,nomTemple=?, nomUtilisateur=?,prenomUtilisateur=?,telephoneUtilisateur=?,password=?,confirmPassword=?,email=? WHERE idUtilisateur=?`
+      const data = normalizeUtilisateurData(rawData);
+      await ensureUtilisateurColumns();
+
+      const sql = `UPDATE utilisateur SET
+        logoUtilisateur=?,
+        logoEglise=?,
+        nomTemple=?,
+        lieuEglise=?,
+        nomUtilisateur=?,
+        prenomUtilisateur=?,
+        telephoneUtilisateur=?,
+        telephoneSecretariatEglise=?,
+        pasteurPrincipal=?,
+        pasteurSecondaire=?,
+        pasteurTroisieme=?,
+        telephonePasteurPrincipal=?,
+        telephonePasteurSecondaire=?,
+        telephonePasteurTroisieme=?,
+        capaciteAccueilEglise=?,
+        nombreCultesDimanche=?,
+        emailEglise=?,
+        boitePostaleEglise=?,
+        dateCreationEglise=?,
+        nombrePasteursEglise=?,
+        nombreAnciensEglise=?,
+        nombreDiacresEglise=?,
+        password=?,
+        confirmPassword=?,
+        email=?
+        WHERE idUtilisateur=?`;
+
       await _executeSql(sql, [
         data.logoUtilisateur,
+        data.logoEglise,
         data.nomTemple,
+        data.lieuEglise,
         data.nomUtilisateur,
         data.prenomUtilisateur,
         data.telephoneUtilisateur,
+        data.telephoneSecretariatEglise,
+        data.pasteurPrincipal,
+        data.pasteurSecondaire,
+        data.pasteurTroisieme,
+        data.telephonePasteurPrincipal,
+        data.telephonePasteurSecondaire,
+        data.telephonePasteurTroisieme,
+        data.capaciteAccueilEglise,
+        data.nombreCultesDimanche,
+        data.emailEglise,
+        data.boitePostaleEglise,
+        data.dateCreationEglise,
+        data.nombrePasteursEglise,
+        data.nombreAnciensEglise,
+        data.nombreDiacresEglise,
         data.password,
         data.confirmPassword,
         data.email,
-        data.idUtilisateur
-      ])
-      resolve(true)
+        data.idUtilisateur,
+      ]);
+      resolve(true);
     } catch (error) {
-      reject(error)
+      reject(error);
     }
-  })
-}
+  });
+};
 
 const login = (data: IUtilisateur): Promise<IUtilisateur> => {
   return new Promise(async (resolve, reject) => {
     try {
+      await ensureUtilisateurColumns();
       const { nomUtilisateur, password } = data;
-      // console.log("🚀 ~ file: functions.ts:142 ~ returnnewPromise ~ data.body", data.body)
       const sql = `SELECT * FROM utilisateur  WHERE nomUtilisateur=? AND password=?`;
 
-      const x = await _selectSql(sql, [nomUtilisateur, password]);
-      // console.log("🚀 ~ returnnewPromise ~ x:", x)
+      const utilisateur = await _selectSql(sql, [nomUtilisateur, password]);
 
-      if (!x || x.length === 0) {
+      if (!utilisateur || utilisateur.length === 0) {
         throw new Error('Nom Utilisateur ou Mot de passe incorrect !.');
       }
 
-      if (x.length !== 1) {
-        reject({ message: "identifiant incorrect" });
+      if (utilisateur.length !== 1) {
+        reject({ message: 'identifiant incorrect' });
       } else {
-        console.log("🚀 ~ returnnewPromise ~ x[0]:", x[0])
-        resolve(x[0]);
+        resolve(utilisateur[0]);
       }
-      // resolve(x[0]);
     } catch (err) {
-      console.log("err:", err);
+      console.log('err:', err);
       reject(err);
     }
   });
 };
 
 /**
- * Mettre à jour le mot de passe d'un utilisateur
+ * Mettre a jour le mot de passe d'un utilisateur
  * @param data
  */
 export const modifierLogin = (idUtilisateur: number, password: (string | null), confirmPassword: string): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
     try {
-      //mise a jour du mot de passe
       const sql = `UPDATE utilisateur
                        SET password=?,
                        confirmPassword=?
-                       WHERE idUtilisateur=?`
-      await _executeSql(sql, [password, confirmPassword, idUtilisateur])
+                       WHERE idUtilisateur=?`;
+      await _executeSql(sql, [password, confirmPassword, idUtilisateur]);
       resolve(true);
     } catch (error) {
       reject(error);
@@ -147,5 +362,5 @@ export default {
   modifierUtilisateur,
   recupUtilisateurById,
   login,
-  modifierLogin
-}
+  modifierLogin,
+};

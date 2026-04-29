@@ -26,6 +26,7 @@ const htmlPath = path.join(__dirname, '..','views')
 const albumDir = path.join(__dirname, '..','albums');
 const memberPhotosDir = path.join(process.env.SQLITE_DB_DIR || 'C:\\base-communaute', 'photo-membre');
 const galerieMediaDir = path.join(process.env.SQLITE_DB_DIR || 'C:\\base-communaute', 'galerie-evenements');
+const churchLogosDir = path.join(process.env.SQLITE_DB_DIR || 'C:\\base-communaute', 'logo-eglise');
 
 // =================================== MIDDLEWARES =========================================================
 
@@ -35,9 +36,9 @@ app.use(cors({ credentials: true, optionsSuccessStatus: 200, origin: true }));
 app.use(compression());
 app.use(bodyParser.json());
 app.use('/photos', express.static(memberPhotosDir));
-app.use('/photos', express.static(memberPhotosDir));
 app.use('/photos', express.static(albumDir));
 app.use('/galerie-media', express.static(galerieMediaDir));
+app.use('/church-logos', express.static(churchLogosDir));
 
 // ===================================Socket.io configuration =======================================
 const options = {

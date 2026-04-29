@@ -1,4 +1,4 @@
-﻿import fs from "fs";
+import fs from "fs";
 import path from "path";
 import sqlite3 from "sqlite3";
 
@@ -383,6 +383,14 @@ const ensureMembreAndDecesColumns = async (database: sqlite3.Database): Promise<
   await execDatabase(database, 'UPDATE "membre" SET "estDecede" = 0 WHERE "estDecede" IS NULL;');
 };
 
+const ensureComptabiliteColumns = async (database: sqlite3.Database): Promise<void> => {
+  await ensureColumnExists(database, 'comptabilite', 'estSupprimeComptabilite', 'INTEGER DEFAULT 0');
+  await ensureColumnExists(database, 'comptabilite', 'dateSuppressionComptabilite', 'TEXT');
+  await ensureColumnExists(database, 'comptabilite', 'motifSuppressionComptabilite', 'TEXT');
+  await ensureColumnExists(database, 'comptabilite', 'supprimeParUtilisateur', 'INTEGER');
+  await execDatabase(database, 'UPDATE "comptabilite" SET "estSupprimeComptabilite" = 0 WHERE "estSupprimeComptabilite" IS NULL;');
+};
+
 const repairBrokenGalerieTables = async (database: sqlite3.Database): Promise<void> => {
   const galerieBroken = await hasBrokenAutoIncrementPrimaryKey(database, "galerie", "idGalerie");
   if (galerieBroken) {
@@ -488,6 +496,7 @@ const ensureSqliteSchemaUpdated = async (databasePath: string): Promise<void> =>
     // completer les tables et indexes manquants sans dupliquer les donnees.
     await executeStatements(database, schemaStatements);
     await ensureMembreAndDecesColumns(database);
+    await ensureComptabiliteColumns(database);
     await repairBrokenGalerieTables(database);
   } finally {
     await new Promise<void>((resolve, reject) => {
@@ -762,4 +771,6 @@ export default {
   ensureDefaultSqliteDatabase,
   ensureAllSqliteDatabasesSchemasUpdated,
 };
+
+
 
