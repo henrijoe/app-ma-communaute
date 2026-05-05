@@ -9,8 +9,24 @@ const dotenv = require('dotenv')
 dotenv.config();
 
 const app = express();
-// const PORT = 49300;
-const PORT = process.env.PORT || 49300;
+const DEFAULT_PORT = 49300;
+const getConfiguredPort = () => {
+  const rawPort = process.env.PORT;
+
+  if (!rawPort) {
+    return DEFAULT_PORT;
+  }
+
+  const parsedPort = Number(rawPort);
+
+  if (!Number.isInteger(parsedPort) || parsedPort <= 0 || parsedPort > 65535) {
+    console.warn(`[Server] PORT invalide "${rawPort}". Utilisation du port ${DEFAULT_PORT}.`);
+    return DEFAULT_PORT;
+  }
+
+  return parsedPort;
+};
+const PORT = getConfiguredPort();
 const IP = require("ip").address();
 const compression = require("compression");
 const cors = require("cors");
@@ -131,7 +147,7 @@ const welcomeMsg = `
 ${SERVER_NAME}
 Port: ${PORT}
 Ip: ${IP}
-Url: "http://localhost:49300"
+Url: "http://localhost:${PORT}"
 Start: ${new Date().toLocaleString("fr-FR")}
 ============================
 `;
@@ -162,10 +178,28 @@ const logDatabaseStartup = async () => {
 //   console.log(welcomeMsg);
 // });
 
+const qrValue = {
+  wifi: `http://${IP}:${PORT}`,
+  tunnel: "non configure",
+};
+
+httpServer.once("error", (error: NodeJS.ErrnoException) => {
+  if (error.code === "EADDRINUSE") {
+    console.error(`[Server] Le port ${PORT} est deja utilise.`);
+    console.error(`[Server] Arrete l'autre instance Node ou lance ce serveur avec un autre port.`);
+    console.error(`[Server] Exemple PowerShell: $env:PORT=49301; npm run dev`);
+    process.exit(1);
+  }
+
+  console.error("[Server] Erreur lors du demarrage du serveur:", error);
+  process.exit(1);
+});
+
 // Ajouter recemment pour voir les logs
 httpServer.listen(PORT, () => {
   try {
     console.log(welcomeMsg);
+    qrcode.generate(JSON.stringify(qrValue));
     logDatabaseStartup().catch((error) => {
       console.error("[DB] Erreur lors de l'initialisation de la base:", error);
     });
@@ -175,11 +209,6 @@ httpServer.listen(PORT, () => {
 });
 
 
-const qrValue = {
-  wifi: `http://${IP}:${PORT}`,
-  tunnel: 'non configurÃƒÆ’Ã‚Â©',
-}
-qrcode.generate(JSON.stringify(qrValue));
 
 
 

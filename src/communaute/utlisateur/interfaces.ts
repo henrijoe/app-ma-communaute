@@ -1,4 +1,3 @@
-// Interface utilisateur enrichie avec les informations de l'eglise imprimees dans les documents
 export interface IUtilisateur {
   logoUtilisateur: string;
   logoEglise: string;
@@ -22,6 +21,10 @@ export interface IUtilisateur {
   nombrePasteursEglise: string;
   nombreAnciensEglise: string;
   nombreDiacresEglise: string;
+  roleUtilisateur: 'admin' | 'gestionnaire' | 'lecteur';
+  permissionsUtilisateur: string;
+  idUtilisateurParent: number | null;
+  actifUtilisateur: number;
   password: string;
   confirmPassword: string;
   email: string;

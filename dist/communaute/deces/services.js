@@ -57,9 +57,16 @@ const recupDecesByIdUtilsateur = (idUtilisateur) => {
 };
 const supprimerDeces = (idDeces) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a, _b, _c;
         try {
+            const deletedDeces = yield functions_1.default.recupDecesId(idDeces);
             yield functions_1.default.supprimerDeces(idDeces);
-            resolve({ idDeces: idDeces });
+            resolve({
+                idDeces,
+                idMembre: ((_a = deletedDeces === null || deletedDeces === void 0 ? void 0 : deletedDeces[0]) === null || _a === void 0 ? void 0 : _a.idMembre) || null,
+                idUtilisateur: ((_b = deletedDeces === null || deletedDeces === void 0 ? void 0 : deletedDeces[0]) === null || _b === void 0 ? void 0 : _b.idUtilisateur) || null,
+                nomMembreDeces: ((_c = deletedDeces === null || deletedDeces === void 0 ? void 0 : deletedDeces[0]) === null || _c === void 0 ? void 0 : _c.nomMembreDeces) || '',
+            });
         }
         catch (error) {
             reject(error);

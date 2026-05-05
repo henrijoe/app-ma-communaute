@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sanitizeStorageName = exports.getGalerieEventDirectory = exports.getGalerieMediaRootDirectory = exports.getLegacyAvatarsDirectory = exports.getMemberPhotosDirectory = exports.saveFileToBase64 = exports.getFileToBase64 = exports.getAvatarsPath = exports.errorMsg = exports.msg = exports.isProd = void 0;
+exports.sanitizeStorageName = exports.getGalerieEventDirectory = exports.getGalerieMediaRootDirectory = exports.getLegacyAvatarsDirectory = exports.getChurchLogosDirectory = exports.getMemberPhotosDirectory = exports.saveFileToBase64 = exports.getFileToBase64 = exports.getChurchLogoPath = exports.getAvatarsPath = exports.errorMsg = exports.msg = exports.isProd = void 0;
 const path_1 = __importDefault(require("path"));
 // import * as sharp from 'sharp';
 require('dotenv').config();
@@ -45,6 +45,15 @@ const getMemberPhotosDirectory = () => {
     return memberPhotosDir;
 };
 exports.getMemberPhotosDirectory = getMemberPhotosDirectory;
+const getChurchLogosDirectory = () => {
+    const sqliteRoot = process.env.SQLITE_DB_DIR || 'C:\\base-communaute';
+    const churchLogosDir = path_1.default.join(sqliteRoot, 'logo-eglise');
+    if (!fs.existsSync(churchLogosDir)) {
+        fs.mkdirSync(churchLogosDir, { recursive: true });
+    }
+    return churchLogosDir;
+};
+exports.getChurchLogosDirectory = getChurchLogosDirectory;
 const getGalerieMediaRootDirectory = () => {
     const sqliteRoot = process.env.SQLITE_DB_DIR || 'C:\\base-communaute';
     const galerieDir = path_1.default.join(sqliteRoot, 'galerie-evenements');
@@ -79,6 +88,13 @@ const getAvatarsPath = (fileNameOrId) => {
     return path_1.default.join(getMemberPhotosDirectory(), fileName);
 };
 exports.getAvatarsPath = getAvatarsPath;
+const getChurchLogoPath = (fileNameOrId) => {
+    const fileName = typeof fileNameOrId === 'number'
+        ? `eglise_${fileNameOrId}.jpg`
+        : fileNameOrId;
+    return path_1.default.join(getChurchLogosDirectory(), fileName);
+};
+exports.getChurchLogoPath = getChurchLogoPath;
 // Fonction pour lire un fichier et retourner sa représentation en base64
 const getFileToBase64 = (filePath) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {

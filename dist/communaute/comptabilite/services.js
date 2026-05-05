@@ -41,10 +41,58 @@ const recupComptabiliteByUtilisateur = (idUtilisateur) => new Promise((resolve, 
         reject(error);
     }
 }));
-const supprimerComptabilite = (idComptabilite) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+const recupComptabiliteSupprimeeByUtilisateur = (idUtilisateur) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        yield functions_1.default.supprimerComptabilite(idComptabilite);
-        resolve({ idComptabilite });
+        const comptabilites = yield functions_1.default.recupComptabiliteSupprimeeByUtilisateur(idUtilisateur);
+        resolve(comptabilites);
+    }
+    catch (error) {
+        reject(error);
+    }
+}));
+const supprimerComptabilite = (idComptabilite, supprimeParUtilisateur, motifSuppressionComptabilite) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const comptabilite = yield functions_1.default.recupComptabiliteById(idComptabilite);
+        const firstRow = Array.isArray(comptabilite) ? comptabilite[0] : comptabilite;
+        yield functions_1.default.supprimerComptabilite(idComptabilite, supprimeParUtilisateur, motifSuppressionComptabilite);
+        resolve({
+            idComptabilite,
+            idUtilisateur: Number((firstRow === null || firstRow === void 0 ? void 0 : firstRow.idUtilisateur) || 0) || null,
+            nomComptabilite: (firstRow === null || firstRow === void 0 ? void 0 : firstRow.nomComptabilite) || '',
+            supprimeParUtilisateur: supprimeParUtilisateur || null,
+            motifSuppressionComptabilite: motifSuppressionComptabilite || 'Suppression depuis la liste comptable',
+        });
+    }
+    catch (error) {
+        reject(error);
+    }
+}));
+const restaurerComptabilite = (idComptabilite) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield functions_1.default.restaurerComptabilite(idComptabilite);
+        const comptabilite = yield functions_1.default.recupComptabiliteById(idComptabilite);
+        const firstRow = Array.isArray(comptabilite) ? comptabilite[0] : comptabilite;
+        resolve({
+            idComptabilite,
+            idUtilisateur: Number((firstRow === null || firstRow === void 0 ? void 0 : firstRow.idUtilisateur) || 0) || null,
+            nomComptabilite: (firstRow === null || firstRow === void 0 ? void 0 : firstRow.nomComptabilite) || '',
+            data: comptabilite,
+        });
+    }
+    catch (error) {
+        reject(error);
+    }
+}));
+const supprimerComptabiliteDefinitivement = (idComptabilite, nomUtilisateur) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const comptabilite = yield functions_1.default.recupComptabiliteById(idComptabilite);
+        const firstRow = Array.isArray(comptabilite) ? comptabilite[0] : comptabilite;
+        yield functions_1.default.supprimerComptabiliteDefinitivement(idComptabilite, nomUtilisateur);
+        resolve({
+            idComptabilite,
+            idUtilisateur: Number((firstRow === null || firstRow === void 0 ? void 0 : firstRow.idUtilisateur) || 0) || null,
+            nomComptabilite: (firstRow === null || firstRow === void 0 ? void 0 : firstRow.nomComptabilite) || '',
+        });
     }
     catch (error) {
         reject(error);
@@ -64,7 +112,10 @@ exports.default = {
     ajouterComptablilite,
     recupComptabilite,
     recupComptabiliteByUtilisateur,
+    recupComptabiliteSupprimeeByUtilisateur,
     supprimerComptabilite,
+    restaurerComptabilite,
+    supprimerComptabiliteDefinitivement,
     modifierComptabilite,
 };
 //# sourceMappingURL=services.js.map

@@ -1,6 +1,6 @@
-import { _executeSql, _selectSql } from "../../db";
-import sqliteDB from "../../db/sqliteDB";
-import { IUtilisateur } from "./interfaces";
+import { _executeSql, _selectSql } from '../../db';
+import sqliteDB from '../../db/sqliteDB';
+import { IUtilisateur } from './interfaces';
 
 const bcrypt = require('bcrypt');
 
@@ -22,9 +22,13 @@ const UTILISATEUR_OPTIONAL_TEXT_FIELDS = [
   'nombrePasteursEglise',
   'nombreAnciensEglise',
   'nombreDiacresEglise',
+  'roleUtilisateur',
+  'permissionsUtilisateur',
 ] as const;
 
-const MYSQL_UTILISATEUR_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_FIELDS)[number], string> = {
+const UTILISATEUR_OPTIONAL_NUMBER_FIELDS = ['idUtilisateurParent', 'actifUtilisateur'] as const;
+
+const MYSQL_UTILISATEUR_TEXT_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_FIELDS)[number], string> = {
   logoEglise: 'TEXT NULL',
   lieuEglise: 'VARCHAR(255) NULL',
   telephoneSecretariatEglise: 'VARCHAR(30) NULL',
@@ -42,9 +46,16 @@ const MYSQL_UTILISATEUR_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_FIELDS
   nombrePasteursEglise: 'VARCHAR(50) NULL',
   nombreAnciensEglise: 'VARCHAR(50) NULL',
   nombreDiacresEglise: 'VARCHAR(50) NULL',
+  roleUtilisateur: "VARCHAR(30) NOT NULL DEFAULT 'admin'",
+  permissionsUtilisateur: 'TEXT NULL',
 };
 
-const SQLITE_UTILISATEUR_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_FIELDS)[number], string> = {
+const MYSQL_UTILISATEUR_NUMBER_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_NUMBER_FIELDS)[number], string> = {
+  idUtilisateurParent: 'INT NULL',
+  actifUtilisateur: 'INT NOT NULL DEFAULT 1',
+};
+
+const SQLITE_UTILISATEUR_TEXT_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_FIELDS)[number], string> = {
   logoEglise: 'TEXT',
   lieuEglise: 'TEXT',
   telephoneSecretariatEglise: 'TEXT',
@@ -62,10 +73,38 @@ const SQLITE_UTILISATEUR_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_FIELD
   nombrePasteursEglise: 'TEXT',
   nombreAnciensEglise: 'TEXT',
   nombreDiacresEglise: 'TEXT',
+  roleUtilisateur: "TEXT DEFAULT 'admin'",
+  permissionsUtilisateur: 'TEXT',
 };
+
+const SQLITE_UTILISATEUR_NUMBER_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_NUMBER_FIELDS)[number], string> = {
+  idUtilisateurParent: 'INTEGER',
+  actifUtilisateur: 'INTEGER DEFAULT 1',
+};
+
+const ALL_MODULE_PERMISSIONS = JSON.stringify([
+  'dashboard',
+  'user',
+  'culte',
+  'departement',
+  'cellule',
+  'groupe',
+  'social',
+  'galerie',
+  'agenda',
+  'comptabilite',
+  'settings',
+]);
 
 const normalizeUtilisateurData = (data: Partial<IUtilisateur>): IUtilisateur => ({
   idUtilisateur: Number(data.idUtilisateur || 0),
+  idUtilisateurParent: data.idUtilisateurParent ? Number(data.idUtilisateurParent) : null,
+  roleUtilisateur:
+    data.roleUtilisateur === 'gestionnaire' || data.roleUtilisateur === 'lecteur'
+      ? data.roleUtilisateur
+      : 'admin',
+  permissionsUtilisateur: data.permissionsUtilisateur || ALL_MODULE_PERMISSIONS,
+  actifUtilisateur: Number(data.actifUtilisateur || 1),
   logoUtilisateur: data.logoUtilisateur || '',
   logoEglise: data.logoEglise || '',
   nomTemple: data.nomTemple || '',
@@ -98,16 +137,27 @@ const ensureUtilisateurColumns = async (): Promise<void> => {
     for (const columnName of UTILISATEUR_OPTIONAL_TEXT_FIELDS) {
       try {
         await _executeSql(
-          `ALTER TABLE utilisateur ADD COLUMN ${columnName} ${SQLITE_UTILISATEUR_COLUMNS[columnName]}`,
+          `ALTER TABLE utilisateur ADD COLUMN ${columnName} ${SQLITE_UTILISATEUR_TEXT_COLUMNS[columnName]}`,
           []
         );
       } catch (error: any) {
         const message = String(error?.message || error || '').toLowerCase();
-        if (
-          message.includes('duplicate column')
-          || message.includes('already exists')
-          || message.includes('duplicate column name')
-        ) {
+        if (message.includes('duplicate column') || message.includes('already exists') || message.includes('duplicate column name')) {
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    for (const columnName of UTILISATEUR_OPTIONAL_NUMBER_FIELDS) {
+      try {
+        await _executeSql(
+          `ALTER TABLE utilisateur ADD COLUMN ${columnName} ${SQLITE_UTILISATEUR_NUMBER_COLUMNS[columnName]}`,
+          []
+        );
+      } catch (error: any) {
+        const message = String(error?.message || error || '').toLowerCase();
+        if (message.includes('duplicate column') || message.includes('already exists') || message.includes('duplicate column name')) {
           continue;
         }
         throw error;
@@ -120,14 +170,15 @@ const ensureUtilisateurColumns = async (): Promise<void> => {
   const existingColumns = new Set((Array.isArray(columns) ? columns : []).map((item: any) => item.Field));
 
   for (const columnName of UTILISATEUR_OPTIONAL_TEXT_FIELDS) {
-    if (existingColumns.has(columnName)) {
-      continue;
+    if (!existingColumns.has(columnName)) {
+      await _executeSql(`ALTER TABLE utilisateur ADD COLUMN ${columnName} ${MYSQL_UTILISATEUR_TEXT_COLUMNS[columnName]}`, []);
     }
+  }
 
-    await _executeSql(
-      `ALTER TABLE utilisateur ADD COLUMN ${columnName} ${MYSQL_UTILISATEUR_COLUMNS[columnName]}`,
-      []
-    );
+  for (const columnName of UTILISATEUR_OPTIONAL_NUMBER_FIELDS) {
+    if (!existingColumns.has(columnName)) {
+      await _executeSql(`ALTER TABLE utilisateur ADD COLUMN ${columnName} ${MYSQL_UTILISATEUR_NUMBER_COLUMNS[columnName]}`, []);
+    }
   }
 };
 
@@ -162,10 +213,14 @@ const ajouterUtilisateur = (rawData: IUtilisateur) => {
         nombrePasteursEglise,
         nombreAnciensEglise,
         nombreDiacresEglise,
+        roleUtilisateur,
+        permissionsUtilisateur,
+        idUtilisateurParent,
+        actifUtilisateur,
         password,
         confirmPassword,
         email
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
       const values = [
         data.logoUtilisateur,
@@ -190,6 +245,10 @@ const ajouterUtilisateur = (rawData: IUtilisateur) => {
         data.nombrePasteursEglise,
         data.nombreAnciensEglise,
         data.nombreDiacresEglise,
+        data.roleUtilisateur,
+        data.permissionsUtilisateur,
+        data.idUtilisateurParent,
+        data.actifUtilisateur,
         data.password,
         hashedconfirmPassword,
         data.email,
@@ -207,13 +266,33 @@ const recupUtilisateur = () => {
   return new Promise(async (resolve, reject) => {
     try {
       await ensureUtilisateurColumns();
-      const sql = `SELECT * FROM utilisateur ORDER BY idUtilisateur ASC ;`;
+      const sql = `SELECT * FROM utilisateur ORDER BY idUtilisateur ASC;`;
       const utilisateur = await _selectSql(sql, []);
       resolve(utilisateur);
     } catch (error) {
       reject(error);
     }
   });
+};
+
+const recupUtilisateurByParentId = (idUtilisateurParent: number) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      await ensureUtilisateurColumns();
+      const sql = `SELECT * FROM utilisateur WHERE idUtilisateurParent = ? ORDER BY idUtilisateur ASC;`;
+      const utilisateur = await _selectSql(sql, [idUtilisateurParent]);
+      resolve(utilisateur);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+const countSecondaryUsersByParentId = async (idUtilisateurParent: number) => {
+  await ensureUtilisateurColumns();
+  const sql = `SELECT COUNT(*) AS total FROM utilisateur WHERE idUtilisateurParent = ?;`;
+  const rows: any[] = await _selectSql(sql, [idUtilisateurParent]);
+  return Number(rows?.[0]?.total || 0);
 };
 
 const recupUtilisateurById = (id: number) => {
@@ -233,12 +312,8 @@ const supprimerUtilisateur = (idUtilisateur: number): Promise<boolean> => {
   return new Promise((resolve, reject) => {
     const sql = `DELETE FROM utilisateur WHERE idUtilisateur = ?`;
     _executeSql(sql, [idUtilisateur])
-      .then(() => {
-        resolve(true);
-      })
-      .catch((error) => {
-        reject(error);
-      });
+      .then(() => resolve(true))
+      .catch((error) => reject(error));
   });
 };
 
@@ -271,6 +346,10 @@ const modifierUtilisateur = (rawData: IUtilisateur): Promise<boolean> => {
         nombrePasteursEglise=?,
         nombreAnciensEglise=?,
         nombreDiacresEglise=?,
+        roleUtilisateur=?,
+        permissionsUtilisateur=?,
+        idUtilisateurParent=?,
+        actifUtilisateur=?,
         password=?,
         confirmPassword=?,
         email=?
@@ -299,6 +378,10 @@ const modifierUtilisateur = (rawData: IUtilisateur): Promise<boolean> => {
         data.nombrePasteursEglise,
         data.nombreAnciensEglise,
         data.nombreDiacresEglise,
+        data.roleUtilisateur,
+        data.permissionsUtilisateur,
+        data.idUtilisateurParent,
+        data.actifUtilisateur,
         data.password,
         data.confirmPassword,
         data.email,
@@ -316,7 +399,7 @@ const login = (data: IUtilisateur): Promise<IUtilisateur> => {
     try {
       await ensureUtilisateurColumns();
       const { nomUtilisateur, password } = data;
-      const sql = `SELECT * FROM utilisateur  WHERE nomUtilisateur=? AND password=?`;
+      const sql = `SELECT * FROM utilisateur WHERE nomUtilisateur=? AND password=? AND COALESCE(actifUtilisateur, 1) = 1`;
 
       const utilisateur = await _selectSql(sql, [nomUtilisateur, password]);
 
@@ -336,17 +419,10 @@ const login = (data: IUtilisateur): Promise<IUtilisateur> => {
   });
 };
 
-/**
- * Mettre a jour le mot de passe d'un utilisateur
- * @param data
- */
-export const modifierLogin = (idUtilisateur: number, password: (string | null), confirmPassword: string): Promise<boolean> => {
+export const modifierLogin = (idUtilisateur: number, password: string | null, confirmPassword: string): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
     try {
-      const sql = `UPDATE utilisateur
-                       SET password=?,
-                       confirmPassword=?
-                       WHERE idUtilisateur=?`;
+      const sql = `UPDATE utilisateur SET password=?, confirmPassword=? WHERE idUtilisateur=?`;
       await _executeSql(sql, [password, confirmPassword, idUtilisateur]);
       resolve(true);
     } catch (error) {
@@ -358,6 +434,8 @@ export const modifierLogin = (idUtilisateur: number, password: (string | null), 
 export default {
   ajouterUtilisateur,
   recupUtilisateur,
+  recupUtilisateurByParentId,
+  countSecondaryUsersByParentId,
   supprimerUtilisateur,
   modifierUtilisateur,
   recupUtilisateurById,

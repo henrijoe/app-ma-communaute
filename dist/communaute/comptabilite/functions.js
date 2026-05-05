@@ -9,7 +9,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const sqliteSecurity_1 = require("../../db/sqliteSecurity");
 const db_1 = require("../../db");
+const normalizeUsername = (value) => String(value || '').trim().toLowerCase();
 const ajouterComptablilite = (data) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const sql = `
@@ -36,9 +38,19 @@ const ajouterComptablilite = (data) => new Promise((resolve, reject) => __awaite
         reject(error);
     }
 }));
+const baseSelect = `
+  SELECT
+    comptabilite.*,
+    utilisateur.nomUtilisateur AS nomUtilisateurSuppression
+  FROM comptabilite
+  LEFT JOIN utilisateur ON utilisateur.idUtilisateur = comptabilite.supprimeParUtilisateur
+`;
 const recupComptabilite = () => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const sql = 'SELECT * FROM comptabilite ORDER BY dateComptabilite DESC, idComptabilite DESC';
+        const sql = `${baseSelect}
+        WHERE COALESCE(comptabilite.estSupprimeComptabilite, 0) <> 1
+        ORDER BY comptabilite.dateComptabilite DESC, comptabilite.idComptabilite DESC
+      `;
         const comptabilites = yield (0, db_1._selectSql)(sql, []);
         resolve(comptabilites);
     }
@@ -48,11 +60,24 @@ const recupComptabilite = () => new Promise((resolve, reject) => __awaiter(void 
 }));
 const recupComptabiliteByUtilisateur = (idUtilisateur) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const sql = `
-        SELECT *
-        FROM comptabilite
-        WHERE idUtilisateur = ?
-        ORDER BY dateComptabilite DESC, idComptabilite DESC
+        const sql = `${baseSelect}
+        WHERE comptabilite.idUtilisateur = ?
+          AND COALESCE(comptabilite.estSupprimeComptabilite, 0) <> 1
+        ORDER BY comptabilite.dateComptabilite DESC, comptabilite.idComptabilite DESC
+      `;
+        const comptabilites = yield (0, db_1._selectSql)(sql, [idUtilisateur]);
+        resolve(comptabilites);
+    }
+    catch (error) {
+        reject(error);
+    }
+}));
+const recupComptabiliteSupprimeeByUtilisateur = (idUtilisateur) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const sql = `${baseSelect}
+        WHERE comptabilite.idUtilisateur = ?
+          AND COALESCE(comptabilite.estSupprimeComptabilite, 0) = 1
+        ORDER BY COALESCE(comptabilite.dateSuppressionComptabilite, comptabilite.dateComptabilite) DESC, comptabilite.idComptabilite DESC
       `;
         const comptabilites = yield (0, db_1._selectSql)(sql, [idUtilisateur]);
         resolve(comptabilites);
@@ -63,7 +88,7 @@ const recupComptabiliteByUtilisateur = (idUtilisateur) => new Promise((resolve, 
 }));
 const recupComptabiliteById = (id) => new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const sql = 'SELECT * FROM comptabilite WHERE idComptabilite = ?';
+        const sql = `${baseSelect} WHERE comptabilite.idComptabilite = ?`;
         const comptabilite = yield (0, db_1._selectSql)(sql, [id]);
         resolve(comptabilite);
     }
@@ -71,7 +96,43 @@ const recupComptabiliteById = (id) => new Promise((resolve, reject) => __awaiter
         reject(error);
     }
 }));
-const supprimerComptabilite = (idComptabilite) => new Promise((resolve, reject) => {
+const supprimerComptabilite = (idComptabilite, supprimeParUtilisateur, motifSuppressionComptabilite) => new Promise((resolve, reject) => {
+    const sql = `
+      UPDATE comptabilite
+      SET
+        estSupprimeComptabilite = 1,
+        dateSuppressionComptabilite = CURRENT_TIMESTAMP,
+        motifSuppressionComptabilite = ?,
+        supprimeParUtilisateur = ?
+      WHERE idComptabilite = ?
+    `;
+    (0, db_1._executeSql)(sql, [
+        motifSuppressionComptabilite || 'Suppression depuis la liste comptable',
+        supprimeParUtilisateur || null,
+        idComptabilite,
+    ])
+        .then(() => resolve(true))
+        .catch((error) => reject(error));
+});
+const restaurerComptabilite = (idComptabilite) => new Promise((resolve, reject) => {
+    const sql = `
+      UPDATE comptabilite
+      SET
+        estSupprimeComptabilite = 0,
+        dateSuppressionComptabilite = NULL,
+        motifSuppressionComptabilite = NULL,
+        supprimeParUtilisateur = NULL
+      WHERE idComptabilite = ?
+    `;
+    (0, db_1._executeSql)(sql, [idComptabilite])
+        .then(() => resolve(true))
+        .catch((error) => reject(error));
+});
+const supprimerComptabiliteDefinitivement = (idComptabilite, nomUtilisateur) => new Promise((resolve, reject) => {
+    if (normalizeUsername(nomUtilisateur) !== normalizeUsername(sqliteSecurity_1.DESKTOP_SUPERADMIN_USERNAME)) {
+        reject(new Error('Seul le superadmin peut supprimer definitivement une ecriture comptable.'));
+        return;
+    }
     const sql = 'DELETE FROM comptabilite WHERE idComptabilite = ?';
     (0, db_1._executeSql)(sql, [idComptabilite])
         .then(() => resolve(true))
@@ -109,8 +170,11 @@ exports.default = {
     ajouterComptablilite,
     recupComptabilite,
     recupComptabiliteByUtilisateur,
+    recupComptabiliteSupprimeeByUtilisateur,
     recupComptabiliteById,
     supprimerComptabilite,
+    restaurerComptabilite,
+    supprimerComptabiliteDefinitivement,
     modifierComptabilite,
 };
 //# sourceMappingURL=functions.js.map

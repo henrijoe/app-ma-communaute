@@ -11,6 +11,14 @@ const ajouterDeces = (req, res) => {
     services_1.default
         .ajouterDeces(data)
         .then((result) => {
+        var _a, _b;
+        io.emit('ajouterDeces', {
+            idUtilisateur: (data === null || data === void 0 ? void 0 : data.idUtilisateur) || null,
+            idMembre: (data === null || data === void 0 ? void 0 : data.idMembre) || null,
+            nomMembreDeces: (data === null || data === void 0 ? void 0 : data.nomMembreDeces) || ((_a = result === null || result === void 0 ? void 0 : result[0]) === null || _a === void 0 ? void 0 : _a.nomMembreDeces) || '',
+            dateDeces: (data === null || data === void 0 ? void 0 : data.dateDeces) || ((_b = result === null || result === void 0 ? void 0 : result[0]) === null || _b === void 0 ? void 0 : _b.dateDeces) || null,
+            data: result,
+        });
         res.status(200).send({ status: 1, data: result });
     })
         .catch((error) => {
@@ -40,6 +48,7 @@ const supprimerDeces = (req, res) => {
         .supprimerDeces(idDeces)
         .then((result) => {
         if (result) {
+            req.io.emit('supprimerDeces', result);
             res.status(200).send({ status: 1, data: result });
         }
         else {
@@ -53,6 +62,13 @@ const modifierDeces = (req, res) => {
     services_1.default
         .modifierDeces(data)
         .then((result) => {
+        req.io.emit('modifierDeces', {
+            idUtilisateur: (data === null || data === void 0 ? void 0 : data.idUtilisateur) || null,
+            idMembre: (data === null || data === void 0 ? void 0 : data.idMembre) || null,
+            nomMembreDeces: (data === null || data === void 0 ? void 0 : data.nomMembreDeces) || '',
+            dateDeces: (data === null || data === void 0 ? void 0 : data.dateDeces) || null,
+            data: result,
+        });
         res.status(200).send({ status: 1, data: result });
     })
         .catch((errors) => res.status(400).send({ status: 0, errors }));
