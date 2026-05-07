@@ -1,8 +1,33 @@
 import fs from "fs";
+import os from "os";
 import path from "path";
 import sqlite3 from "sqlite3";
 
-const DEFAULT_SQLITE_DIR = process.env.SQLITE_DB_DIR || "C:\\base-communaute";
+const WINDOWS_SQLITE_DIR = "C:\\base-communaute";
+
+const resolveDefaultSqliteDirectory = (): string => {
+  if (process.env.SQLITE_DB_DIR) {
+    return process.env.SQLITE_DB_DIR;
+  }
+
+  if (process.platform === "win32") {
+    return WINDOWS_SQLITE_DIR;
+  }
+
+  if (process.platform === "darwin") {
+    return path.join(
+      os.homedir(),
+      "Library",
+      "Application Support",
+      "Ma Communaute",
+      "base-communaute"
+    );
+  }
+
+  return path.join(os.homedir(), ".ma-communaute", "base-communaute");
+};
+
+const DEFAULT_SQLITE_DIR = resolveDefaultSqliteDirectory();
 const ACTIVE_DB_FILE = path.join(DEFAULT_SQLITE_DIR, ".active-db.json");
 const DEFAULT_SQLITE_FILE = path.join(DEFAULT_SQLITE_DIR, "ma-communaute-local.db");
 const TEMPLATE_PATH = path.resolve(__dirname, "../../templates/ma-communaute.sql");

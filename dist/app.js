@@ -48,9 +48,10 @@ const httpServer = require("http").createServer(app);
  */
 const htmlPath = path.join(__dirname, '..', 'views');
 const albumDir = path.join(__dirname, '..', 'albums');
-const memberPhotosDir = path.join(process.env.SQLITE_DB_DIR || 'C:\\base-communaute', 'photo-membre');
-const galerieMediaDir = path.join(process.env.SQLITE_DB_DIR || 'C:\\base-communaute', 'galerie-evenements');
-const churchLogosDir = path.join(process.env.SQLITE_DB_DIR || 'C:\\base-communaute', 'logo-eglise');
+const sqliteRootDir = sqliteDB_1.default.getSqliteDirectory();
+const memberPhotosDir = path.join(sqliteRootDir, 'photo-membre');
+const galerieMediaDir = path.join(sqliteRootDir, 'galerie-evenements');
+const churchLogosDir = path.join(sqliteRootDir, 'logo-eglise');
 // =================================== MIDDLEWARES =========================================================
 app.use(express_1.default.urlencoded({ limit: '100mb', extended: true, }));
 app.use(express_1.default.json({ limit: '100mb' }));

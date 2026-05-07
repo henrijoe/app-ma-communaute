@@ -1,6 +1,7 @@
 import path from "path";
 import { _executeSql } from "../db";
 import { _selectSql } from "../db";
+import sqliteDB from "../db/sqliteDB";
 // import * as sharp from 'sharp';
 require('dotenv').config();
 
@@ -28,8 +29,7 @@ const _ = require("lodash");
 const getLegacyAvatarsDirectory = (): string => path.join(__dirname, '..', '..', 'albums');
 
 const getMemberPhotosDirectory = (): string => {
-  const sqliteRoot = process.env.SQLITE_DB_DIR || 'C:\\base-communaute';
-  const memberPhotosDir = path.join(sqliteRoot, 'photo-membre');
+  const memberPhotosDir = path.join(sqliteDB.getSqliteDirectory(), 'photo-membre');
 
   if (!fs.existsSync(memberPhotosDir)) {
     fs.mkdirSync(memberPhotosDir, { recursive: true });
@@ -39,8 +39,7 @@ const getMemberPhotosDirectory = (): string => {
 };
 
 const getChurchLogosDirectory = (): string => {
-  const sqliteRoot = process.env.SQLITE_DB_DIR || 'C:\\base-communaute';
-  const churchLogosDir = path.join(sqliteRoot, 'logo-eglise');
+  const churchLogosDir = path.join(sqliteDB.getSqliteDirectory(), 'logo-eglise');
 
   if (!fs.existsSync(churchLogosDir)) {
     fs.mkdirSync(churchLogosDir, { recursive: true });
@@ -50,8 +49,7 @@ const getChurchLogosDirectory = (): string => {
 };
 
 const getGalerieMediaRootDirectory = (): string => {
-  const sqliteRoot = process.env.SQLITE_DB_DIR || 'C:\\base-communaute';
-  const galerieDir = path.join(sqliteRoot, 'galerie-evenements');
+  const galerieDir = path.join(sqliteDB.getSqliteDirectory(), 'galerie-evenements');
 
   if (!fs.existsSync(galerieDir)) {
     fs.mkdirSync(galerieDir, { recursive: true });

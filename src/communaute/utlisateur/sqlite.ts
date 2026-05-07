@@ -1,6 +1,7 @@
 import sqliteDB from "../../db/sqliteDB";
 import { ICreateCommunauteDatabasePayload } from "./interfaces";
 import fs from "fs";
+import path from "path";
 
 /**
  * Cree ou reutilise une base SQLite locale pour une communaute puis la rend active.
@@ -24,7 +25,7 @@ export const createCommunauteDatabase = async (
 
   return {
     filePath: databasePath,
-    fileName: databasePath.split("\\").pop() || databasePath,
+    fileName: path.basename(databasePath),
   };
 };
 

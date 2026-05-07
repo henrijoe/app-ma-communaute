@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sanitizeStorageName = exports.getGalerieEventDirectory = exports.getGalerieMediaRootDirectory = exports.getLegacyAvatarsDirectory = exports.getChurchLogosDirectory = exports.getMemberPhotosDirectory = exports.saveFileToBase64 = exports.getFileToBase64 = exports.getChurchLogoPath = exports.getAvatarsPath = exports.errorMsg = exports.msg = exports.isProd = void 0;
 const path_1 = __importDefault(require("path"));
+const sqliteDB_1 = __importDefault(require("../db/sqliteDB"));
 // import * as sharp from 'sharp';
 require('dotenv').config();
 exports.isProd = process.env.NODE_ENV === 'production'
@@ -37,8 +38,7 @@ const _ = require("lodash");
 const getLegacyAvatarsDirectory = () => path_1.default.join(__dirname, '..', '..', 'albums');
 exports.getLegacyAvatarsDirectory = getLegacyAvatarsDirectory;
 const getMemberPhotosDirectory = () => {
-    const sqliteRoot = process.env.SQLITE_DB_DIR || 'C:\\base-communaute';
-    const memberPhotosDir = path_1.default.join(sqliteRoot, 'photo-membre');
+    const memberPhotosDir = path_1.default.join(sqliteDB_1.default.getSqliteDirectory(), 'photo-membre');
     if (!fs.existsSync(memberPhotosDir)) {
         fs.mkdirSync(memberPhotosDir, { recursive: true });
     }
@@ -46,8 +46,7 @@ const getMemberPhotosDirectory = () => {
 };
 exports.getMemberPhotosDirectory = getMemberPhotosDirectory;
 const getChurchLogosDirectory = () => {
-    const sqliteRoot = process.env.SQLITE_DB_DIR || 'C:\\base-communaute';
-    const churchLogosDir = path_1.default.join(sqliteRoot, 'logo-eglise');
+    const churchLogosDir = path_1.default.join(sqliteDB_1.default.getSqliteDirectory(), 'logo-eglise');
     if (!fs.existsSync(churchLogosDir)) {
         fs.mkdirSync(churchLogosDir, { recursive: true });
     }
@@ -55,8 +54,7 @@ const getChurchLogosDirectory = () => {
 };
 exports.getChurchLogosDirectory = getChurchLogosDirectory;
 const getGalerieMediaRootDirectory = () => {
-    const sqliteRoot = process.env.SQLITE_DB_DIR || 'C:\\base-communaute';
-    const galerieDir = path_1.default.join(sqliteRoot, 'galerie-evenements');
+    const galerieDir = path_1.default.join(sqliteDB_1.default.getSqliteDirectory(), 'galerie-evenements');
     if (!fs.existsSync(galerieDir)) {
         fs.mkdirSync(galerieDir, { recursive: true });
     }
