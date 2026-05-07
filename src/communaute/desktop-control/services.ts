@@ -737,6 +737,23 @@ export const generateDesktopUnlockCodes = async (payload: {
   };
 };
 
+// Restaure une sauvegarde SQLite locale apres verification du superadmin fixe.
+export const restoreSqliteBackup = async (payload: {
+  nomUtilisateur: string;
+  password: string;
+  backupFilePath: string;
+}) => {
+  if (!isFixedDesktopSuperAdminCredentials(payload.nomUtilisateur, payload.password)) {
+    throw new Error("Seul le superadmin fixe peut restaurer une sauvegarde SQLite.");
+  }
+
+  if (!payload.backupFilePath || !fs.existsSync(payload.backupFilePath)) {
+    throw new Error("Veuillez fournir un fichier de sauvegarde .zip valide.");
+  }
+
+  return sqliteDB.restoreSqliteBackupArchive(payload.backupFilePath);
+};
+
 // Expose l'IP reseau du serveur pour que le front affiche une URL LAN meme en dev.
 export const getServerNetworkInfo = () => {
   // On detecte l'IP reseau courante de la machine qui heberge le backend.
@@ -760,6 +777,7 @@ export default {
   unlockDesktopLicenseWithCode,
   exportPendingDesktopUnlockCodes,
   generateDesktopUnlockCodes,
+  restoreSqliteBackup,
   getServerNetworkInfo,
   isFixedDesktopSuperAdminCredentials,
 };

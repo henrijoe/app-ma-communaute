@@ -3,7 +3,11 @@ import os from "os";
 import path from "path";
 import sqlite3 from "sqlite3";
 
+const AdmZip = require("adm-zip");
+
 const WINDOWS_SQLITE_DIR = "C:\\base-communaute";
+const SQLITE_BACKUP_DIR_NAME = "sauvegardes";
+const SQLITE_BACKUP_RETENTION_COUNT = Number(process.env.SQLITE_BACKUP_RETENTION_COUNT || 30);
 
 const resolveDefaultSqliteDirectory = (): string => {
   if (process.env.SQLITE_DB_DIR) {
@@ -39,6 +43,21 @@ type IndexDefinition = {
   tableName: string;
   indexName: string;
   columns: string[];
+};
+
+type DailySqliteBackupResult = {
+  created: boolean;
+  databaseCount: number;
+  filePath?: string;
+  deletedBackups: number;
+  reason?: string;
+};
+
+type RestoreSqliteBackupResult = {
+  restored: boolean;
+  databaseCount: number;
+  restoredFiles: string[];
+  safetyBackupPath: string | null;
 };
 
 /**
@@ -274,6 +293,292 @@ const convertMysqlDumpToSqliteStatements = (
 const openDatabase = (databasePath: string): sqlite3.Database => {
   const sqlite = sqlite3.verbose();
   return new sqlite.Database(databasePath);
+};
+
+const formatDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const backupSqliteDatabaseFile = async (
+  sourceDatabasePath: string,
+  backupDatabasePath: string
+): Promise<void> => new Promise((resolve, reject) => {
+  const database = openDatabase(sourceDatabasePath);
+  let settled = false;
+
+  const closeAndSettle = (error?: Error | null) => {
+    if (settled) {
+      return;
+    }
+
+    settled = true;
+    database.close((closeError) => {
+      const finalError = error || closeError;
+
+      if (finalError) {
+        reject(finalError);
+        return;
+      }
+
+      resolve();
+    });
+  };
+
+  try {
+    const backup = (database as any).backup(backupDatabasePath, (error: Error | null) => {
+      if (error) {
+        closeAndSettle(error);
+      }
+    });
+
+    backup.step(-1, (stepError: Error | null) => {
+      if (stepError) {
+        closeAndSettle(stepError);
+        return;
+      }
+
+      if (typeof backup.finish === "function") {
+        backup.finish((finishError: Error | null) => closeAndSettle(finishError));
+        return;
+      }
+
+      closeAndSettle(null);
+    });
+  } catch (error: any) {
+    closeAndSettle(error);
+  }
+});
+
+const createSqliteBackupArchive = async (
+  databaseFiles: string[],
+  backupFilePath: string,
+  reason: string
+): Promise<void> => {
+  const backupDirectory = path.dirname(backupFilePath);
+  const dateKey = formatDateKey(new Date());
+  const tempDirectory = path.join(backupDirectory, `.tmp-${dateKey}-${Date.now()}`);
+  await fs.promises.mkdir(tempDirectory, { recursive: true });
+
+  try {
+    const zip = new AdmZip();
+
+    for (const fileName of databaseFiles) {
+      const sourceDatabasePath = path.join(DEFAULT_SQLITE_DIR, fileName);
+      const tempDatabasePath = path.join(tempDirectory, fileName);
+
+      await backupSqliteDatabaseFile(sourceDatabasePath, tempDatabasePath);
+      zip.addLocalFile(tempDatabasePath, "bases");
+    }
+
+    zip.addFile(
+      "manifest.json",
+      Buffer.from(
+        JSON.stringify(
+          {
+            createdAt: new Date().toISOString(),
+            reason,
+            sqliteDirectory: DEFAULT_SQLITE_DIR,
+            databases: databaseFiles,
+          },
+          null,
+          2
+        ),
+        "utf-8"
+      )
+    );
+
+    zip.writeZip(backupFilePath);
+  } finally {
+    await fs.promises.rm(tempDirectory, { recursive: true, force: true });
+  }
+};
+
+const cleanupOldSqliteBackups = async (backupDirectory: string): Promise<number> => {
+  const retentionCount = Number.isInteger(SQLITE_BACKUP_RETENTION_COUNT)
+    && SQLITE_BACKUP_RETENTION_COUNT > 0
+    ? SQLITE_BACKUP_RETENTION_COUNT
+    : 30;
+
+  const backupFiles = (await fs.promises.readdir(backupDirectory))
+    .filter((fileName) => /^sauvegarde-sqlite-\d{4}-\d{2}-\d{2}\.zip$/.test(fileName))
+    .sort()
+    .reverse();
+
+  const filesToDelete = backupFiles.slice(retentionCount);
+
+  for (const fileName of filesToDelete) {
+    await fs.promises.unlink(path.join(backupDirectory, fileName));
+  }
+
+  return filesToDelete.length;
+};
+
+/**
+ * Cree une sauvegarde zip quotidienne des bases SQLite locales.
+ */
+export const ensureDailySqliteBackup = async (): Promise<DailySqliteBackupResult> => {
+  await ensureSqliteDirectory();
+
+  const databaseFiles = (await fs.promises.readdir(DEFAULT_SQLITE_DIR))
+    .filter((fileName) => fileName.endsWith(".db"))
+    .sort();
+
+  const backupDirectory = path.join(DEFAULT_SQLITE_DIR, SQLITE_BACKUP_DIR_NAME);
+  await fs.promises.mkdir(backupDirectory, { recursive: true });
+
+  const todayKey = formatDateKey(new Date());
+  const backupFilePath = path.join(backupDirectory, `sauvegarde-sqlite-${todayKey}.zip`);
+
+  if (fs.existsSync(backupFilePath)) {
+    const deletedBackups = await cleanupOldSqliteBackups(backupDirectory);
+
+    return {
+      created: false,
+      databaseCount: databaseFiles.length,
+      filePath: backupFilePath,
+      deletedBackups,
+      reason: "already-exists",
+    };
+  }
+
+  if (databaseFiles.length === 0) {
+    const deletedBackups = await cleanupOldSqliteBackups(backupDirectory);
+
+    return {
+      created: false,
+      databaseCount: 0,
+      deletedBackups,
+      reason: "no-database",
+    };
+  }
+
+  await createSqliteBackupArchive(databaseFiles, backupFilePath, "daily-auto-backup");
+  const deletedBackups = await cleanupOldSqliteBackups(backupDirectory);
+
+  return {
+    created: true,
+    databaseCount: databaseFiles.length,
+    filePath: backupFilePath,
+    deletedBackups,
+  };
+};
+
+const validateSqliteDatabaseFile = async (databasePath: string): Promise<void> => new Promise((resolve, reject) => {
+  const database = openDatabase(databasePath);
+
+  database.all("PRAGMA integrity_check;", (error, rows: any[]) => {
+    database.close((closeError) => {
+      if (error || closeError) {
+        reject(error || closeError);
+        return;
+      }
+
+      const integrityResult = String(rows?.[0]?.integrity_check || "").toLowerCase();
+
+      if (integrityResult !== "ok") {
+        reject(new Error(`La base ${path.basename(databasePath)} est invalide ou corrompue.`));
+        return;
+      }
+
+      resolve();
+    });
+  });
+});
+
+const isSafeDatabaseEntryName = (entryName: string): boolean => {
+  const normalizedEntryName = entryName.replace(/\\/g, "/");
+  const parts = normalizedEntryName.split("/").filter(Boolean);
+  const fileName = parts[parts.length - 1] || "";
+
+  return (
+    parts.length === 2
+    && parts[0] === "bases"
+    && fileName === path.basename(fileName)
+    && fileName.endsWith(".db")
+    && !fileName.startsWith(".")
+  );
+};
+
+/**
+ * Restaure les bases SQLite depuis une archive zip generee par l'application.
+ */
+export const restoreSqliteBackupArchive = async (
+  backupZipPath: string
+): Promise<RestoreSqliteBackupResult> => {
+  await ensureSqliteDirectory();
+
+  if (!backupZipPath || !fs.existsSync(backupZipPath)) {
+    throw new Error("Le fichier de sauvegarde SQLite est introuvable.");
+  }
+
+  const backupDirectory = path.join(DEFAULT_SQLITE_DIR, SQLITE_BACKUP_DIR_NAME);
+  await fs.promises.mkdir(backupDirectory, { recursive: true });
+
+  const restoreKey = new Date().toISOString().replace(/[:.]/g, "-");
+  const tempDirectory = path.join(backupDirectory, `.restore-${restoreKey}`);
+  await fs.promises.mkdir(tempDirectory, { recursive: true });
+
+  try {
+    const zip = new AdmZip(backupZipPath);
+    const databaseEntries = zip
+      .getEntries()
+      .filter((entry) => !entry.isDirectory && isSafeDatabaseEntryName(entry.entryName));
+
+    if (databaseEntries.length === 0) {
+      throw new Error("Cette sauvegarde ne contient aucune base SQLite restaurable.");
+    }
+
+    const restoredFiles: string[] = [];
+
+    for (const entry of databaseEntries) {
+      const fileName = path.basename(entry.entryName.replace(/\\/g, "/"));
+      const tempDatabasePath = path.join(tempDirectory, fileName);
+
+      await fs.promises.writeFile(tempDatabasePath, entry.getData());
+      await validateSqliteDatabaseFile(tempDatabasePath);
+      restoredFiles.push(fileName);
+    }
+
+    const currentDatabaseFiles = (await fs.promises.readdir(DEFAULT_SQLITE_DIR))
+      .filter((fileName) => fileName.endsWith(".db"))
+      .sort();
+    const safetyBackupPath = currentDatabaseFiles.length > 0
+      ? path.join(backupDirectory, `sauvegarde-avant-restauration-${restoreKey}.zip`)
+      : null;
+
+    if (safetyBackupPath) {
+      await createSqliteBackupArchive(currentDatabaseFiles, safetyBackupPath, "before-restore");
+    }
+
+    for (const fileName of restoredFiles) {
+      const tempDatabasePath = path.join(tempDirectory, fileName);
+      const destinationPath = path.join(DEFAULT_SQLITE_DIR, fileName);
+      const pendingDestinationPath = path.join(DEFAULT_SQLITE_DIR, `.restoring-${restoreKey}-${fileName}`);
+
+      await fs.promises.copyFile(tempDatabasePath, pendingDestinationPath);
+
+      if (fs.existsSync(destinationPath)) {
+        await fs.promises.rm(destinationPath, { force: true });
+      }
+
+      await fs.promises.rename(pendingDestinationPath, destinationPath);
+    }
+
+    preparedSqliteDatabases.clear();
+
+    return {
+      restored: true,
+      databaseCount: restoredFiles.length,
+      restoredFiles,
+      safetyBackupPath,
+    };
+  } finally {
+    await fs.promises.rm(tempDirectory, { recursive: true, force: true });
+  }
 };
 
 /**
@@ -795,6 +1100,8 @@ export default {
   getSqliteDirectory,
   ensureDefaultSqliteDatabase,
   ensureAllSqliteDatabasesSchemasUpdated,
+  ensureDailySqliteBackup,
+  restoreSqliteBackupArchive,
 };
 
 

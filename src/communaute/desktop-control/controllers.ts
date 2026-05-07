@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import fs from "fs";
 
 import services from "./services";
 import { errorMsg } from "../functions";
@@ -64,6 +65,31 @@ const generateDesktopUnlockCodes = async (req: Request, res: Response) => {
   }
 };
 
+// Restaure une sauvegarde SQLite zip fournie par le superadmin.
+const restoreSqliteBackup = async (req: Request, res: Response) => {
+  const uploadedFile = (req as any).file;
+
+  try {
+    if (!uploadedFile?.path) {
+      throw new Error("Veuillez selectionner un fichier de sauvegarde .zip.");
+    }
+
+    const result = await services.restoreSqliteBackup({
+      nomUtilisateur: req.body.nomUtilisateur,
+      password: req.body.password,
+      backupFilePath: uploadedFile.path,
+    });
+
+    res.status(200).send({ status: 1, data: result });
+  } catch (error) {
+    res.status(400).send({ status: 0, error: errorMsg(error) });
+  } finally {
+    if (uploadedFile?.path) {
+      fs.promises.unlink(uploadedFile.path).catch(() => undefined);
+    }
+  }
+};
+
 // Retourne les informations reseau du serveur pour construire l'URL LAN du navigateur.
 const getServerNetworkInfo = (req: Request, res: Response) => {
   try {
@@ -81,5 +107,6 @@ export default {
   unlockDesktopLicenseWithCode,
   exportPendingDesktopUnlockCodes,
   generateDesktopUnlockCodes,
+  restoreSqliteBackup,
   getServerNetworkInfo,
 };

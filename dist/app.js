@@ -143,6 +143,34 @@ Url: "http://localhost:${PORT}"
 Start: ${new Date().toLocaleString("fr-FR")}
 ============================
 `;
+const SQLITE_BACKUP_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+let sqliteBackupCheckTimer = null;
+const runDailySqliteBackup = (logSkipped = false) => __awaiter(void 0, void 0, void 0, function* () {
+    const backupResult = yield sqliteDB_1.default.ensureDailySqliteBackup();
+    if (backupResult.created) {
+        console.log(`[DB] Sauvegarde SQLite creee: ${backupResult.filePath}`);
+        console.log(`[DB] Bases sauvegardees: ${backupResult.databaseCount}`);
+    }
+    else if (logSkipped) {
+        const reason = backupResult.reason === "already-exists"
+            ? "deja presente pour aujourd'hui"
+            : "aucune base SQLite a sauvegarder";
+        console.log(`[DB] Sauvegarde SQLite: ${reason}`);
+    }
+    if (backupResult.deletedBackups > 0) {
+        console.log(`[DB] Anciennes sauvegardes supprimees: ${backupResult.deletedBackups}`);
+    }
+});
+const startSqliteBackupScheduler = () => {
+    if (sqliteBackupCheckTimer) {
+        return;
+    }
+    sqliteBackupCheckTimer = setInterval(() => {
+        runDailySqliteBackup().catch((error) => {
+            console.error("[DB] Erreur lors de la sauvegarde SQLite automatique:", error);
+        });
+    }, SQLITE_BACKUP_CHECK_INTERVAL_MS);
+};
 /**
  * Affiche le moteur de base de donnees actif et prepare SQLite si besoin.
  */
@@ -155,6 +183,8 @@ const logDatabaseStartup = () => __awaiter(void 0, void 0, void 0, function* () 
         console.log(`[DB] Dossier SQLite: ${sqliteDB_1.default.getSqliteDirectory()}`);
         console.log(`[DB] Base SQLite active: ${defaultDatabasePath}`);
         console.log(`[DB] Bases SQLite verifiees: ${updatedDatabases.length}`);
+        yield runDailySqliteBackup(true);
+        startSqliteBackupScheduler();
         return;
     }
     console.log(`[DB] Mode actif: mysql`);
