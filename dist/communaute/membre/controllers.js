@@ -54,7 +54,11 @@ const modifierMembre = (req, res) => {
         req.io.emit("modifierMembre", result);
         res.status(200).send({ status: 1, data: result });
     })
-        .catch((errors) => res.status(400).send({ status: 0, errors }));
+        .catch((errors) => res.status(400).send({
+        status: 0,
+        errors,
+        message: (errors === null || errors === void 0 ? void 0 : errors.message) || 'Erreur lors de la modification du membre',
+    }));
 };
 const recupMembreByIdUtilsateur = (req, res) => {
     const { idUtilisateur } = req === null || req === void 0 ? void 0 : req.params;

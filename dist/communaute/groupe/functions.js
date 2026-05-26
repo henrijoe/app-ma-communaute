@@ -13,8 +13,8 @@ const db_1 = require("../../db");
 const ajouterGroupe = (data) => {
     const values = [
         data.libelleGroupe,
-        data.descriptionGroupe,
-        data.responsableGroupe,
+        data.descriptionGroupe || "",
+        data.responsableGroupe || "",
         data.idUtilisateur,
     ];
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
@@ -100,16 +100,16 @@ const modifierGroupe = (data) => {
             const params = hasUserScope
                 ? [
                     data.libelleGroupe,
-                    data.descriptionGroupe,
-                    data.responsableGroupe,
+                    data.descriptionGroupe || "",
+                    data.responsableGroupe || "",
                     data.idUtilisateur,
                     data.idGroupe,
                     data.idUtilisateur,
                 ]
                 : [
                     data.libelleGroupe,
-                    data.descriptionGroupe,
-                    data.responsableGroupe,
+                    data.descriptionGroupe || "",
+                    data.responsableGroupe || "",
                     data.idUtilisateur,
                     data.idGroupe,
                 ];

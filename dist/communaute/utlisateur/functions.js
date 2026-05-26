@@ -18,6 +18,7 @@ const sqliteDB_1 = __importDefault(require("../../db/sqliteDB"));
 const bcrypt = require('bcrypt');
 const UTILISATEUR_OPTIONAL_TEXT_FIELDS = [
     'logoEglise',
+    'nomEgliseCourt',
     'lieuEglise',
     'telephoneSecretariatEglise',
     'pasteurPrincipal',
@@ -36,10 +37,13 @@ const UTILISATEUR_OPTIONAL_TEXT_FIELDS = [
     'nombreDiacresEglise',
     'roleUtilisateur',
     'permissionsUtilisateur',
+    'resetPasswordCode',
+    'resetPasswordExpiresAt',
 ];
 const UTILISATEUR_OPTIONAL_NUMBER_FIELDS = ['idUtilisateurParent', 'actifUtilisateur'];
 const MYSQL_UTILISATEUR_TEXT_COLUMNS = {
     logoEglise: 'TEXT NULL',
+    nomEgliseCourt: 'VARCHAR(255) NULL',
     lieuEglise: 'VARCHAR(255) NULL',
     telephoneSecretariatEglise: 'VARCHAR(30) NULL',
     pasteurPrincipal: 'VARCHAR(255) NULL',
@@ -58,6 +62,8 @@ const MYSQL_UTILISATEUR_TEXT_COLUMNS = {
     nombreDiacresEglise: 'VARCHAR(50) NULL',
     roleUtilisateur: "VARCHAR(30) NOT NULL DEFAULT 'admin'",
     permissionsUtilisateur: 'TEXT NULL',
+    resetPasswordCode: 'VARCHAR(20) NULL',
+    resetPasswordExpiresAt: 'VARCHAR(50) NULL',
 };
 const MYSQL_UTILISATEUR_NUMBER_COLUMNS = {
     idUtilisateurParent: 'INT NULL',
@@ -65,6 +71,7 @@ const MYSQL_UTILISATEUR_NUMBER_COLUMNS = {
 };
 const SQLITE_UTILISATEUR_TEXT_COLUMNS = {
     logoEglise: 'TEXT',
+    nomEgliseCourt: 'TEXT',
     lieuEglise: 'TEXT',
     telephoneSecretariatEglise: 'TEXT',
     pasteurPrincipal: 'TEXT',
@@ -83,6 +90,8 @@ const SQLITE_UTILISATEUR_TEXT_COLUMNS = {
     nombreDiacresEglise: 'TEXT',
     roleUtilisateur: "TEXT DEFAULT 'admin'",
     permissionsUtilisateur: 'TEXT',
+    resetPasswordCode: 'TEXT',
+    resetPasswordExpiresAt: 'TEXT',
 };
 const SQLITE_UTILISATEUR_NUMBER_COLUMNS = {
     idUtilisateurParent: 'INTEGER',
@@ -112,6 +121,7 @@ const normalizeUtilisateurData = (data) => ({
     logoUtilisateur: data.logoUtilisateur || '',
     logoEglise: data.logoEglise || '',
     nomTemple: data.nomTemple || '',
+    nomEgliseCourt: data.nomEgliseCourt || '',
     lieuEglise: data.lieuEglise || '',
     nomUtilisateur: data.nomUtilisateur || '',
     prenomUtilisateur: data.prenomUtilisateur || '',
@@ -186,6 +196,7 @@ const ajouterUtilisateur = (rawData) => {
         logoUtilisateur,
         logoEglise,
         nomTemple,
+        nomEgliseCourt,
         lieuEglise,
         nomUtilisateur,
         prenomUtilisateur,
@@ -212,11 +223,12 @@ const ajouterUtilisateur = (rawData) => {
         password,
         confirmPassword,
         email
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
             const values = [
                 data.logoUtilisateur,
                 data.logoEglise,
                 data.nomTemple,
+                data.nomEgliseCourt,
                 data.lieuEglise,
                 data.nomUtilisateur,
                 data.prenomUtilisateur,
@@ -298,6 +310,25 @@ const recupUtilisateurById = (id) => {
         }
     }));
 };
+const recupUtilisateurForPasswordReset = (nomUtilisateur, email) => {
+    return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            yield ensureUtilisateurColumns();
+            const sql = `
+        SELECT * FROM utilisateur
+        WHERE LOWER(TRIM(nomUtilisateur)) = LOWER(TRIM(?))
+          AND LOWER(TRIM(email)) = LOWER(TRIM(?))
+          AND COALESCE(actifUtilisateur, 1) = 1
+        LIMIT 1;
+      `;
+            const utilisateur = yield (0, db_1._selectSql)(sql, [nomUtilisateur, email]);
+            resolve(utilisateur);
+        }
+        catch (error) {
+            reject(error);
+        }
+    }));
+};
 const supprimerUtilisateur = (idUtilisateur) => {
     return new Promise((resolve, reject) => {
         const sql = `DELETE FROM utilisateur WHERE idUtilisateur = ?`;
@@ -315,6 +346,7 @@ const modifierUtilisateur = (rawData) => {
         logoUtilisateur=?,
         logoEglise=?,
         nomTemple=?,
+        nomEgliseCourt=?,
         lieuEglise=?,
         nomUtilisateur=?,
         prenomUtilisateur=?,
@@ -346,6 +378,7 @@ const modifierUtilisateur = (rawData) => {
                 data.logoUtilisateur,
                 data.logoEglise,
                 data.nomTemple,
+                data.nomEgliseCourt,
                 data.lieuEglise,
                 data.nomUtilisateur,
                 data.prenomUtilisateur,
@@ -417,6 +450,39 @@ const modifierLogin = (idUtilisateur, password, confirmPassword) => {
     }));
 };
 exports.modifierLogin = modifierLogin;
+const enregistrerResetPasswordCode = (idUtilisateur, resetPasswordCode, resetPasswordExpiresAt) => {
+    return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            yield ensureUtilisateurColumns();
+            const sql = `UPDATE utilisateur SET resetPasswordCode=?, resetPasswordExpiresAt=? WHERE idUtilisateur=?`;
+            yield (0, db_1._executeSql)(sql, [resetPasswordCode, resetPasswordExpiresAt, idUtilisateur]);
+            resolve(true);
+        }
+        catch (error) {
+            reject(error);
+        }
+    }));
+};
+const reinitialiserMotDePasseAvecCode = (idUtilisateur, password, confirmPassword) => {
+    return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            yield ensureUtilisateurColumns();
+            const sql = `
+        UPDATE utilisateur
+        SET password=?,
+            confirmPassword=?,
+            resetPasswordCode=NULL,
+            resetPasswordExpiresAt=NULL
+        WHERE idUtilisateur=?
+      `;
+            yield (0, db_1._executeSql)(sql, [password, confirmPassword, idUtilisateur]);
+            resolve(true);
+        }
+        catch (error) {
+            reject(error);
+        }
+    }));
+};
 exports.default = {
     ajouterUtilisateur,
     recupUtilisateur,
@@ -425,7 +491,10 @@ exports.default = {
     supprimerUtilisateur,
     modifierUtilisateur,
     recupUtilisateurById,
+    recupUtilisateurForPasswordReset,
     login,
     modifierLogin: exports.modifierLogin,
+    enregistrerResetPasswordCode,
+    reinitialiserMotDePasseAvecCode,
 };
 //# sourceMappingURL=functions.js.map

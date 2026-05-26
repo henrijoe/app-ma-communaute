@@ -67,6 +67,26 @@ const modifierUtilisateur = (req: Request, res: Response) => {
     .catch((errors: any) => res.status(400).send({ status: 0, errors }));
 };
 
+const demanderResetPassword = async (req: Request, res: Response) => {
+  try {
+    const result = await services.requestPasswordReset(req.body);
+    res.status(200).send({ status: 1, data: result });
+  } catch (error) {
+    console.error(error);
+    res.status(400).send({ status: 0, error: errorMsg(error) });
+  }
+};
+
+const reinitialiserPassword = async (req: Request, res: Response) => {
+  try {
+    const result = await services.resetPassword(req.body);
+    res.status(200).send({ status: 1, data: result });
+  } catch (error) {
+    console.error(error);
+    res.status(400).send({ status: 0, error: errorMsg(error) });
+  }
+};
+
 const connexionUtilisateur = async (req: Request, res: Response) => {
   try {
     const { nomUtilisateur, motDePasse } = req.body;
@@ -96,6 +116,8 @@ export default {
   recupUtilisateurByParentId,
   supprimerUtilisateur,
   modifierUtilisateur,
+  demanderResetPassword,
+  reinitialiserPassword,
   connexionUtilisateur,
   login,
 };

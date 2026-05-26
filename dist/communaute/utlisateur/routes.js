@@ -12,6 +12,8 @@ utilisateurRouter.get('/listeutilisateur', controllers_1.default.recupUtilisateu
 utilisateurRouter.get('/listeutilisateurparent/:idUtilisateurParent', controllers_1.default.recupUtilisateurByParentId);
 utilisateurRouter.post('/supprimerutilisateur', controllers_1.default.supprimerUtilisateur);
 utilisateurRouter.post('/modifierutilisateur', controllers_1.default.modifierUtilisateur);
+utilisateurRouter.post('/demander-reset-password', controllers_1.default.demanderResetPassword);
+utilisateurRouter.post('/reinitialiser-password', controllers_1.default.reinitialiserPassword);
 utilisateurRouter.post('/connexionutilisateur', controllers_1.default.connexionUtilisateur);
 utilisateurRouter.post('/login', controllers_1.default.login);
 exports.default = utilisateurRouter;

@@ -8,6 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -20,6 +31,7 @@ const functions_1 = require("../functions");
 const services_1 = __importDefault(require("../desktop-control/services"));
 const functions_2 = __importDefault(require("./functions"));
 const sqlite_1 = __importDefault(require("./sqlite"));
+const smtpMailer_1 = require("../../utils/smtpMailer");
 const bcrypt = require('bcrypt');
 const ALL_MODULE_PERMISSIONS = JSON.stringify([
     'dashboard',
@@ -34,6 +46,8 @@ const ALL_MODULE_PERMISSIONS = JSON.stringify([
     'comptabilite',
     'settings',
 ]);
+const PASSWORD_RESET_GENERIC_MESSAGE = 'Si ce compte existe, un code de reinitialisation a ete envoye par email.';
+const PASSWORD_RESET_EXPIRATION_MINUTES = 15;
 const normalizeUtilisateurData = (data) => ({
     idUtilisateur: Number(data.idUtilisateur || 0),
     idUtilisateurParent: data.idUtilisateurParent ? Number(data.idUtilisateurParent) : null,
@@ -45,6 +59,7 @@ const normalizeUtilisateurData = (data) => ({
     logoUtilisateur: data.logoUtilisateur || '',
     logoEglise: data.logoEglise || '',
     nomTemple: data.nomTemple || '',
+    nomEgliseCourt: data.nomEgliseCourt || '',
     lieuEglise: data.lieuEglise || '',
     nomUtilisateur: data.nomUtilisateur || '',
     prenomUtilisateur: data.prenomUtilisateur || '',
@@ -68,6 +83,96 @@ const normalizeUtilisateurData = (data) => ({
     confirmPassword: data.confirmPassword || '',
     email: data.email || '',
 });
+const sanitizeUtilisateurData = (data) => {
+    if (Array.isArray(data)) {
+        return data.map((item) => sanitizeUtilisateurData(item));
+    }
+    if (!data || typeof data !== 'object') {
+        return data;
+    }
+    const _a = data, { password, confirmPassword } = _a, safeData = __rest(_a, ["password", "confirmPassword"]);
+    return safeData;
+};
+const generatePasswordResetCode = () => String(Math.floor(100000 + Math.random() * 900000));
+const normalizeResetField = (value) => String(value || '').trim();
+const requestPasswordReset = (data) => {
+    return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const nomUtilisateur = normalizeResetField(data.nomUtilisateur);
+            const email = normalizeResetField(data.email).toLowerCase();
+            if (!nomUtilisateur || !email) {
+                reject(new Error("Le nom utilisateur et l'email sont requis."));
+                return;
+            }
+            const utilisateurRows = yield functions_2.default.recupUtilisateurForPasswordReset(nomUtilisateur, email);
+            const utilisateur = Array.isArray(utilisateurRows) ? utilisateurRows[0] : null;
+            if (!utilisateur) {
+                resolve({ message: PASSWORD_RESET_GENERIC_MESSAGE });
+                return;
+            }
+            if (!(0, smtpMailer_1.isSmtpConfigured)()) {
+                reject(new Error('Le service email de reinitialisation n est pas configure. Renseignez SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD et SMTP_FROM.'));
+                return;
+            }
+            const resetPasswordCode = generatePasswordResetCode();
+            const resetPasswordExpiresAt = new Date(Date.now() + PASSWORD_RESET_EXPIRATION_MINUTES * 60 * 1000).toISOString();
+            yield functions_2.default.enregistrerResetPasswordCode(Number(utilisateur.idUtilisateur), resetPasswordCode, resetPasswordExpiresAt);
+            yield (0, smtpMailer_1.sendSmtpMail)({
+                to: email,
+                subject: 'Code de reinitialisation du mot de passe',
+                text: [
+                    `Bonjour ${utilisateur.prenomUtilisateur || utilisateur.nomUtilisateur || ''},`,
+                    '',
+                    `Votre code de reinitialisation est : ${resetPasswordCode}`,
+                    `Ce code expire dans ${PASSWORD_RESET_EXPIRATION_MINUTES} minutes.`,
+                    '',
+                    "Si vous n'etes pas a l'origine de cette demande, ignorez simplement ce message.",
+                ].join('\n'),
+            });
+            resolve({ message: PASSWORD_RESET_GENERIC_MESSAGE });
+        }
+        catch (error) {
+            reject(error);
+        }
+    }));
+};
+const resetPassword = (data) => {
+    return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const nomUtilisateur = normalizeResetField(data.nomUtilisateur);
+            const email = normalizeResetField(data.email).toLowerCase();
+            const code = normalizeResetField(data.code);
+            const password = String(data.password || '');
+            const confirmPassword = String(data.confirmPassword || '');
+            if (!nomUtilisateur || !email || !code || !password || !confirmPassword) {
+                reject(new Error('Tous les champs sont requis pour reinitialiser le mot de passe.'));
+                return;
+            }
+            if (password !== confirmPassword) {
+                reject(new Error('Les mots de passe ne correspondent pas.'));
+                return;
+            }
+            const utilisateurRows = yield functions_2.default.recupUtilisateurForPasswordReset(nomUtilisateur, email);
+            const utilisateur = Array.isArray(utilisateurRows) ? utilisateurRows[0] : null;
+            if (!utilisateur) {
+                reject(new Error('Code de reinitialisation invalide ou expire.'));
+                return;
+            }
+            const storedCode = normalizeResetField(utilisateur.resetPasswordCode);
+            const expiresAt = normalizeResetField(utilisateur.resetPasswordExpiresAt);
+            if (!storedCode || storedCode !== code || !expiresAt || new Date(expiresAt).getTime() < Date.now()) {
+                reject(new Error('Code de reinitialisation invalide ou expire.'));
+                return;
+            }
+            const hashedConfirmPassword = yield bcrypt.hash(confirmPassword, 20);
+            yield functions_2.default.reinitialiserMotDePasseAvecCode(Number(utilisateur.idUtilisateur), password, hashedConfirmPassword);
+            resolve(true);
+        }
+        catch (error) {
+            reject(error);
+        }
+    }));
+};
 const ajouterUtilisateur = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
@@ -83,9 +188,10 @@ const ajouterUtilisateur = (data) => {
             else {
                 yield services_1.default.ensureDesktopLicenseInitialized(normalizedData.nomUtilisateur);
                 if (sqliteDB_1.default.isSqliteMode()) {
+                    const communityDisplayName = normalizedData.nomEgliseCourt || normalizedData.nomTemple;
                     yield sqlite_1.default.createCommunauteDatabase({
                         idUtilisateur: 0,
-                        nomTemple: normalizedData.nomTemple,
+                        nomTemple: communityDisplayName,
                         nomEglise: normalizedData.nomTemple,
                         dossierBase: process.env.SQLITE_DB_DIR,
                     });
@@ -93,15 +199,16 @@ const ajouterUtilisateur = (data) => {
             }
             const idUtilisateur = yield functions_2.default.ajouterUtilisateur(normalizedData);
             if (!isSecondaryUser && sqliteDB_1.default.isSqliteMode()) {
+                const communityDisplayName = normalizedData.nomEgliseCourt || normalizedData.nomTemple;
                 yield sqlite_1.default.createCommunauteDatabase({
                     idUtilisateur: Number(idUtilisateur),
-                    nomTemple: normalizedData.nomTemple,
+                    nomTemple: communityDisplayName,
                     nomEglise: normalizedData.nomTemple,
                     dossierBase: process.env.SQLITE_DB_DIR,
                 });
             }
             const utilisateur = yield functions_2.default.recupUtilisateurById(idUtilisateur);
-            resolve(utilisateur);
+            resolve(sanitizeUtilisateurData(utilisateur));
         }
         catch (error) {
             reject(error);
@@ -112,7 +219,7 @@ const recupUtilisateur = () => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const utilisateur = yield functions_2.default.recupUtilisateur();
-            resolve(utilisateur);
+            resolve(sanitizeUtilisateurData(utilisateur));
         }
         catch (error) {
             reject(error);
@@ -123,7 +230,7 @@ const recupUtilisateurByParentId = (idUtilisateurParent) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const utilisateur = yield functions_2.default.recupUtilisateurByParentId(idUtilisateurParent);
-            resolve(utilisateur);
+            resolve(sanitizeUtilisateurData(utilisateur));
         }
         catch (error) {
             reject(error);
@@ -154,7 +261,14 @@ const supprimerUtilisateur = (idUtilisateur) => {
 const modifierUtilisateur = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const normalizedData = normalizeUtilisateurData(data);
+            const existingUtilisateur = data.idUtilisateur
+                ? yield functions_2.default.recupUtilisateurById(Number(data.idUtilisateur))
+                : [];
+            const existingData = Array.isArray(existingUtilisateur) ? existingUtilisateur[0] : null;
+            const hasNewPassword = String(data.password || '').trim().length > 0;
+            const normalizedData = normalizeUtilisateurData(Object.assign(Object.assign({}, data), { password: hasNewPassword ? data.password : (existingData === null || existingData === void 0 ? void 0 : existingData.password) || '', confirmPassword: hasNewPassword
+                    ? data.confirmPassword || data.password
+                    : (existingData === null || existingData === void 0 ? void 0 : existingData.confirmPassword) || (existingData === null || existingData === void 0 ? void 0 : existingData.password) || '' }));
             let logoEgliseFileName = normalizedData.logoEglise;
             if (normalizedData.logoEglise && normalizedData.logoEglise.startsWith('data:image/')) {
                 const base64Data = normalizedData.logoEglise.replace(/^data:image\/\w+;base64,/, '');
@@ -165,10 +279,10 @@ const modifierUtilisateur = (data) => {
             yield functions_2.default.modifierUtilisateur(Object.assign(Object.assign({}, normalizedData), { logoEglise: logoEgliseFileName }));
             const utilisateur = yield functions_2.default.recupUtilisateurById(normalizedData.idUtilisateur);
             if (Array.isArray(utilisateur) && utilisateur.length > 0) {
-                resolve(utilisateur[0]);
+                resolve(sanitizeUtilisateurData(utilisateur[0]));
                 return;
             }
-            resolve(Object.assign(Object.assign({}, normalizedData), { logoEglise: logoEgliseFileName }));
+            resolve(sanitizeUtilisateurData(Object.assign(Object.assign({}, normalizedData), { logoEglise: logoEgliseFileName })));
         }
         catch (error) {
             reject(error);
@@ -204,6 +318,7 @@ const login = (data) => {
                     logoUtilisateur: '',
                     logoEglise: '',
                     nomTemple: 'Super Administration Desktop',
+                    nomEgliseCourt: 'Super Admin',
                     lieuEglise: '',
                     nomUtilisateur: sqliteSecurity_1.DESKTOP_SUPERADMIN_USERNAME,
                     prenomUtilisateur: 'Superadmin',
@@ -223,8 +338,6 @@ const login = (data) => {
                     nombrePasteursEglise: '',
                     nombreAnciensEglise: '',
                     nombreDiacresEglise: '',
-                    password: sqliteSecurity_1.DESKTOP_SUPERADMIN_PASSWORD,
-                    confirmPassword: sqliteSecurity_1.DESKTOP_SUPERADMIN_PASSWORD,
                     email: '',
                 });
                 return;
@@ -242,7 +355,7 @@ const login = (data) => {
                 }
             }
             const utilisateur = yield functions_2.default.login(data);
-            resolve(Object.assign(Object.assign({}, normalizeUtilisateurData(utilisateur)), { idUtilisateur: Number((utilisateur === null || utilisateur === void 0 ? void 0 : utilisateur.idUtilisateur) || 0), idUtilisateurParent: (utilisateur === null || utilisateur === void 0 ? void 0 : utilisateur.idUtilisateurParent) ? Number(utilisateur.idUtilisateurParent) : null }));
+            resolve(sanitizeUtilisateurData(Object.assign(Object.assign({}, normalizeUtilisateurData(utilisateur)), { idUtilisateur: Number((utilisateur === null || utilisateur === void 0 ? void 0 : utilisateur.idUtilisateur) || 0), idUtilisateurParent: (utilisateur === null || utilisateur === void 0 ? void 0 : utilisateur.idUtilisateurParent) ? Number(utilisateur.idUtilisateurParent) : null })));
         }
         catch (error) {
             reject(error);
@@ -286,6 +399,8 @@ exports.default = {
     recupUtilisateurByParentId,
     supprimerUtilisateur,
     modifierUtilisateur,
+    requestPasswordReset,
+    resetPassword,
     connexionUtilisateur,
     login,
     modifierMotDePasse: exports.modifierMotDePasse,

@@ -2,6 +2,7 @@ export interface IUtilisateur {
   logoUtilisateur: string;
   logoEglise: string;
   nomTemple: string;
+  nomEgliseCourt: string;
   lieuEglise: string;
   nomUtilisateur: string;
   prenomUtilisateur: string;

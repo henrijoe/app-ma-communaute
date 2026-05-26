@@ -4,6 +4,58 @@ import { _executeSql, _selectSql } from '../../db';
 import { getAvatarsPath, saveFileToBase64 } from '../functions';
 import { IMembre } from './interfaces';
 
+const normalizeDuplicatePhone = (value: unknown): string => String(value ?? '').replace(/\D/g, '');
+
+const normalizeDuplicateBirthDate = (value: unknown): string => {
+  const raw = String(value ?? '').trim();
+
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+
+  const frenchMatch = raw.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (frenchMatch) {
+    return `${frenchMatch[3]}-${frenchMatch[2]}-${frenchMatch[1]}`;
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+
+  return parsed.toISOString().slice(0, 10);
+};
+
+const recupMembreDoublon = async (
+  idUtilisateur: number | null | undefined,
+  contactMembre: string | null | undefined,
+  dateNaissMembre: string | null | undefined,
+  ignoredMemberId?: number | null
+): Promise<any | null> => {
+  const normalizedPhone = normalizeDuplicatePhone(contactMembre);
+  const normalizedBirthDate = normalizeDuplicateBirthDate(dateNaissMembre);
+
+  if (!idUtilisateur || !normalizedPhone || !normalizedBirthDate) {
+    return null;
+  }
+
+  const params: any[] = [idUtilisateur, normalizedPhone, normalizedBirthDate];
+  let sql = `
+    SELECT *
+    FROM membre
+    WHERE idUtilisateur = ?
+      AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(IFNULL(contactMembre, ''), ' ', ''), '-', ''), '.', ''), '/', ''), '+', ''), '(', ''), ')', '') = ?
+      AND substr(IFNULL(dateNaissMembre, ''), 1, 10) = ?
+  `;
+
+  if (ignoredMemberId) {
+    sql += ' AND idMembre <> ?';
+    params.push(ignoredMemberId);
+  }
+
+  sql += ' LIMIT 1';
+
+  const rows: any = await _selectSql(sql, params);
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+};
+
 const ajouterMembre = (data: IMembre) => {
   const values = [
     data.nomMembre || '',
@@ -49,6 +101,12 @@ const ajouterMembre = (data: IMembre) => {
 
   return new Promise(async (resolve, reject) => {
     try {
+      const doublon = await recupMembreDoublon(data.idUtilisateur, data.contactMembre, data.dateNaissMembre);
+      if (doublon) {
+        reject(new Error('Ce membre a deja ete enregistre.'));
+        return;
+      }
+
       let fileName: string | null = null;
 
       if (data.photoMembre && data.photoMembre.trim() !== '' && data.photoMembre.startsWith('data:image/')) {
@@ -184,6 +242,18 @@ const supprimerMembre = (idMembre: number, idUtilisateur?: number | null): Promi
 const modifierMembre = (data: IMembre): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
     try {
+      const doublon = await recupMembreDoublon(
+        data.idUtilisateur,
+        data.contactMembre,
+        data.dateNaissMembre,
+        data.idMembre
+      );
+
+      if (doublon) {
+        reject(new Error('Ce membre a deja ete enregistre.'));
+        return;
+      }
+
       const sql = `UPDATE membre SET
         nomMembre = ?,
         prenomMembre = ?,

@@ -4,8 +4,8 @@ import { IGroupe } from "./interfaces";
 const ajouterGroupe = (data: IGroupe) => {
   const values = [
     data.libelleGroupe,
-    data.descriptionGroupe,
-    data.responsableGroupe,
+    data.descriptionGroupe || "",
+    data.responsableGroupe || "",
     data.idUtilisateur,
   ];
 
@@ -95,16 +95,16 @@ const modifierGroupe = (data: IGroupe): Promise<boolean> => {
       const params = hasUserScope
         ? [
             data.libelleGroupe,
-            data.descriptionGroupe,
-            data.responsableGroupe,
+            data.descriptionGroupe || "",
+            data.responsableGroupe || "",
             data.idUtilisateur,
             data.idGroupe,
             data.idUtilisateur,
           ]
         : [
             data.libelleGroupe,
-            data.descriptionGroupe,
-            data.responsableGroupe,
+            data.descriptionGroupe || "",
+            data.responsableGroupe || "",
             data.idUtilisateur,
             data.idGroupe,
           ];

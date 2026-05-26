@@ -74,6 +74,26 @@ const modifierUtilisateur = (req, res) => {
     })
         .catch((errors) => res.status(400).send({ status: 0, errors }));
 };
+const demanderResetPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const result = yield services_1.default.requestPasswordReset(req.body);
+        res.status(200).send({ status: 1, data: result });
+    }
+    catch (error) {
+        console.error(error);
+        res.status(400).send({ status: 0, error: (0, functions_1.errorMsg)(error) });
+    }
+});
+const reinitialiserPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const result = yield services_1.default.resetPassword(req.body);
+        res.status(200).send({ status: 1, data: result });
+    }
+    catch (error) {
+        console.error(error);
+        res.status(400).send({ status: 0, error: (0, functions_1.errorMsg)(error) });
+    }
+});
 const connexionUtilisateur = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { nomUtilisateur, motDePasse } = req.body;
@@ -103,6 +123,8 @@ exports.default = {
     recupUtilisateurByParentId,
     supprimerUtilisateur,
     modifierUtilisateur,
+    demanderResetPassword,
+    reinitialiserPassword,
     connexionUtilisateur,
     login,
 };

@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt');
 
 const UTILISATEUR_OPTIONAL_TEXT_FIELDS = [
   'logoEglise',
+  'nomEgliseCourt',
   'lieuEglise',
   'telephoneSecretariatEglise',
   'pasteurPrincipal',
@@ -24,12 +25,15 @@ const UTILISATEUR_OPTIONAL_TEXT_FIELDS = [
   'nombreDiacresEglise',
   'roleUtilisateur',
   'permissionsUtilisateur',
+  'resetPasswordCode',
+  'resetPasswordExpiresAt',
 ] as const;
 
 const UTILISATEUR_OPTIONAL_NUMBER_FIELDS = ['idUtilisateurParent', 'actifUtilisateur'] as const;
 
 const MYSQL_UTILISATEUR_TEXT_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_FIELDS)[number], string> = {
   logoEglise: 'TEXT NULL',
+  nomEgliseCourt: 'VARCHAR(255) NULL',
   lieuEglise: 'VARCHAR(255) NULL',
   telephoneSecretariatEglise: 'VARCHAR(30) NULL',
   pasteurPrincipal: 'VARCHAR(255) NULL',
@@ -48,6 +52,8 @@ const MYSQL_UTILISATEUR_TEXT_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_F
   nombreDiacresEglise: 'VARCHAR(50) NULL',
   roleUtilisateur: "VARCHAR(30) NOT NULL DEFAULT 'admin'",
   permissionsUtilisateur: 'TEXT NULL',
+  resetPasswordCode: 'VARCHAR(20) NULL',
+  resetPasswordExpiresAt: 'VARCHAR(50) NULL',
 };
 
 const MYSQL_UTILISATEUR_NUMBER_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_NUMBER_FIELDS)[number], string> = {
@@ -57,6 +63,7 @@ const MYSQL_UTILISATEUR_NUMBER_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_NUMB
 
 const SQLITE_UTILISATEUR_TEXT_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_FIELDS)[number], string> = {
   logoEglise: 'TEXT',
+  nomEgliseCourt: 'TEXT',
   lieuEglise: 'TEXT',
   telephoneSecretariatEglise: 'TEXT',
   pasteurPrincipal: 'TEXT',
@@ -75,6 +82,8 @@ const SQLITE_UTILISATEUR_TEXT_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_
   nombreDiacresEglise: 'TEXT',
   roleUtilisateur: "TEXT DEFAULT 'admin'",
   permissionsUtilisateur: 'TEXT',
+  resetPasswordCode: 'TEXT',
+  resetPasswordExpiresAt: 'TEXT',
 };
 
 const SQLITE_UTILISATEUR_NUMBER_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_NUMBER_FIELDS)[number], string> = {
@@ -108,6 +117,7 @@ const normalizeUtilisateurData = (data: Partial<IUtilisateur>): IUtilisateur => 
   logoUtilisateur: data.logoUtilisateur || '',
   logoEglise: data.logoEglise || '',
   nomTemple: data.nomTemple || '',
+  nomEgliseCourt: data.nomEgliseCourt || '',
   lieuEglise: data.lieuEglise || '',
   nomUtilisateur: data.nomUtilisateur || '',
   prenomUtilisateur: data.prenomUtilisateur || '',
@@ -194,6 +204,7 @@ const ajouterUtilisateur = (rawData: IUtilisateur) => {
         logoUtilisateur,
         logoEglise,
         nomTemple,
+        nomEgliseCourt,
         lieuEglise,
         nomUtilisateur,
         prenomUtilisateur,
@@ -220,12 +231,13 @@ const ajouterUtilisateur = (rawData: IUtilisateur) => {
         password,
         confirmPassword,
         email
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
       const values = [
         data.logoUtilisateur,
         data.logoEglise,
         data.nomTemple,
+        data.nomEgliseCourt,
         data.lieuEglise,
         data.nomUtilisateur,
         data.prenomUtilisateur,
@@ -308,6 +320,25 @@ const recupUtilisateurById = (id: number) => {
   });
 };
 
+const recupUtilisateurForPasswordReset = (nomUtilisateur: string, email: string): Promise<IUtilisateur[]> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      await ensureUtilisateurColumns();
+      const sql = `
+        SELECT * FROM utilisateur
+        WHERE LOWER(TRIM(nomUtilisateur)) = LOWER(TRIM(?))
+          AND LOWER(TRIM(email)) = LOWER(TRIM(?))
+          AND COALESCE(actifUtilisateur, 1) = 1
+        LIMIT 1;
+      `;
+      const utilisateur = await _selectSql(sql, [nomUtilisateur, email]);
+      resolve(utilisateur);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 const supprimerUtilisateur = (idUtilisateur: number): Promise<boolean> => {
   return new Promise((resolve, reject) => {
     const sql = `DELETE FROM utilisateur WHERE idUtilisateur = ?`;
@@ -327,6 +358,7 @@ const modifierUtilisateur = (rawData: IUtilisateur): Promise<boolean> => {
         logoUtilisateur=?,
         logoEglise=?,
         nomTemple=?,
+        nomEgliseCourt=?,
         lieuEglise=?,
         nomUtilisateur=?,
         prenomUtilisateur=?,
@@ -359,6 +391,7 @@ const modifierUtilisateur = (rawData: IUtilisateur): Promise<boolean> => {
         data.logoUtilisateur,
         data.logoEglise,
         data.nomTemple,
+        data.nomEgliseCourt,
         data.lieuEglise,
         data.nomUtilisateur,
         data.prenomUtilisateur,
@@ -431,6 +464,47 @@ export const modifierLogin = (idUtilisateur: number, password: string | null, co
   });
 };
 
+const enregistrerResetPasswordCode = (
+  idUtilisateur: number,
+  resetPasswordCode: string,
+  resetPasswordExpiresAt: string
+): Promise<boolean> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      await ensureUtilisateurColumns();
+      const sql = `UPDATE utilisateur SET resetPasswordCode=?, resetPasswordExpiresAt=? WHERE idUtilisateur=?`;
+      await _executeSql(sql, [resetPasswordCode, resetPasswordExpiresAt, idUtilisateur]);
+      resolve(true);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+const reinitialiserMotDePasseAvecCode = (
+  idUtilisateur: number,
+  password: string,
+  confirmPassword: string
+): Promise<boolean> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      await ensureUtilisateurColumns();
+      const sql = `
+        UPDATE utilisateur
+        SET password=?,
+            confirmPassword=?,
+            resetPasswordCode=NULL,
+            resetPasswordExpiresAt=NULL
+        WHERE idUtilisateur=?
+      `;
+      await _executeSql(sql, [password, confirmPassword, idUtilisateur]);
+      resolve(true);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 export default {
   ajouterUtilisateur,
   recupUtilisateur,
@@ -439,6 +513,9 @@ export default {
   supprimerUtilisateur,
   modifierUtilisateur,
   recupUtilisateurById,
+  recupUtilisateurForPasswordReset,
   login,
   modifierLogin,
+  enregistrerResetPasswordCode,
+  reinitialiserMotDePasseAvecCode,
 };

@@ -46,6 +46,7 @@ const getDataEglise = (idUtilisateur: number) => {
                 logoUtilisateur: utilisateur[0].logoUtilisateur,
                 logoEglise: utilisateur[0].logoEglise,
                 nomTemple: utilisateur[0].nomTemple,
+                nomEgliseCourt: utilisateur[0].nomEgliseCourt,
                 lieuEglise: utilisateur[0].lieuEglise,
                 nomUtilisateur: utilisateur[0].nomUtilisateur,
                 prenomUtilisateur: utilisateur[0].prenomUtilisateur,

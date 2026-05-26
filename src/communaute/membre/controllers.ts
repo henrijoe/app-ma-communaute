@@ -53,7 +53,11 @@ const modifierMembre = (req: Request, res: Response) => {
         (req as any).io.emit("modifierMembre",result)
         res.status(200).send({ status: 1, data:result})
       })
-      .catch((errors: any) => res.status(400).send({ status: 0, errors }))
+      .catch((errors: any) => res.status(400).send({
+        status: 0,
+        errors,
+        message: errors?.message || 'Erreur lors de la modification du membre',
+      }))
   }
 
   const recupMembreByIdUtilsateur = (req: Request, res: Response) => {

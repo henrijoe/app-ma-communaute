@@ -15,6 +15,44 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
 const db_1 = require("../../db");
 const functions_1 = require("../functions");
+const normalizeDuplicatePhone = (value) => String(value !== null && value !== void 0 ? value : '').replace(/\D/g, '');
+const normalizeDuplicateBirthDate = (value) => {
+    const raw = String(value !== null && value !== void 0 ? value : '').trim();
+    if (!raw)
+        return '';
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw))
+        return raw.slice(0, 10);
+    const frenchMatch = raw.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+    if (frenchMatch) {
+        return `${frenchMatch[3]}-${frenchMatch[2]}-${frenchMatch[1]}`;
+    }
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime()))
+        return raw;
+    return parsed.toISOString().slice(0, 10);
+};
+const recupMembreDoublon = (idUtilisateur, contactMembre, dateNaissMembre, ignoredMemberId) => __awaiter(void 0, void 0, void 0, function* () {
+    const normalizedPhone = normalizeDuplicatePhone(contactMembre);
+    const normalizedBirthDate = normalizeDuplicateBirthDate(dateNaissMembre);
+    if (!idUtilisateur || !normalizedPhone || !normalizedBirthDate) {
+        return null;
+    }
+    const params = [idUtilisateur, normalizedPhone, normalizedBirthDate];
+    let sql = `
+    SELECT *
+    FROM membre
+    WHERE idUtilisateur = ?
+      AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(IFNULL(contactMembre, ''), ' ', ''), '-', ''), '.', ''), '/', ''), '+', ''), '(', ''), ')', '') = ?
+      AND substr(IFNULL(dateNaissMembre, ''), 1, 10) = ?
+  `;
+    if (ignoredMemberId) {
+        sql += ' AND idMembre <> ?';
+        params.push(ignoredMemberId);
+    }
+    sql += ' LIMIT 1';
+    const rows = yield (0, db_1._selectSql)(sql, params);
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+});
 const ajouterMembre = (data) => {
     var _a, _b;
     const values = [
@@ -60,6 +98,11 @@ const ajouterMembre = (data) => {
     ];
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
+            const doublon = yield recupMembreDoublon(data.idUtilisateur, data.contactMembre, data.dateNaissMembre);
+            if (doublon) {
+                reject(new Error('Ce membre a deja ete enregistre.'));
+                return;
+            }
             let fileName = null;
             if (data.photoMembre && data.photoMembre.trim() !== '' && data.photoMembre.startsWith('data:image/')) {
                 const base64Data = data.photoMembre.replace(/^data:image\/\w+;base64,/, '');
@@ -194,6 +237,11 @@ const modifierMembre = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         var _a, _b;
         try {
+            const doublon = yield recupMembreDoublon(data.idUtilisateur, data.contactMembre, data.dateNaissMembre, data.idMembre);
+            if (doublon) {
+                reject(new Error('Ce membre a deja ete enregistre.'));
+                return;
+            }
             const sql = `UPDATE membre SET
         nomMembre = ?,
         prenomMembre = ?,

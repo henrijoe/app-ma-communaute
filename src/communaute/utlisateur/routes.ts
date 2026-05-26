@@ -9,6 +9,8 @@ utilisateurRouter.get('/listeutilisateur', controllers.recupUtilisateur);
 utilisateurRouter.get('/listeutilisateurparent/:idUtilisateurParent', controllers.recupUtilisateurByParentId);
 utilisateurRouter.post('/supprimerutilisateur', controllers.supprimerUtilisateur);
 utilisateurRouter.post('/modifierutilisateur', controllers.modifierUtilisateur);
+utilisateurRouter.post('/demander-reset-password', controllers.demanderResetPassword);
+utilisateurRouter.post('/reinitialiser-password', controllers.reinitialiserPassword);
 utilisateurRouter.post('/connexionutilisateur', controllers.connexionUtilisateur);
 utilisateurRouter.post('/login', controllers.login);
 
