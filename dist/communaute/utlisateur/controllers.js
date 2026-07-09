@@ -69,8 +69,9 @@ const modifierUtilisateur = (req, res) => {
     services_1.default
         .modifierUtilisateur(data)
         .then((result) => {
-        req.io.emit('modifierUtilisateur', result);
-        res.status(200).send({ status: 1, data: result });
+        const synchronizedResult = Object.assign(Object.assign({}, result), { __syncAt: Date.now() });
+        req.io.emit('modifierUtilisateur', synchronizedResult);
+        res.status(200).send({ status: 1, data: synchronizedResult });
     })
         .catch((errors) => res.status(400).send({ status: 0, errors }));
 };

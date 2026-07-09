@@ -75,8 +75,8 @@ const modifierResponsabilite = (data) => {
             yield (0, db_1._executeSql)(sql, [
                 data.libelleResponsabilite,
                 data.descriptionResponsabilite,
-                data.idResponsabilite,
-                data.idUtilisateur
+                data.idUtilisateur,
+                data.idResponsabilite
             ]);
             resolve(true);
         }

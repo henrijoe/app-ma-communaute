@@ -29,6 +29,7 @@ const sqliteDB_1 = __importDefault(require("../../db/sqliteDB"));
 const sqliteSecurity_1 = require("../../db/sqliteSecurity");
 const functions_1 = require("../functions");
 const services_1 = __importDefault(require("../desktop-control/services"));
+const auth_1 = require("../auth");
 const functions_2 = __importDefault(require("./functions"));
 const sqlite_1 = __importDefault(require("./sqlite"));
 const smtpMailer_1 = require("../../utils/smtpMailer");
@@ -79,6 +80,11 @@ const normalizeUtilisateurData = (data) => ({
     nombrePasteursEglise: data.nombrePasteursEglise || '',
     nombreAnciensEglise: data.nombreAnciensEglise || '',
     nombreDiacresEglise: data.nombreDiacresEglise || '',
+    modeVersetDashboard: data.modeVersetDashboard === 'disabled' || data.modeVersetDashboard === 'custom'
+        ? data.modeVersetDashboard
+        : 'daily',
+    versetDashboardReference: data.versetDashboardReference || '',
+    versetDashboardTexte: data.versetDashboardTexte || '',
     password: data.password || '',
     confirmPassword: data.confirmPassword || '',
     email: data.email || '',
@@ -309,7 +315,7 @@ const login = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             if (services_1.default.isFixedDesktopSuperAdminCredentials(data.nomUtilisateur, data.password)) {
-                resolve({
+                const superAdminUser = {
                     idUtilisateur: 0,
                     idUtilisateurParent: null,
                     roleUtilisateur: 'admin',
@@ -338,8 +344,12 @@ const login = (data) => {
                     nombrePasteursEglise: '',
                     nombreAnciensEglise: '',
                     nombreDiacresEglise: '',
+                    modeVersetDashboard: 'disabled',
+                    versetDashboardReference: '',
+                    versetDashboardTexte: '',
                     email: '',
-                });
+                };
+                resolve(Object.assign(Object.assign({}, superAdminUser), { token: (0, auth_1.createLocalSessionToken)(superAdminUser) }));
                 return;
             }
             const desktopLicenseStatus = yield services_1.default.getDesktopLicenseStatus(data.nomUtilisateur);
@@ -355,7 +365,8 @@ const login = (data) => {
                 }
             }
             const utilisateur = yield functions_2.default.login(data);
-            resolve(sanitizeUtilisateurData(Object.assign(Object.assign({}, normalizeUtilisateurData(utilisateur)), { idUtilisateur: Number((utilisateur === null || utilisateur === void 0 ? void 0 : utilisateur.idUtilisateur) || 0), idUtilisateurParent: (utilisateur === null || utilisateur === void 0 ? void 0 : utilisateur.idUtilisateurParent) ? Number(utilisateur.idUtilisateurParent) : null })));
+            const safeUtilisateur = sanitizeUtilisateurData(Object.assign(Object.assign({}, normalizeUtilisateurData(utilisateur)), { idUtilisateur: Number((utilisateur === null || utilisateur === void 0 ? void 0 : utilisateur.idUtilisateur) || 0), idUtilisateurParent: (utilisateur === null || utilisateur === void 0 ? void 0 : utilisateur.idUtilisateurParent) ? Number(utilisateur.idUtilisateurParent) : null }));
+            resolve(Object.assign(Object.assign({}, safeUtilisateur), { token: (0, auth_1.createLocalSessionToken)(safeUtilisateur) }));
         }
         catch (error) {
             reject(error);

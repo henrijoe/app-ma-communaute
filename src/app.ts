@@ -39,7 +39,6 @@ const httpServer = require("http").createServer(app);
  * chemin du dossier contenant les clients 
  */
 const htmlPath = path.join(__dirname, '..','views')
-const albumDir = path.join(__dirname, '..','albums');
 const sqliteRootDir = sqliteDB.getSqliteDirectory();
 const memberPhotosDir = path.join(sqliteRootDir, 'photo-membre');
 const galerieMediaDir = path.join(sqliteRootDir, 'galerie-evenements');
@@ -53,7 +52,6 @@ app.use(cors({ credentials: true, optionsSuccessStatus: 200, origin: true }));
 app.use(compression());
 app.use(bodyParser.json());
 app.use('/photos', express.static(memberPhotosDir));
-app.use('/photos', express.static(albumDir));
 app.use('/galerie-media', express.static(galerieMediaDir));
 app.use('/church-logos', express.static(churchLogosDir));
 
@@ -193,11 +191,11 @@ const logDatabaseStartup = async () => {
   const databaseMode = sqliteDB.getDatabaseMode();
 
   if (databaseMode === "sqlite") {
-    const defaultDatabasePath = await sqliteDB.ensureDefaultSqliteDatabase();
+    const activeDatabasePath = await sqliteDB.ensureDefaultSqliteDatabase();
     const updatedDatabases = await sqliteDB.ensureAllSqliteDatabasesSchemasUpdated();
     console.log(`[DB] Mode actif: sqlite`);
     console.log(`[DB] Dossier SQLite: ${sqliteDB.getSqliteDirectory()}`);
-    console.log(`[DB] Base SQLite active: ${defaultDatabasePath}`);
+    console.log(`[DB] Base SQLite active: ${activeDatabasePath}`);
     console.log(`[DB] Bases SQLite verifiees: ${updatedDatabases.length}`);
     await runDailySqliteBackup(true);
     startSqliteBackupScheduler();

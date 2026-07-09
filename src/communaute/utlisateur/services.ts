@@ -6,6 +6,7 @@ import {
 } from '../../db/sqliteSecurity';
 import { getChurchLogoPath, saveFileToBase64 } from '../functions';
 import desktopControlServices from '../desktop-control/services';
+import { createLocalSessionToken } from '../auth';
 import functions from './functions';
 import { ICreateCommunauteDatabasePayload, IUtilisateur } from './interfaces';
 import sqlite from './sqlite';
@@ -64,6 +65,12 @@ const normalizeUtilisateurData = (data: Partial<IUtilisateur>): IUtilisateur => 
   nombrePasteursEglise: data.nombrePasteursEglise || '',
   nombreAnciensEglise: data.nombreAnciensEglise || '',
   nombreDiacresEglise: data.nombreDiacresEglise || '',
+  modeVersetDashboard:
+    data.modeVersetDashboard === 'disabled' || data.modeVersetDashboard === 'custom'
+      ? data.modeVersetDashboard
+      : 'daily',
+  versetDashboardReference: data.versetDashboardReference || '',
+  versetDashboardTexte: data.versetDashboardTexte || '',
   password: data.password || '',
   confirmPassword: data.confirmPassword || '',
   email: data.email || '',
@@ -355,7 +362,7 @@ const login = (data: IUtilisateur) => {
   return new Promise(async (resolve, reject) => {
     try {
       if (desktopControlServices.isFixedDesktopSuperAdminCredentials(data.nomUtilisateur, data.password)) {
-        resolve({
+        const superAdminUser = {
           idUtilisateur: 0,
           idUtilisateurParent: null,
           roleUtilisateur: 'admin',
@@ -384,7 +391,15 @@ const login = (data: IUtilisateur) => {
           nombrePasteursEglise: '',
           nombreAnciensEglise: '',
           nombreDiacresEglise: '',
+          modeVersetDashboard: 'disabled',
+          versetDashboardReference: '',
+          versetDashboardTexte: '',
           email: '',
+        };
+
+        resolve({
+          ...superAdminUser,
+          token: createLocalSessionToken(superAdminUser),
         });
         return;
       }
@@ -404,11 +419,16 @@ const login = (data: IUtilisateur) => {
       }
 
       const utilisateur: any = await functions.login(data);
-      resolve(sanitizeUtilisateurData({
+      const safeUtilisateur = sanitizeUtilisateurData({
         ...normalizeUtilisateurData(utilisateur),
         idUtilisateur: Number(utilisateur?.idUtilisateur || 0),
         idUtilisateurParent: utilisateur?.idUtilisateurParent ? Number(utilisateur.idUtilisateurParent) : null,
-      }));
+      });
+
+      resolve({
+        ...safeUtilisateur,
+        token: createLocalSessionToken(safeUtilisateur),
+      });
     } catch (error) {
       reject(error);
     }

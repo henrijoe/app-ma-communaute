@@ -47,7 +47,6 @@ const httpServer = require("http").createServer(app);
  * chemin du dossier contenant les clients
  */
 const htmlPath = path.join(__dirname, '..', 'views');
-const albumDir = path.join(__dirname, '..', 'albums');
 const sqliteRootDir = sqliteDB_1.default.getSqliteDirectory();
 const memberPhotosDir = path.join(sqliteRootDir, 'photo-membre');
 const galerieMediaDir = path.join(sqliteRootDir, 'galerie-evenements');
@@ -59,7 +58,6 @@ app.use(cors({ credentials: true, optionsSuccessStatus: 200, origin: true }));
 app.use(compression());
 app.use(bodyParser.json());
 app.use('/photos', express_1.default.static(memberPhotosDir));
-app.use('/photos', express_1.default.static(albumDir));
 app.use('/galerie-media', express_1.default.static(galerieMediaDir));
 app.use('/church-logos', express_1.default.static(churchLogosDir));
 // ===================================Socket.io configuration =======================================
@@ -177,11 +175,11 @@ const startSqliteBackupScheduler = () => {
 const logDatabaseStartup = () => __awaiter(void 0, void 0, void 0, function* () {
     const databaseMode = sqliteDB_1.default.getDatabaseMode();
     if (databaseMode === "sqlite") {
-        const defaultDatabasePath = yield sqliteDB_1.default.ensureDefaultSqliteDatabase();
+        const activeDatabasePath = yield sqliteDB_1.default.ensureDefaultSqliteDatabase();
         const updatedDatabases = yield sqliteDB_1.default.ensureAllSqliteDatabasesSchemasUpdated();
         console.log(`[DB] Mode actif: sqlite`);
         console.log(`[DB] Dossier SQLite: ${sqliteDB_1.default.getSqliteDirectory()}`);
-        console.log(`[DB] Base SQLite active: ${defaultDatabasePath}`);
+        console.log(`[DB] Base SQLite active: ${activeDatabasePath}`);
         console.log(`[DB] Bases SQLite verifiees: ${updatedDatabases.length}`);
         yield runDailySqliteBackup(true);
         startSqliteBackupScheduler();

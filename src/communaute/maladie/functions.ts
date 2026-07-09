@@ -3,6 +3,7 @@ import { IMaladie } from "./interfaces";
 
 const ajouterMaladie = (data: IMaladie) => {
   const values = [
+    data.idMembre || null,
     data.nomMembreMaladie,
     data.typeMaladie,
     data.dateMaladie,
@@ -20,7 +21,7 @@ const ajouterMaladie = (data: IMaladie) => {
         return reject(new Error('Ce cas de maladie existe deja.'));
       }
 
-      const sql = `INSERT INTO maladie(nomMembreMaladie,typeMaladie,dateMaladie,lieuHospitalisation,observationMaladie,idUtilisateur) VALUES (?,?,?,?,?,?)`;
+      const sql = `INSERT INTO maladie(idMembre,nomMembreMaladie,typeMaladie,dateMaladie,lieuHospitalisation,observationMaladie,idUtilisateur) VALUES (?,?,?,?,?,?,?)`;
       const maladieData: any = await _executeSql(sql, values);
       resolve(maladieData.insertId);
     } catch (error) {
@@ -72,8 +73,9 @@ const supprimerMaladie = (idMaladie: number): Promise<boolean> => new Promise(as
 
 const modifierMaladie = (data: IMaladie): Promise<boolean> => new Promise(async (resolve, reject) => {
   try {
-    const sql = `UPDATE maladie SET nomMembreMaladie=?,typeMaladie=?,dateMaladie=?,lieuHospitalisation=?,observationMaladie=?,idUtilisateur=? WHERE idMaladie=?`;
+    const sql = `UPDATE maladie SET idMembre=?,nomMembreMaladie=?,typeMaladie=?,dateMaladie=?,lieuHospitalisation=?,observationMaladie=?,idUtilisateur=? WHERE idMaladie=?`;
     await _executeSql(sql, [
+      data.idMembre || null,
       data.nomMembreMaladie,
       data.typeMaladie,
       data.dateMaladie,

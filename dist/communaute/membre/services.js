@@ -15,8 +15,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const functions_1 = __importDefault(require("./functions"));
 const functions_2 = require("../functions");
 const fs = require("fs");
-const path = require("path");
-const getLegacyAlbumPath = (photoPath) => path.join(__dirname, '..', '..', '..', 'albums', photoPath);
 const resolveMemberPhotoPath = (photoPath) => {
     if (!photoPath || photoPath.trim() === '') {
         return null;
@@ -24,10 +22,6 @@ const resolveMemberPhotoPath = (photoPath) => {
     const currentPhotoPath = (0, functions_2.getAvatarsPath)(photoPath);
     if (fs.existsSync(currentPhotoPath)) {
         return currentPhotoPath;
-    }
-    const legacyPhotoPath = getLegacyAlbumPath(photoPath);
-    if (fs.existsSync(legacyPhotoPath)) {
-        return legacyPhotoPath;
     }
     return null;
 };

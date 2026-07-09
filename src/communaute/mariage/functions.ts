@@ -4,6 +4,8 @@ import { IMariage,} from "./interfaces";
 //   
 const ajouterMariage = (data: IMariage) => {
     const values = [
+        data.idFrereMembre || null,
+        data.idSoeurMembre || null,
         data.nomFrereMariage,
         data.nomSoeurMariage,
         data.dateMariage,
@@ -24,7 +26,7 @@ const ajouterMariage = (data: IMariage) => {
                 // Si les libellés existent déjà, rejeter avec un message approprié
                 return reject(new Error('Ce mariage existe déjà.'));
               }
-            const sql = `INSERT INTO mariage(nomFrereMariage,nomSoeurMariage,dateMariage,lieuMariage,culteMariage,temoin1Mariage,temoin2Mariage,lieuReception,contactMariage,idUtilisateur) VALUES (?,?,?,?,?,?,?,?,?,?)`;
+            const sql = `INSERT INTO mariage(idFrereMembre,idSoeurMembre,nomFrereMariage,nomSoeurMariage,dateMariage,lieuMariage,culteMariage,temoin1Mariage,temoin2Mariage,lieuReception,contactMariage,idUtilisateur) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
             const mariageData: any = await _executeSql(sql, [...values]);
             resolve(mariageData.insertId)
         } catch (error) {
@@ -89,8 +91,10 @@ const supprimerMariage = (idMariage: number): Promise<boolean> => {
 const modifierMariage = (data: IMariage): Promise<boolean> => {
     return new Promise(async (resolve, reject) => {
         try {
-            const sql = `UPDATE mariage SET nomFrereMariage=?,nomSoeurMariage=?,dateMariage=?,lieuMariage=?,culteMariage=?,temoin1Mariage=?,temoin2Mariage=?,lieuReception=?,contactMariage=?,idUtilisateur=? WHERE idMariage=?`
+            const sql = `UPDATE mariage SET idFrereMembre=?,idSoeurMembre=?,nomFrereMariage=?,nomSoeurMariage=?,dateMariage=?,lieuMariage=?,culteMariage=?,temoin1Mariage=?,temoin2Mariage=?,lieuReception=?,contactMariage=?,idUtilisateur=? WHERE idMariage=?`
             await _executeSql(sql, [
+                data.idFrereMembre || null,
+                data.idSoeurMembre || null,
                 data.nomFrereMariage,
                 data.nomSoeurMariage,
                 data.dateMariage,

@@ -61,8 +61,13 @@ const modifierUtilisateur = (req: Request, res: Response) => {
   services
     .modifierUtilisateur(data)
     .then((result: any) => {
-      (req as any).io.emit('modifierUtilisateur', result);
-      res.status(200).send({ status: 1, data: result });
+      const synchronizedResult = {
+        ...result,
+        __syncAt: Date.now(),
+      };
+
+      (req as any).io.emit('modifierUtilisateur', synchronizedResult);
+      res.status(200).send({ status: 1, data: synchronizedResult });
     })
     .catch((errors: any) => res.status(400).send({ status: 0, errors }));
 };

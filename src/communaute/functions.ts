@@ -26,8 +26,6 @@ const fs = require("fs");
 // const sharp = require("sharp");
 const _ = require("lodash");
 
-const getLegacyAvatarsDirectory = (): string => path.join(__dirname, '..', '..', 'albums');
-
 const getMemberPhotosDirectory = (): string => {
   const memberPhotosDir = path.join(sqliteDB.getSqliteDirectory(), 'photo-membre');
 
@@ -143,7 +141,6 @@ export {
   saveFileToBase64,
   getMemberPhotosDirectory,
   getChurchLogosDirectory,
-  getLegacyAvatarsDirectory,
   getGalerieMediaRootDirectory,
   getGalerieEventDirectory,
   sanitizeStorageName,

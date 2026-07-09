@@ -1,4 +1,5 @@
 export interface IUtilisateur {
+  token?: string;
   logoUtilisateur: string;
   logoEglise: string;
   nomTemple: string;
@@ -22,6 +23,9 @@ export interface IUtilisateur {
   nombrePasteursEglise: string;
   nombreAnciensEglise: string;
   nombreDiacresEglise: string;
+  modeVersetDashboard: string;
+  versetDashboardReference: string;
+  versetDashboardTexte: string;
   roleUtilisateur: 'admin' | 'gestionnaire' | 'lecteur';
   permissionsUtilisateur: string;
   idUtilisateurParent: number | null;

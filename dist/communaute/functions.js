@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sanitizeStorageName = exports.getGalerieEventDirectory = exports.getGalerieMediaRootDirectory = exports.getLegacyAvatarsDirectory = exports.getChurchLogosDirectory = exports.getMemberPhotosDirectory = exports.saveFileToBase64 = exports.getFileToBase64 = exports.getChurchLogoPath = exports.getAvatarsPath = exports.errorMsg = exports.msg = exports.isProd = void 0;
+exports.sanitizeStorageName = exports.getGalerieEventDirectory = exports.getGalerieMediaRootDirectory = exports.getChurchLogosDirectory = exports.getMemberPhotosDirectory = exports.saveFileToBase64 = exports.getFileToBase64 = exports.getChurchLogoPath = exports.getAvatarsPath = exports.errorMsg = exports.msg = exports.isProd = void 0;
 const path_1 = __importDefault(require("path"));
 const sqliteDB_1 = __importDefault(require("../db/sqliteDB"));
 // import * as sharp from 'sharp';
@@ -35,8 +35,6 @@ exports.errorMsg = errorMsg;
 const fs = require("fs");
 // const sharp = require("sharp");
 const _ = require("lodash");
-const getLegacyAvatarsDirectory = () => path_1.default.join(__dirname, '..', '..', 'albums');
-exports.getLegacyAvatarsDirectory = getLegacyAvatarsDirectory;
 const getMemberPhotosDirectory = () => {
     const memberPhotosDir = path_1.default.join(sqliteDB_1.default.getSqliteDirectory(), 'photo-membre');
     if (!fs.existsSync(memberPhotosDir)) {

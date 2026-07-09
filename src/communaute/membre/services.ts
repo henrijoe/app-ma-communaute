@@ -3,9 +3,6 @@ import {IMembre, } from "./interfaces";
 import { getAvatarsPath, saveFileToBase64 } from "../functions";
 
 const fs = require("fs");
-const path = require("path");
-
-const getLegacyAlbumPath = (photoPath: string) => path.join(__dirname, '..', '..', '..', 'albums', photoPath);
 
 const resolveMemberPhotoPath = (photoPath: string): string | null => {
   if (!photoPath || photoPath.trim() === '') {
@@ -17,10 +14,6 @@ const resolveMemberPhotoPath = (photoPath: string): string | null => {
     return currentPhotoPath;
   }
 
-  const legacyPhotoPath = getLegacyAlbumPath(photoPath);
-  if (fs.existsSync(legacyPhotoPath)) {
-    return legacyPhotoPath;
-  }
 
   return null;
 };

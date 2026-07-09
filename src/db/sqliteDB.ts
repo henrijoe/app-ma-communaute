@@ -710,6 +710,9 @@ const ensureMembreAndDecesColumns = async (database: sqlite3.Database): Promise<
   await ensureColumnExists(database, 'membre', 'estDecede', 'INTEGER DEFAULT 0');
   await ensureColumnExists(database, 'membre', 'dateDecesMembre', 'TEXT');
   await ensureColumnExists(database, 'deces', 'idMembre', 'INTEGER');
+  await ensureColumnExists(database, 'maladie', 'idMembre', 'INTEGER');
+  await ensureColumnExists(database, 'mariage', 'idFrereMembre', 'INTEGER');
+  await ensureColumnExists(database, 'mariage', 'idSoeurMembre', 'INTEGER');
   await execDatabase(database, 'UPDATE "membre" SET "estDecede" = 0 WHERE "estDecede" IS NULL;');
 };
 
@@ -849,6 +852,45 @@ const ensureSqliteDirectory = async (): Promise<void> => {
   await fs.promises.mkdir(DEFAULT_SQLITE_DIR, { recursive: true });
 };
 
+const readActiveSqliteDatabasePath = async (): Promise<string | null> => {
+  if (!fs.existsSync(ACTIVE_DB_FILE)) {
+    return null;
+  }
+
+  try {
+    const metadata = JSON.parse(await fs.promises.readFile(ACTIVE_DB_FILE, "utf-8"));
+    const databasePath = typeof metadata?.databasePath === "string" ? metadata.databasePath : "";
+    return databasePath && fs.existsSync(databasePath) ? databasePath : null;
+  } catch (error) {
+    console.error("[DB] Impossible de lire la base SQLite active:", error);
+    return null;
+  }
+};
+
+const isDefaultSqliteDatabasePath = (databasePath: string): boolean =>
+  path.resolve(databasePath) === path.resolve(DEFAULT_SQLITE_FILE);
+
+const listSqliteDatabasePaths = async (): Promise<string[]> => {
+  await ensureSqliteDirectory();
+
+  return (await fs.promises.readdir(DEFAULT_SQLITE_DIR))
+    .filter((fileName) => fileName.endsWith(".db"))
+    .map((fileName) => path.join(DEFAULT_SQLITE_DIR, fileName));
+};
+
+const getPreferredCommunityDatabasePath = async (): Promise<string | null> => {
+  const databaseFiles = await listSqliteDatabasePaths();
+  const communityDatabases = databaseFiles
+    .filter((databasePath) => path.resolve(databasePath) !== path.resolve(DEFAULT_SQLITE_FILE))
+    .map((databasePath) => {
+      const stats = fs.statSync(databasePath);
+      return { databasePath, modifiedAt: stats.mtimeMs };
+    })
+    .sort((left, right) => right.modifiedAt - left.modifiedAt || left.databasePath.localeCompare(right.databasePath));
+
+  return communityDatabases[0]?.databasePath || null;
+};
+
 /**
  * Sauvegarde le chemin de la base SQLite active pour le mode local.
  */
@@ -872,12 +914,21 @@ export const getActiveSqliteDatabasePath = async (): Promise<string> => {
     return process.env.SQLITE_DB_PATH;
   }
 
-  if (fs.existsSync(ACTIVE_DB_FILE)) {
+  const memorizedDatabasePath = await readActiveSqliteDatabasePath();
+  if (memorizedDatabasePath && !isDefaultSqliteDatabasePath(memorizedDatabasePath)) {
     // Sinon on relit la derniere base active memorisee par le serveur.
-    const metadata = JSON.parse(await fs.promises.readFile(ACTIVE_DB_FILE, "utf-8"));
-    if (metadata?.databasePath) {
-      return metadata.databasePath;
-    }
+    return memorizedDatabasePath;
+  }
+
+  const preferredCommunityDatabasePath = await getPreferredCommunityDatabasePath();
+  if (preferredCommunityDatabasePath) {
+    // Si une base d'eglise existe deja, elle doit prendre le dessus sur la base locale generique.
+    await setActiveSqliteDatabasePath(preferredCommunityDatabasePath);
+    return preferredCommunityDatabasePath;
+  }
+
+  if (memorizedDatabasePath) {
+    return memorizedDatabasePath;
   }
 
   if (fs.existsSync(DEFAULT_SQLITE_FILE)) {
@@ -1036,8 +1087,24 @@ export const ensureAllSqliteDatabasesSchemasUpdated = async (): Promise<string[]
  * Prepare une base locale par defaut au demarrage en mode SQLite.
  */
 export const ensureDefaultSqliteDatabase = async (): Promise<string> => {
-  await initializeSqliteDatabase(DEFAULT_SQLITE_FILE);
-  return DEFAULT_SQLITE_FILE;
+  await ensureSqliteDirectory();
+
+  const previousActiveDatabasePath = process.env.SQLITE_DB_PATH || await readActiveSqliteDatabasePath();
+
+  if (fs.existsSync(DEFAULT_SQLITE_FILE)) {
+    await ensureSqliteSchemaUpdated(DEFAULT_SQLITE_FILE);
+  } else {
+    await initializeSqliteDatabase(DEFAULT_SQLITE_FILE);
+  }
+
+  const preferredCommunityDatabasePath = await getPreferredCommunityDatabasePath();
+  const activeDatabasePath =
+    previousActiveDatabasePath && !isDefaultSqliteDatabasePath(previousActiveDatabasePath)
+      ? previousActiveDatabasePath
+      : preferredCommunityDatabasePath || previousActiveDatabasePath || DEFAULT_SQLITE_FILE;
+
+  await setActiveSqliteDatabasePath(activeDatabasePath);
+  return activeDatabasePath;
 };
 
 /**

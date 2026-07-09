@@ -66,9 +66,9 @@ const recupCulteByIdUtilsateur = (idUtilisateur: number) => {
     try {
       const sql = `SELECT * FROM culte WHERE idUtilisateur= ?;`;
       const culte = await _selectSql(sql, [idUtilisateur]);
-      if (!culte.length) {
-        return reject({ name: "Erreur_culte", message: "Aucun culte trouve" });
-      }
+      // if (!culte.length) {
+      //   return reject({ name: "Erreur_culte", message: "Aucun culte trouve" });
+      // }
       resolve(culte);
     } catch (error) {
       reject(error);
