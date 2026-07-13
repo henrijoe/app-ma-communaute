@@ -1,5 +1,4 @@
 export interface IUtilisateur {
-  token?: string;
   logoUtilisateur: string;
   logoEglise: string;
   nomTemple: string;

@@ -6,7 +6,6 @@ import {
 } from '../../db/sqliteSecurity';
 import { getChurchLogoPath, saveFileToBase64 } from '../functions';
 import desktopControlServices from '../desktop-control/services';
-import { createLocalSessionToken } from '../auth';
 import functions from './functions';
 import { ICreateCommunauteDatabasePayload, IUtilisateur } from './interfaces';
 import sqlite from './sqlite';
@@ -397,10 +396,7 @@ const login = (data: IUtilisateur) => {
           email: '',
         };
 
-        resolve({
-          ...superAdminUser,
-          token: createLocalSessionToken(superAdminUser),
-        });
+        resolve(superAdminUser);
         return;
       }
 
@@ -425,10 +421,7 @@ const login = (data: IUtilisateur) => {
         idUtilisateurParent: utilisateur?.idUtilisateurParent ? Number(utilisateur.idUtilisateurParent) : null,
       });
 
-      resolve({
-        ...safeUtilisateur,
-        token: createLocalSessionToken(safeUtilisateur),
-      });
+      resolve(safeUtilisateur);
     } catch (error) {
       reject(error);
     }

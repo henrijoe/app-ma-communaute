@@ -77,6 +77,12 @@ export const getDatabaseMode = (): "sqlite" | "mysql" =>
 export const getSqliteDirectory = (): string => DEFAULT_SQLITE_DIR;
 
 /**
+ * Retourne le chemin de la base SQLite generique utilisee avant la creation
+ * definitive d'une eglise.
+ */
+export const getDefaultSqliteDatabasePath = (): string => DEFAULT_SQLITE_FILE;
+
+/**
  * Nettoie une valeur pour construire un nom de fichier Windows stable.
  */
 const sanitizeFileName = (value: string): string => value
@@ -1165,6 +1171,7 @@ export default {
   findSqliteDatabaseForLogin,
   getDatabaseMode,
   getSqliteDirectory,
+  getDefaultSqliteDatabasePath,
   ensureDefaultSqliteDatabase,
   ensureAllSqliteDatabasesSchemasUpdated,
   ensureDailySqliteBackup,

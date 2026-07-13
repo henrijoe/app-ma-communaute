@@ -14,14 +14,24 @@ export const createCommunauteDatabase = async (
   const databasePath = payload.idUtilisateur > 0
     ? sqliteDB.buildSqliteDatabasePath(communityName, payload.idUtilisateur)
     : tempDatabasePath;
+  const activeDatabasePath = await sqliteDB.getActiveSqliteDatabasePath();
+  const defaultDatabasePath = sqliteDB.getDefaultSqliteDatabasePath();
 
-  if (payload.idUtilisateur > 0 && fs.existsSync(tempDatabasePath) && !fs.existsSync(databasePath)) {
+  if (fs.existsSync(databasePath)) {
+    await sqliteDB.setActiveSqliteDatabasePath(databasePath);
+  } else if (payload.idUtilisateur > 0 && fs.existsSync(tempDatabasePath)) {
     await fs.promises.rename(tempDatabasePath, databasePath);
+    await sqliteDB.setActiveSqliteDatabasePath(databasePath);
+  } else if (
+    payload.idUtilisateur > 0
+    && fs.existsSync(activeDatabasePath)
+    && path.resolve(activeDatabasePath) === path.resolve(defaultDatabasePath)
+  ) {
+    await fs.promises.rename(activeDatabasePath, databasePath);
+    await sqliteDB.setActiveSqliteDatabasePath(databasePath);
   } else {
     await sqliteDB.initializeSqliteDatabase(databasePath);
   }
-
-  await sqliteDB.setActiveSqliteDatabasePath(databasePath);
 
   return {
     filePath: databasePath,

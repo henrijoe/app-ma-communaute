@@ -23,13 +23,11 @@ import desktopControlRouter from "./desktop-control/routes";
 import galerieRouter from "./galerie/routes";
 import agendaRouter from "./agenda/routes";
 import tunnelRouter from "./tunnel/routes";
-import { requireLocalApiAuth } from "./auth";
 
 const communauteRouter: Router = express.Router();
 const getDataEgliseRouter: Router = express.Router();
 getDataEgliseRouter.get("/getDataEglise/:idUtilisateur", controllers.getDataEglise);
 
-communauteRouter.use(requireLocalApiAuth);
 communauteRouter.use(membreRouter);
 communauteRouter.use(niveauRouter);
 communauteRouter.use(getDataEgliseRouter);

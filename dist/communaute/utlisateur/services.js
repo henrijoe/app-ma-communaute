@@ -29,7 +29,6 @@ const sqliteDB_1 = __importDefault(require("../../db/sqliteDB"));
 const sqliteSecurity_1 = require("../../db/sqliteSecurity");
 const functions_1 = require("../functions");
 const services_1 = __importDefault(require("../desktop-control/services"));
-const auth_1 = require("../auth");
 const functions_2 = __importDefault(require("./functions"));
 const sqlite_1 = __importDefault(require("./sqlite"));
 const smtpMailer_1 = require("../../utils/smtpMailer");
@@ -349,7 +348,7 @@ const login = (data) => {
                     versetDashboardTexte: '',
                     email: '',
                 };
-                resolve(Object.assign(Object.assign({}, superAdminUser), { token: (0, auth_1.createLocalSessionToken)(superAdminUser) }));
+                resolve(superAdminUser);
                 return;
             }
             const desktopLicenseStatus = yield services_1.default.getDesktopLicenseStatus(data.nomUtilisateur);
@@ -366,7 +365,7 @@ const login = (data) => {
             }
             const utilisateur = yield functions_2.default.login(data);
             const safeUtilisateur = sanitizeUtilisateurData(Object.assign(Object.assign({}, normalizeUtilisateurData(utilisateur)), { idUtilisateur: Number((utilisateur === null || utilisateur === void 0 ? void 0 : utilisateur.idUtilisateur) || 0), idUtilisateurParent: (utilisateur === null || utilisateur === void 0 ? void 0 : utilisateur.idUtilisateurParent) ? Number(utilisateur.idUtilisateurParent) : null }));
-            resolve(Object.assign(Object.assign({}, safeUtilisateur), { token: (0, auth_1.createLocalSessionToken)(safeUtilisateur) }));
+            resolve(safeUtilisateur);
         }
         catch (error) {
             reject(error);
