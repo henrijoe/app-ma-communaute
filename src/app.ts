@@ -84,7 +84,7 @@ require("./socket/socketIO").initializeSocket(io, cnxInfos)
 
 //public routes 
 app.get("/test", function (_: any, res: any) {
-  const msg = `ConnectÃƒÆ’Ã‚Â© au serveur ${SERVER_NAME} avec succÃƒÆ’Ã‚Â¨s!`;
+  const msg = `Connecté au serveur ${SERVER_NAME} avec succès!`;
   console.log(msg);
   res.status(201).send({
     status: 1,
@@ -100,7 +100,7 @@ app.get("/db-test", (req, res) => {
   if (sqliteDB.isSqliteMode()) {
     sqliteDB.selectSqlite("SELECT 1 AS status")
       .then(() => {
-        res.json({ status: "SQLite connecte" });
+        res.json({ status: "SQLite connecté" });
       })
       .catch((error) => {
         res.status(500).json({
@@ -118,7 +118,7 @@ app.get("/db-test", (req, res) => {
         error: err.message,
       });
     }
-    res.json({ status: "MySQL connectÃƒÆ’Ã‚Â© ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â‚¬Â°" });
+    res.json({ status: "MySQL connecté" });
   });
 });
 
@@ -134,7 +134,7 @@ const setAppCookie = (req, res, next) => {
   next();
 };
 
-app.use(setAppCookie); // utilise le middleware personnalisÃƒÆ’Ã‚Â© qui dÃƒÆ’Ã‚Â©finit le cookie
+app.use(setAppCookie); // utilise le middleware personnalisé qui est  déjà ‚définit le cookie
 app.use('/', express.static(htmlPath));
 app.get("/*", function (req, res) {
   res.sendFile(`${htmlPath}/index.html`);
@@ -162,8 +162,8 @@ const runDailySqliteBackup = async (logSkipped = false) => {
     console.log(`[DB] Bases sauvegardees: ${backupResult.databaseCount}`);
   } else if (logSkipped) {
     const reason = backupResult.reason === "already-exists"
-      ? "deja presente pour aujourd'hui"
-      : "aucune base SQLite a sauvegarder";
+      ? "déjà presente pour aujourd'hui"
+      : "aucune base SQLite à sauvegarder";
     console.log(`[DB] Sauvegarde SQLite: ${reason}`);
   }
 
@@ -196,7 +196,7 @@ const logDatabaseStartup = async () => {
     console.log(`[DB] Mode actif: sqlite`);
     console.log(`[DB] Dossier SQLite: ${sqliteDB.getSqliteDirectory()}`);
     console.log(`[DB] Base SQLite active: ${activeDatabasePath}`);
-    console.log(`[DB] Bases SQLite verifiees: ${updatedDatabases.length}`);
+    console.log(`[DB] Bases SQLite verifiées: ${updatedDatabases.length}`);
     await runDailySqliteBackup(true);
     startSqliteBackupScheduler();
     return;
@@ -238,7 +238,7 @@ httpServer.listen(PORT, () => {
       console.error("[DB] Erreur lors de l'initialisation de la base:", error);
     });
   } catch (err) {
-    console.error('Erreur lors du dÃƒÆ’Ã‚Â©marrage du serveur:', err);
+    console.error('Erreur lors du démarrage du serveur:', err);
   }
 });
 

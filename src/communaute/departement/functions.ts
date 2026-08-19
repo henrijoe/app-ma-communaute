@@ -21,11 +21,12 @@ const ajouterDepartement = (data: IDepartement) => {
       ]);
 
       if (result.count > 0) {
-        return reject(new Error("Ce departement existe deja."));
+        return reject(new Error("Ce departement existe déjà."));
       }
 
       const sqlInsert = `INSERT INTO departement(libelleLongDepartement,libelleCourtDepartement,sloganDepartement,responsableDepartement,idUtilisateur) VALUES (?,?,?,?,?)`;
       const departement: any = await _executeSql(sqlInsert, values);
+      
       resolve(departement.insertId);
     } catch (error) {
       reject(error);

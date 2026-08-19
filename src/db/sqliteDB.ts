@@ -722,6 +722,25 @@ const ensureMembreAndDecesColumns = async (database: sqlite3.Database): Promise<
   await execDatabase(database, 'UPDATE "membre" SET "estDecede" = 0 WHERE "estDecede" IS NULL;');
 };
 
+const ensureMembreInscriptionDemandeTable = async (database: sqlite3.Database): Promise<void> => {
+  await execDatabase(database, `
+    CREATE TABLE IF NOT EXISTS "membre_inscription_demande" (
+      "idDemandeInscription" INTEGER PRIMARY KEY AUTOINCREMENT,
+      "idUtilisateur" INTEGER NOT NULL,
+      "nomMembre" TEXT,
+      "prenomMembre" TEXT,
+      "contactMembre" TEXT,
+      "payloadDemande" TEXT NOT NULL,
+      "statutDemande" TEXT DEFAULT 'en_attente',
+      "idMembreCree" INTEGER,
+      "dateCreation" TEXT DEFAULT CURRENT_TIMESTAMP,
+      "dateTraitement" TEXT
+    );
+    CREATE INDEX IF NOT EXISTS "idx_membre_inscription_demande_utilisateur_sqlite"
+      ON "membre_inscription_demande" ("idUtilisateur", "statutDemande");
+  `);
+};
+
 const ensureComptabiliteColumns = async (database: sqlite3.Database): Promise<void> => {
   await ensureColumnExists(database, 'comptabilite', 'estSupprimeComptabilite', 'INTEGER DEFAULT 0');
   await ensureColumnExists(database, 'comptabilite', 'dateSuppressionComptabilite', 'TEXT');
@@ -822,6 +841,53 @@ const repairBrokenGalerieTables = async (database: sqlite3.Database): Promise<vo
   }
 };
 
+// Le dump d'origine ne declarait pas idMaladie comme cle primaire/auto-increment
+// (contrairement a deces/mariage) : les bases SQLite deja creees avant ce correctif
+// ont donc une table `maladie` qui rejette tout INSERT (idMaladie NOT NULL sans defaut).
+const repairBrokenMaladieTable = async (database: sqlite3.Database): Promise<void> => {
+  const maladieBroken = await hasBrokenAutoIncrementPrimaryKey(database, "maladie", "idMaladie");
+  if (!maladieBroken) {
+    return;
+  }
+
+  await execDatabase(database, `
+    DROP TABLE IF EXISTS "__maladie_repair";
+    CREATE TABLE "__maladie_repair" (
+      "idMaladie" INTEGER PRIMARY KEY AUTOINCREMENT,
+      "idMembre" INTEGER,
+      "nomMembreMaladie" TEXT,
+      "typeMaladie" TEXT,
+      "dateMaladie" TEXT,
+      "lieuHospitalisation" TEXT,
+      "observationMaladie" TEXT,
+      "idUtilisateur" INTEGER
+    );
+    INSERT INTO "__maladie_repair" (
+      "idMaladie",
+      "idMembre",
+      "nomMembreMaladie",
+      "typeMaladie",
+      "dateMaladie",
+      "lieuHospitalisation",
+      "observationMaladie",
+      "idUtilisateur"
+    )
+    SELECT
+      "idMaladie",
+      "idMembre",
+      "nomMembreMaladie",
+      "typeMaladie",
+      "dateMaladie",
+      "lieuHospitalisation",
+      "observationMaladie",
+      "idUtilisateur"
+    FROM "maladie";
+    DROP TABLE "maladie";
+    ALTER TABLE "__maladie_repair" RENAME TO "maladie";
+    CREATE INDEX IF NOT EXISTS "idx_maladie_utilisateur_sqlite" ON "maladie" ("idUtilisateur");
+  `);
+};
+
 /**
  * Ajoute les tables et indexes manquants sur une base SQLite deja existante.
  */
@@ -835,8 +901,10 @@ const ensureSqliteSchemaUpdated = async (databasePath: string): Promise<void> =>
     // completer les tables et indexes manquants sans dupliquer les donnees.
     await executeStatements(database, schemaStatements);
     await ensureMembreAndDecesColumns(database);
+    await ensureMembreInscriptionDemandeTable(database);
     await ensureComptabiliteColumns(database);
     await repairBrokenGalerieTables(database);
+    await repairBrokenMaladieTable(database);
   } finally {
     await new Promise<void>((resolve, reject) => {
       database.close((closeError) => {

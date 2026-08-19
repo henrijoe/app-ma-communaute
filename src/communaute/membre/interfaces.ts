@@ -20,7 +20,6 @@
 	capaciteSpirituelleMembre: string;
 	situationMatrimonialeMembre: string;
 	nomFiance: string;
-	nombreEnfantMembre: number;
 	photoMembre: string;
 	lieuBaptemeEauMembre: string;
 	contactParentMembre: string;

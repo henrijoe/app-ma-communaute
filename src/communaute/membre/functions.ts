@@ -5,6 +5,7 @@ import { getAvatarsPath, saveFileToBase64 } from '../functions';
 import { IMembre } from './interfaces';
 
 const normalizeDuplicatePhone = (value: unknown): string => String(value ?? '').replace(/\D/g, '');
+const normalizeDuplicateName = (value: unknown): string => String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
 
 const normalizeDuplicateBirthDate = (value: unknown): string => {
   const raw = String(value ?? '').trim();
@@ -56,6 +57,212 @@ const recupMembreDoublon = async (
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 };
 
+const recupMembreDoublonByIdentity = async (
+  idUtilisateur: number | null | undefined,
+  nomMembre: string | null | undefined,
+  prenomMembre: string | null | undefined,
+  contactMembre: string | null | undefined,
+  ignoredMemberId?: number | null
+): Promise<any | null> => {
+  const normalizedPhone = normalizeDuplicatePhone(contactMembre);
+  const normalizedNom = normalizeDuplicateName(nomMembre);
+  const normalizedPrenom = normalizeDuplicateName(prenomMembre);
+
+  if (!idUtilisateur || !normalizedPhone || !normalizedNom) {
+    return null;
+  }
+
+  const params: any[] = [idUtilisateur, normalizedPhone, normalizedNom, normalizedPrenom];
+  let sql = `
+    SELECT *
+    FROM membre
+    WHERE idUtilisateur = ?
+      AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(IFNULL(contactMembre, ''), ' ', ''), '-', ''), '.', ''), '/', ''), '+', ''), '(', ''), ')', '') = ?
+      AND LOWER(TRIM(IFNULL(nomMembre, ''))) = ?
+      AND LOWER(TRIM(IFNULL(prenomMembre, ''))) = ?
+  `;
+
+  if (ignoredMemberId) {
+    sql += ' AND idMembre <> ?';
+    params.push(ignoredMemberId);
+  }
+
+  sql += ' LIMIT 1';
+
+  const rows: any = await _selectSql(sql, params);
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+};
+
+const recupDemandeInscriptionDoublon = async (
+  idUtilisateur: number | null | undefined,
+  nomMembre: string | null | undefined,
+  prenomMembre: string | null | undefined,
+  contactMembre: string | null | undefined
+): Promise<any | null> => {
+  const normalizedPhone = normalizeDuplicatePhone(contactMembre);
+  const normalizedNom = normalizeDuplicateName(nomMembre);
+  const normalizedPrenom = normalizeDuplicateName(prenomMembre);
+
+  if (!idUtilisateur || !normalizedPhone || !normalizedNom) {
+    return null;
+  }
+
+  const sql = `
+    SELECT *
+    FROM membre_inscription_demande
+    WHERE idUtilisateur = ?
+      AND statutDemande = 'en_attente'
+      AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(IFNULL(contactMembre, ''), ' ', ''), '-', ''), '.', ''), '/', ''), '+', ''), '(', ''), ')', '') = ?
+      AND LOWER(TRIM(IFNULL(nomMembre, ''))) = ?
+      AND LOWER(TRIM(IFNULL(prenomMembre, ''))) = ?
+    LIMIT 1
+  `;
+
+  const rows: any = await _selectSql(sql, [idUtilisateur, normalizedPhone, normalizedNom, normalizedPrenom]);
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+};
+
+const normalizeDemandeInscriptionMembre = (demande: any) => {
+  let payload: any = {};
+  try {
+    payload = JSON.parse(demande.payloadDemande || '{}');
+  } catch (_error) {
+    payload = {};
+  }
+  return { ...demande, payloadDemande: payload };
+};
+
+const recupDemandeInscriptionMembreById = (idDemandeInscription: number) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const sql = 'SELECT * FROM membre_inscription_demande WHERE idDemandeInscription = ?;';
+      const demandes: any = await _selectSql(sql, [idDemandeInscription]);
+      if (!demandes.length) return reject({ name: 'Erreur_demande_inscription', message: "Aucune demande d'inscription trouvee" });
+      resolve(demandes.map(normalizeDemandeInscriptionMembre));
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+const recupDemandesInscriptionMembreByUtilisateur = (idUtilisateur: number) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const sql = `SELECT *
+        FROM membre_inscription_demande
+        WHERE idUtilisateur = ? AND statutDemande = 'en_attente'
+        ORDER BY idDemandeInscription DESC;`;
+      const demandes: any = await _selectSql(sql, [idUtilisateur]);
+      resolve(demandes.map(normalizeDemandeInscriptionMembre));
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+const ajouterDemandeInscriptionMembre = (data: any) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const payload = { ...data, idUtilisateur: Number(data.idUtilisateur) || null };
+
+      if (!payload.idUtilisateur) {
+        reject(new Error("Lien d'inscription incomplet."));
+        return;
+      }
+      if (!String(payload.nomMembre || '').trim()) {
+        reject(new Error('Le nom du membre est requis.'));
+        return;
+      }
+      if (!String(payload.contactMembre || '').trim()) {
+        reject(new Error('Le telephone du membre est requis.'));
+        return;
+      }
+
+      const doublonMembre = await recupMembreDoublonByIdentity(payload.idUtilisateur, payload.nomMembre, payload.prenomMembre, payload.contactMembre);
+      if (doublonMembre) {
+        reject(new Error('Ce membre est deja enregistre dans la communaute.'));
+        return;
+      }
+
+      const doublonDemande = await recupDemandeInscriptionDoublon(payload.idUtilisateur, payload.nomMembre, payload.prenomMembre, payload.contactMembre);
+      if (doublonDemande) {
+        reject(new Error("Une demande d'inscription est deja en attente pour ce membre."));
+        return;
+      }
+
+      const sql = `INSERT INTO membre_inscription_demande(
+        idUtilisateur,
+        nomMembre,
+        prenomMembre,
+        contactMembre,
+        payloadDemande,
+        statutDemande
+      ) VALUES (?,?,?,?,?,?)`;
+
+      const result: any = await _executeSql(sql, [
+        payload.idUtilisateur,
+        payload.nomMembre || '',
+        payload.prenomMembre || '',
+        payload.contactMembre || '',
+        JSON.stringify(payload),
+        'en_attente',
+      ]);
+
+      const insertedId = result.insertId;
+      const demande: any = await recupDemandeInscriptionMembreById(insertedId);
+      resolve(demande[0]);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+const validerDemandeInscriptionMembre = (idDemandeInscription: number, idUtilisateur: number) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const demandes: any = await recupDemandeInscriptionMembreById(idDemandeInscription);
+      const demande = demandes[0];
+
+      if (Number(demande.idUtilisateur) !== Number(idUtilisateur)) {
+        reject(new Error("Cette demande ne correspond pas a l'eglise connectee."));
+        return;
+      }
+      if (demande.statutDemande !== 'en_attente') {
+        reject(new Error('Cette demande a deja ete traitee.'));
+        return;
+      }
+
+      const membreCree: any = await ajouterMembre({ ...demande.payloadDemande, idUtilisateur });
+
+      await _executeSql(`UPDATE membre_inscription_demande
+        SET statutDemande = 'validee', idMembreCree = ?, dateTraitement = CURRENT_TIMESTAMP
+        WHERE idDemandeInscription = ? AND idUtilisateur = ?`, [
+        membreCree.idMembre,
+        idDemandeInscription,
+        idUtilisateur,
+      ]);
+
+      resolve(membreCree);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+const rejeterDemandeInscriptionMembre = (idDemandeInscription: number, idUtilisateur: number) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const sql = `UPDATE membre_inscription_demande
+        SET statutDemande = 'rejetee', dateTraitement = CURRENT_TIMESTAMP
+        WHERE idDemandeInscription = ? AND idUtilisateur = ? AND statutDemande = 'en_attente'`;
+      const result: any = await _executeSql(sql, [idDemandeInscription, idUtilisateur]);
+      resolve(Boolean(result?.affectedRows));
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 const ajouterMembre = (data: IMembre) => {
   const values = [
     data.nomMembre || '',
@@ -101,7 +308,8 @@ const ajouterMembre = (data: IMembre) => {
 
   return new Promise(async (resolve, reject) => {
     try {
-      const doublon = await recupMembreDoublon(data.idUtilisateur, data.contactMembre, data.dateNaissMembre);
+      const doublon = (await recupMembreDoublon(data.idUtilisateur, data.contactMembre, data.dateNaissMembre))
+        || (await recupMembreDoublonByIdentity(data.idUtilisateur, data.nomMembre, data.prenomMembre, data.contactMembre));
       if (doublon) {
         reject(new Error('Ce membre a deja ete enregistre.'));
         return;
@@ -242,12 +450,18 @@ const supprimerMembre = (idMembre: number, idUtilisateur?: number | null): Promi
 const modifierMembre = (data: IMembre): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
     try {
-      const doublon = await recupMembreDoublon(
+      const doublon = (await recupMembreDoublon(
         data.idUtilisateur,
         data.contactMembre,
         data.dateNaissMembre,
         data.idMembre
-      );
+      )) || (await recupMembreDoublonByIdentity(
+        data.idUtilisateur,
+        data.nomMembre,
+        data.prenomMembre,
+        data.contactMembre,
+        data.idMembre
+      ));
 
       if (doublon) {
         reject(new Error('Ce membre a deja ete enregistre.'));
@@ -352,4 +566,8 @@ export default {
   modifierMembre,
   recupMembreById,
   recupMembreByIdUtilsateur,
+  ajouterDemandeInscriptionMembre,
+  recupDemandesInscriptionMembreByUtilisateur,
+  validerDemandeInscriptionMembre,
+  rejeterDemandeInscriptionMembre,
 };

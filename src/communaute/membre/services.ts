@@ -104,7 +104,7 @@ const modifierMembre = (data: IMembre) => {
                 const filePath = getAvatarsPath(photoFileName);
                 await saveFileToBase64(filePath, base64Data);
                 
-                console.log(`Photo sauvegardée: ${photoFileName}`);
+                console.log(`Photo sauvegardï¿½e: ${photoFileName}`);
             }
             
             const updateData: IMembre = {
@@ -119,7 +119,7 @@ const modifierMembre = (data: IMembre) => {
             if (Array.isArray(membreMisAJour) && membreMisAJour.length > 0) {
                 resolve(membreMisAJour[0]);
             } else {
-                reject(new Error("Membre non trouvé après modification"));
+                reject(new Error("Membre non trouvï¿½ aprï¿½s modification"));
             }
         } catch (error) {
             console.error("Erreur dans services.modifierMembre:", error);
@@ -128,11 +128,31 @@ const modifierMembre = (data: IMembre) => {
     });
 };
   
+const ajouterDemandeInscriptionMembre = (data: any) => {
+  return functions.ajouterDemandeInscriptionMembre(data);
+};
+
+const recupDemandesInscriptionMembreByUtilisateur = (idUtilisateur: number) => {
+  return functions.recupDemandesInscriptionMembreByUtilisateur(idUtilisateur);
+};
+
+const validerDemandeInscriptionMembre = (idDemandeInscription: number, idUtilisateur: number) => {
+  return functions.validerDemandeInscriptionMembre(idDemandeInscription, idUtilisateur);
+};
+
+const rejeterDemandeInscriptionMembre = (idDemandeInscription: number, idUtilisateur: number) => {
+  return functions.rejeterDemandeInscriptionMembre(idDemandeInscription, idUtilisateur);
+};
+
 export default {
     recupMembre,
     ajouterMembre,
     supprimerMembre,
     modifierMembre,
     recupMembreByIdUtilsateur,
+    ajouterDemandeInscriptionMembre,
+    recupDemandesInscriptionMembreByUtilisateur,
+    validerDemandeInscriptionMembre,
+    rejeterDemandeInscriptionMembre,
 }
 
