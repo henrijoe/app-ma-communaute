@@ -77,6 +77,12 @@ const ajouterDemandeInscriptionMembre = (req: Request, res: Response) => {
         .ajouterDemandeInscriptionMembre(req.body)
         .then((result: any) => {
             (req as any).io.emit("demandeInscriptionMembre", result);
+            // Si l'eglise a desactive la validation manuelle, la demande est
+            // deja marquee "validee" et un membre a ete cree : on previent
+            // aussi les postes connectes que la liste des membres a change.
+            if (result?.statutDemande === 'validee') {
+                (req as any).io.emit("ajouterMembre", result);
+            }
             res.status(200).send({ status: 1, data: result });
         })
         .catch((error: any) => res.status(400).send({

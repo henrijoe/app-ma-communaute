@@ -29,6 +29,9 @@ export interface IUtilisateur {
   permissionsUtilisateur: string;
   idUtilisateurParent: number | null;
   actifUtilisateur: number;
+  // 1 = les inscriptions envoyees par QR code doivent etre validees par un responsable
+  // avant de devenir des membres ; 0 = elles sont ajoutees directement a la liste.
+  validerInscriptionMembre: number;
   password: string;
   confirmPassword: string;
   email: string;

@@ -2,7 +2,25 @@
 
 import { _executeSql, _selectSql } from '../../db';
 import { getAvatarsPath, saveFileToBase64 } from '../functions';
+import utilisateurFunctions from '../utlisateur/functions';
 import { IMembre } from './interfaces';
+
+// Regarde le reglage "validerInscriptionMembre" de l'eglise : true (par defaut)
+// si les demandes QR code doivent d'abord etre validees par un responsable,
+// false si elles doivent devenir des membres directement, sans validation
+// (utile pour les eglises avec beaucoup de monde ou personne n'a le temps
+// de valider chaque demande une par une).
+const doitValiderInscription = async (idUtilisateur: number): Promise<boolean> => {
+  try {
+    const utilisateurs: any = await utilisateurFunctions.recupUtilisateurById(idUtilisateur);
+    const utilisateur = Array.isArray(utilisateurs) ? utilisateurs[0] : null;
+    return Number(utilisateur?.validerInscriptionMembre) !== 0;
+  } catch (error) {
+    // Par prudence, si on ne peut pas lire le reglage, on garde le comportement
+    // historique (validation obligatoire) plutot que de tout ajouter en aveugle.
+    return true;
+  }
+};
 
 const normalizeDuplicatePhone = (value: unknown): string => String(value ?? '').replace(/\D/g, '');
 const normalizeDuplicateName = (value: unknown): string => String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -190,6 +208,13 @@ const ajouterDemandeInscriptionMembre = (data: any) => {
         return;
       }
 
+      // Selon le reglage de l'eglise (Parametres > "Validation des inscriptions"),
+      // soit on cree tout de suite le membre (grande eglise, pas le temps de tout
+      // valider), soit on garde le comportement historique : la demande attend
+      // qu'un responsable clique "Valider et ajouter".
+      const validationRequise = await doitValiderInscription(payload.idUtilisateur);
+      const statutDemande = validationRequise ? 'en_attente' : 'validee';
+
       const sql = `INSERT INTO membre_inscription_demande(
         idUtilisateur,
         nomMembre,
@@ -205,10 +230,21 @@ const ajouterDemandeInscriptionMembre = (data: any) => {
         payload.prenomMembre || '',
         payload.contactMembre || '',
         JSON.stringify(payload),
-        'en_attente',
+        statutDemande,
       ]);
 
       const insertedId = result.insertId;
+
+      if (!validationRequise) {
+        // Validation automatique : on cree directement le membre (avec la
+        // meme verification anti-doublon que l'ajout manuel) et on marque
+        // la demande comme deja traitee, pour garder une trace.
+        const membreCree: any = await ajouterMembre({ ...payload, idUtilisateur: payload.idUtilisateur });
+        await _executeSql(`UPDATE membre_inscription_demande
+          SET idMembreCree = ?, dateTraitement = CURRENT_TIMESTAMP
+          WHERE idDemandeInscription = ?`, [membreCree.idMembre, insertedId]);
+      }
+
       const demande: any = await recupDemandeInscriptionMembreById(insertedId);
       resolve(demande[0]);
     } catch (error) {

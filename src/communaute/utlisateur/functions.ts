@@ -32,7 +32,7 @@ const UTILISATEUR_OPTIONAL_TEXT_FIELDS = [
   'resetPasswordExpiresAt',
 ] as const;
 
-const UTILISATEUR_OPTIONAL_NUMBER_FIELDS = ['idUtilisateurParent', 'actifUtilisateur'] as const;
+const UTILISATEUR_OPTIONAL_NUMBER_FIELDS = ['idUtilisateurParent', 'actifUtilisateur', 'validerInscriptionMembre'] as const;
 
 const MYSQL_UTILISATEUR_TEXT_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_FIELDS)[number], string> = {
   logoEglise: 'TEXT NULL',
@@ -65,6 +65,9 @@ const MYSQL_UTILISATEUR_TEXT_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_F
 const MYSQL_UTILISATEUR_NUMBER_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_NUMBER_FIELDS)[number], string> = {
   idUtilisateurParent: 'INT NULL',
   actifUtilisateur: 'INT NOT NULL DEFAULT 1',
+  // 1 = une demande d'inscription QR code doit etre validee par un responsable (comportement historique).
+  // 0 = le membre est ajoute directement a la liste, sans validation (utile pour les grandes eglises).
+  validerInscriptionMembre: 'INT NOT NULL DEFAULT 1',
 };
 
 const SQLITE_UTILISATEUR_TEXT_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_FIELDS)[number], string> = {
@@ -98,6 +101,7 @@ const SQLITE_UTILISATEUR_TEXT_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_TEXT_
 const SQLITE_UTILISATEUR_NUMBER_COLUMNS: Record<(typeof UTILISATEUR_OPTIONAL_NUMBER_FIELDS)[number], string> = {
   idUtilisateurParent: 'INTEGER',
   actifUtilisateur: 'INTEGER DEFAULT 1',
+  validerInscriptionMembre: 'INTEGER DEFAULT 1',
 };
 
 const ALL_MODULE_PERMISSIONS = JSON.stringify([
@@ -123,6 +127,8 @@ const normalizeUtilisateurData = (data: Partial<IUtilisateur>): IUtilisateur => 
       : 'admin',
   permissionsUtilisateur: data.permissionsUtilisateur || ALL_MODULE_PERMISSIONS,
   actifUtilisateur: Number(data.actifUtilisateur || 1),
+  // Par defaut (undefined/absent) on garde le comportement historique : validation obligatoire.
+  validerInscriptionMembre: Number(data.validerInscriptionMembre) === 0 ? 0 : 1,
   logoUtilisateur: data.logoUtilisateur || '',
   logoEglise: data.logoEglise || '',
   nomTemple: data.nomTemple || '',
@@ -246,10 +252,11 @@ const ajouterUtilisateur = (rawData: IUtilisateur) => {
         permissionsUtilisateur,
         idUtilisateurParent,
         actifUtilisateur,
+        validerInscriptionMembre,
         password,
         confirmPassword,
         email
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
       const values = [
         data.logoUtilisateur,
@@ -282,6 +289,7 @@ const ajouterUtilisateur = (rawData: IUtilisateur) => {
         data.permissionsUtilisateur,
         data.idUtilisateurParent,
         data.actifUtilisateur,
+        data.validerInscriptionMembre,
         data.password,
         hashedconfirmPassword,
         data.email,
@@ -406,6 +414,7 @@ const modifierUtilisateur = (rawData: IUtilisateur): Promise<boolean> => {
         permissionsUtilisateur=?,
         idUtilisateurParent=?,
         actifUtilisateur=?,
+        validerInscriptionMembre=?,
         password=?,
         confirmPassword=?,
         email=?
@@ -442,6 +451,7 @@ const modifierUtilisateur = (rawData: IUtilisateur): Promise<boolean> => {
         data.permissionsUtilisateur,
         data.idUtilisateurParent,
         data.actifUtilisateur,
+        data.validerInscriptionMembre,
         data.password,
         data.confirmPassword,
         data.email,

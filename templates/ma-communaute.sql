@@ -313,6 +313,25 @@ CREATE TABLE `membre_inscription_demande` (
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `verset_programme`
+--
+
+CREATE TABLE `verset_programme` (
+  `idVersetProgramme` int(11) NOT NULL,
+  `idUtilisateur` int(11) NOT NULL,
+  `dateAffichage` date NOT NULL,
+  `reference` varchar(255) DEFAULT NULL,
+  `texte` text NOT NULL,
+  `dateCreation` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Contenu de la table `verset_programme`
+--
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `naissance`
 --
 
@@ -585,6 +604,13 @@ ALTER TABLE `membre_inscription_demande`
   ADD KEY `idx_membre_inscription_demande_utilisateur` (`idUtilisateur`,`statutDemande`);
 
 --
+-- Index pour la table `verset_programme`
+--
+ALTER TABLE `verset_programme`
+  ADD PRIMARY KEY (`idVersetProgramme`),
+  ADD UNIQUE KEY `idx_verset_programme_utilisateur_date` (`idUtilisateur`,`dateAffichage`);
+
+--
 -- Index pour la table `naissance`
 --
 ALTER TABLE `naissance`
@@ -708,6 +734,11 @@ ALTER TABLE `membre`
 --
 ALTER TABLE `membre_inscription_demande`
   MODIFY `idDemandeInscription` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+--
+-- AUTO_INCREMENT pour la table `verset_programme`
+--
+ALTER TABLE `verset_programme`
+  MODIFY `idVersetProgramme` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 --
 -- AUTO_INCREMENT pour la table `naissance`
 --

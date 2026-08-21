@@ -741,6 +741,21 @@ const ensureMembreInscriptionDemandeTable = async (database: sqlite3.Database): 
   `);
 };
 
+const ensureVersetProgrammeTable = async (database: sqlite3.Database): Promise<void> => {
+  await execDatabase(database, `
+    CREATE TABLE IF NOT EXISTS "verset_programme" (
+      "idVersetProgramme" INTEGER PRIMARY KEY AUTOINCREMENT,
+      "idUtilisateur" INTEGER NOT NULL,
+      "dateAffichage" TEXT NOT NULL,
+      "reference" TEXT,
+      "texte" TEXT NOT NULL,
+      "dateCreation" TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_verset_programme_utilisateur_date"
+      ON "verset_programme" ("idUtilisateur", "dateAffichage");
+  `);
+};
+
 const ensureComptabiliteColumns = async (database: sqlite3.Database): Promise<void> => {
   await ensureColumnExists(database, 'comptabilite', 'estSupprimeComptabilite', 'INTEGER DEFAULT 0');
   await ensureColumnExists(database, 'comptabilite', 'dateSuppressionComptabilite', 'TEXT');
@@ -902,6 +917,7 @@ const ensureSqliteSchemaUpdated = async (databasePath: string): Promise<void> =>
     await executeStatements(database, schemaStatements);
     await ensureMembreAndDecesColumns(database);
     await ensureMembreInscriptionDemandeTable(database);
+    await ensureVersetProgrammeTable(database);
     await ensureComptabiliteColumns(database);
     await repairBrokenGalerieTables(database);
     await repairBrokenMaladieTable(database);

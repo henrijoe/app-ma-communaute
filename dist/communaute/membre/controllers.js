@@ -70,11 +70,72 @@ const recupMembreByIdUtilsateur = (req, res) => {
     })
         .catch((error) => res.status(400).send({ status: 0, error }));
 };
+const ajouterDemandeInscriptionMembre = (req, res) => {
+    services_1.default
+        .ajouterDemandeInscriptionMembre(req.body)
+        .then((result) => {
+        req.io.emit("demandeInscriptionMembre", result);
+        // Si l'eglise a desactive la validation manuelle, la demande est
+        // deja marquee "validee" et un membre a ete cree : on previent
+        // aussi les postes connectes que la liste des membres a change.
+        if ((result === null || result === void 0 ? void 0 : result.statutDemande) === 'validee') {
+            req.io.emit("ajouterMembre", result);
+        }
+        res.status(200).send({ status: 1, data: result });
+    })
+        .catch((error) => res.status(400).send({
+        status: 0,
+        error,
+        message: (error === null || error === void 0 ? void 0 : error.message) || "Erreur lors de l'enregistrement de la demande d'inscription",
+    }));
+};
+const recupDemandesInscriptionMembreByUtilisateur = (req, res) => {
+    const { idUtilisateur } = req.params;
+    services_1.default
+        .recupDemandesInscriptionMembreByUtilisateur(Number(idUtilisateur))
+        .then((result) => {
+        res.status(200).send({ status: 1, data: result });
+    })
+        .catch((error) => res.status(400).send({ status: 0, error }));
+};
+const validerDemandeInscriptionMembre = (req, res) => {
+    const { idDemandeInscription, idUtilisateur } = req.body;
+    services_1.default
+        .validerDemandeInscriptionMembre(idDemandeInscription, idUtilisateur)
+        .then((result) => {
+        req.io.emit("ajouterMembre", result);
+        req.io.emit("demandeInscriptionMembreTraitee", result);
+        res.status(200).send({ status: 1, data: result });
+    })
+        .catch((error) => res.status(400).send({
+        status: 0,
+        error,
+        message: (error === null || error === void 0 ? void 0 : error.message) || "La demande n'a pas pu etre validee",
+    }));
+};
+const rejeterDemandeInscriptionMembre = (req, res) => {
+    const { idDemandeInscription, idUtilisateur } = req.body;
+    services_1.default
+        .rejeterDemandeInscriptionMembre(idDemandeInscription, idUtilisateur)
+        .then((result) => {
+        req.io.emit("demandeInscriptionMembreTraitee", result);
+        res.status(200).send({ status: 1, data: result });
+    })
+        .catch((error) => res.status(400).send({
+        status: 0,
+        error,
+        message: (error === null || error === void 0 ? void 0 : error.message) || "La demande n'a pas pu etre rejetee",
+    }));
+};
 exports.default = {
     recupMembre,
     ajouterMembre,
     supprimerMembre,
     modifierMembre,
-    recupMembreByIdUtilsateur
+    recupMembreByIdUtilsateur,
+    ajouterDemandeInscriptionMembre,
+    recupDemandesInscriptionMembreByUtilisateur,
+    validerDemandeInscriptionMembre,
+    rejeterDemandeInscriptionMembre,
 };
 //# sourceMappingURL=controllers.js.map
