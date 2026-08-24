@@ -24,6 +24,7 @@ import galerieRouter from "./galerie/routes";
 import agendaRouter from "./agenda/routes";
 import tunnelRouter from "./tunnel/routes";
 import versetProgrammeRouter from "./versetprogramme/routes";
+import programmeEgliseRouter from "./programmeeglise/routes";
 
 const communauteRouter: Router = express.Router();
 const getDataEgliseRouter: Router = express.Router();
@@ -54,5 +55,6 @@ communauteRouter.use(galerieRouter);
 communauteRouter.use(agendaRouter);
 communauteRouter.use(tunnelRouter);
 communauteRouter.use(versetProgrammeRouter);
+communauteRouter.use(programmeEgliseRouter);
 
 export default communauteRouter;

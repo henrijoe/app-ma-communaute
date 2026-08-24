@@ -332,6 +332,29 @@ CREATE TABLE `verset_programme` (
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `programme_eglise`
+--
+
+CREATE TABLE `programme_eglise` (
+  `idProgramme` int(11) NOT NULL,
+  `idUtilisateur` int(11) NOT NULL,
+  `dateProgramme` date NOT NULL,
+  `direction` varchar(255) DEFAULT NULL,
+  `saintCene` varchar(255) DEFAULT NULL,
+  `predication` varchar(255) DEFAULT NULL,
+  `offrandes` varchar(255) DEFAULT NULL,
+  `annonces` varchar(255) DEFAULT NULL,
+  `thematique` text,
+  `dateCreation` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Contenu de la table `programme_eglise`
+--
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `naissance`
 --
 
@@ -611,6 +634,13 @@ ALTER TABLE `verset_programme`
   ADD UNIQUE KEY `idx_verset_programme_utilisateur_date` (`idUtilisateur`,`dateAffichage`);
 
 --
+-- Index pour la table `programme_eglise`
+--
+ALTER TABLE `programme_eglise`
+  ADD PRIMARY KEY (`idProgramme`),
+  ADD UNIQUE KEY `idx_programme_eglise_utilisateur_date` (`idUtilisateur`,`dateProgramme`);
+
+--
 -- Index pour la table `naissance`
 --
 ALTER TABLE `naissance`
@@ -739,6 +769,11 @@ ALTER TABLE `membre_inscription_demande`
 --
 ALTER TABLE `verset_programme`
   MODIFY `idVersetProgramme` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+--
+-- AUTO_INCREMENT pour la table `programme_eglise`
+--
+ALTER TABLE `programme_eglise`
+  MODIFY `idProgramme` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 --
 -- AUTO_INCREMENT pour la table `naissance`
 --
