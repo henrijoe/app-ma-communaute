@@ -2,12 +2,12 @@ import { Request, Response } from 'express';
 import services from './services';
 
 // Ce fichier fait le lien entre les routes HTTP (voir routes.ts) et la
-// logique metier (services.ts -> functions.ts) : chaque fonction lit la
-// requete, appelle le service correspondant, puis renvoie une reponse
+// logique métier (services.ts -> functions.ts) : chaque fonction lit la
+// requête, appelle le service correspondant, puis renvoie une réponse
 // JSON standard { status, data } ou { status: 0, error }.
 
-// Ajoute un verset programme et previent les autres postes connectes
-// (evenement socket.io "versetProgrammeModifie") pour qu'ils rafraichissent
+// Ajoute un verset programme et prévient les autres postes connectés
+// (événement socket.io "versetProgrammeModifie") pour qu'ils rafraîchissent
 // leur liste sans avoir a recharger la page.
 const ajouterVersetProgramme = (req: Request, res: Response) => {
   services
@@ -23,7 +23,7 @@ const ajouterVersetProgramme = (req: Request, res: Response) => {
     }));
 };
 
-// Modifie un verset existant (date, reference ou texte).
+// Modifie un verset existant (date, référence ou texte).
 const modifierVersetProgramme = (req: Request, res: Response) => {
   services
     .modifierVersetProgramme(req.body)
@@ -50,7 +50,7 @@ const supprimerVersetProgramme = (req: Request, res: Response) => {
     .catch((error: any) => res.status(400).send({ status: 0, error }));
 };
 
-// Renvoie tous les versets programmes d'une eglise, tries par date.
+// Renvoie tous les versets programmes d'une église, tries par date.
 const recupVersetsProgrammeByUtilisateur = (req: Request, res: Response) => {
   const { idUtilisateur } = req.params;
   services

@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 
 /**
- * Cree ou reutilise une base SQLite locale pour une communaute puis la rend active.
+ * Crée ou réutilise une base SQLite locale pour une communauté puis la rend active.
  */
 export const createCommunauteDatabase = async (
   payload: ICreateCommunauteDatabasePayload

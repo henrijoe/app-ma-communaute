@@ -104,7 +104,7 @@ const modifierMembre = (data: IMembre) => {
                 const filePath = getAvatarsPath(photoFileName);
                 await saveFileToBase64(filePath, base64Data);
                 
-                console.log(`Photo sauvegard�e: ${photoFileName}`);
+                console.log(`Photo sauvegardée: ${photoFileName}`);
             }
             
             const updateData: IMembre = {
@@ -119,7 +119,7 @@ const modifierMembre = (data: IMembre) => {
             if (Array.isArray(membreMisAJour) && membreMisAJour.length > 0) {
                 resolve(membreMisAJour[0]);
             } else {
-                reject(new Error("Membre non trouv� apr�s modification"));
+                reject(new Error("Membre non trouvé après modification"));
             }
         } catch (error) {
             console.error("Erreur dans services.modifierMembre:", error);

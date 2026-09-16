@@ -75,7 +75,7 @@ const telechargerGalerie = (req: Request, res: Response) => {
           fs.unlinkSync(filePath);
         }
         if (error) {
-          console.error("Erreur telechargement galerie:", error);
+          console.error("Erreur téléchargement galerie:", error);
         }
       });
     })

@@ -51,7 +51,7 @@ const ajouterNouvelleAme = (data: INouvelleAme) => {
 
 
 /**
- * recuperer les nouvelle_ames 
+ * récupérer les nouvelles âmes (table nouvelle_ame)
  * @returns 
  */
 const recupNouvelleAme = () => {
@@ -59,7 +59,7 @@ const recupNouvelleAme = () => {
         try {
             const sql = `SELECT * FROM nouvelleame ORDER BY idNouvelleAme ASC ;`
             const nouvelleAme = await _selectSql(sql, []);
-            if (!nouvelleAme.length) return reject({ name: "Erreur_ame", message: "Aucune ame trouvée pour les paramètres fournis" })
+            if (!nouvelleAme.length) return reject({ name: "Erreur_ame", message: "Aucune âme trouvée pour les paramètres fournis" })
             resolve(nouvelleAme)
         } catch (error) {
             reject(error);
@@ -72,7 +72,7 @@ const recupNouvelleAmeById = (id:number) => {
         try {
             const sql = `SELECT * FROM nouvelleame WHERE idNouvelleAme = ? ;`
             const nouvelleAme = await _selectSql(sql, [id]);
-            if (!nouvelleAme.length) return reject({ name: "Erreur_ame", message: "Aucune ame trouvée pour les paramètres fournis" })
+            if (!nouvelleAme.length) return reject({ name: "Erreur_ame", message: "Aucune âme trouvée pour les paramètres fournis" })
             resolve(nouvelleAme)
         } catch (error) {
             reject(error);

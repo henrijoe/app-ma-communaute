@@ -142,7 +142,7 @@ const supprimerComptabiliteDefinitivement = (
 ): Promise<boolean> =>
   new Promise((resolve, reject) => {
     if (normalizeUsername(nomUtilisateur) !== normalizeUsername(DESKTOP_SUPERADMIN_USERNAME)) {
-      reject(new Error('Seul le superadmin peut supprimer definitivement une ecriture comptable.'));
+      reject(new Error('Seul le superadmin peut supprimer définitivement une écriture comptable.'));
       return;
     }
 

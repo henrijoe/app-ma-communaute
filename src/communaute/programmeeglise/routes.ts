@@ -1,8 +1,8 @@
 import express, { Router } from 'express';
 import controllers from './controllers';
 
-// Routes du module "programme eglise" : planification de qui dirige, preche,
-// fait les annonces, etc. a chaque culte (Agenda > onglet "Programme église").
+// Routes du module "programme église" : planification de qui dirige, prêche,
+// fait les annonces, etc. à chaque culte (Agenda > onglet "Programme église").
 const programmeEgliseRouter: Router = express.Router();
 
 programmeEgliseRouter.post('/ajouterprogrammeeglise', controllers.ajouterProgrammeEglise);

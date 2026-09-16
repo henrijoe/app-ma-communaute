@@ -9,6 +9,8 @@ const ajouterCulte = (req: Request, res: Response) => {
   services
     .ajouterCulte(data)
     .then((result: any) => {
+      // Signale la création aux clients connectés (tableau de bord, listes ouvertes).
+      io?.emit("ajouterCulte", { idUtilisateur: data?.idUtilisateur, data: result });
       res.status(200).send({ status: 1, data: result });
     })
     .catch((error: any) => {
@@ -43,6 +45,7 @@ const supprimerCulte = (req: Request, res: Response) => {
     .supprimerCulte(idCulte, idUtilisateur)
     .then((result: any) => {
       if (result) {
+        (req as any).io?.emit("supprimerCulte", { idUtilisateur, idCulte, data: result });
         res.status(200).send({ status: 1, data: result })
       } else {
         res.status(400).send({ status: 0, errors: 'Culte non trouvée' })
@@ -56,6 +59,7 @@ const modifierCulte = (req: Request, res: Response) => {
   services
     .modifierCulte(data)
     .then((result: any) => {
+      (req as any).io?.emit("modifierCulte", { idUtilisateur: data?.idUtilisateur, data: result });
       res.status(200).send({ status: 1, data: result })
     })
     .catch((errors: any) => res.status(400).send({ status: 0, errors }))

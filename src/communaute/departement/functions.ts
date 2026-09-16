@@ -12,7 +12,7 @@ const ajouterDepartement = (data: IDepartement) => {
 
   return new Promise(async (resolve, reject) => {
     try {
-      // La verification de doublon reste locale a l'utilisateur pour ne pas bloquer une autre eglise.
+      // La vérification de doublon reste locale à l'utilisateur pour ne pas bloquer une autre église.
       const sqlCheck = `SELECT COUNT(*) as count FROM departement WHERE idUtilisateur = ? AND (libelleLongDepartement = ? OR libelleCourtDepartement = ?)`;
       const [result] = await _selectSql(sqlCheck, [
         data.idUtilisateur,
@@ -21,7 +21,7 @@ const ajouterDepartement = (data: IDepartement) => {
       ]);
 
       if (result.count > 0) {
-        return reject(new Error("Ce departement existe déjà."));
+        return reject(new Error("Ce département existe déjà."));
       }
 
       const sqlInsert = `INSERT INTO departement(libelleLongDepartement,libelleCourtDepartement,sloganDepartement,responsableDepartement,idUtilisateur) VALUES (?,?,?,?,?)`;
@@ -64,7 +64,7 @@ const recupDepartementByIdUtilsateur = (idUtilisateur: number) => {
       const sql = `SELECT * FROM departement WHERE idUtilisateur= ?;`;
       const departements = await _selectSql(sql, [idUtilisateur]);
       if (!departements.length) {
-        return reject({ name: "Erreur_departement", message: "Aucun departement trouve" });
+        return reject({ name: "Erreur_departement", message: "Aucun département trouvé" });
       }
       resolve(departements);
     } catch (error) {

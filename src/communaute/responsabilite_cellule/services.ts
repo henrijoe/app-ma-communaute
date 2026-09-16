@@ -3,7 +3,7 @@ import {  IResponsables } from "./interfaces";
 
 /**
  * 
-Permet d'ajouter un responsabilite
+Permet d'ajouter un responsabilité
  * @returns 
  */
 const ajouterResponsabilite = (data: IResponsables) => {
@@ -40,7 +40,7 @@ const supprimerResponsabilite = (idMembre: number) => {
             await functions.supprimerResponsabilite(idMembre)
             resolve(true)
           } else {
-            return reject('Departement non trouvé')
+            return reject('Département non trouvé')
           }
         }
       } catch (error) {

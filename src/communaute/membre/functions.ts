@@ -5,10 +5,10 @@ import { getAvatarsPath, saveFileToBase64 } from '../functions';
 import utilisateurFunctions from '../utlisateur/functions';
 import { IMembre } from './interfaces';
 
-// Regarde le reglage "validerInscriptionMembre" de l'eglise : true (par defaut)
-// si les demandes QR code doivent d'abord etre validees par un responsable,
+// Regarde le réglage "validerInscriptionMembre" de l'église : true (par défaut)
+// si les demandes QR code doivent d'abord être validées par un responsable,
 // false si elles doivent devenir des membres directement, sans validation
-// (utile pour les eglises avec beaucoup de monde ou personne n'a le temps
+// (utile pour les églises avec beaucoup de monde ou personne n'à le temps
 // de valider chaque demande une par une).
 const doitValiderInscription = async (idUtilisateur: number): Promise<boolean> => {
   try {
@@ -16,8 +16,8 @@ const doitValiderInscription = async (idUtilisateur: number): Promise<boolean> =
     const utilisateur = Array.isArray(utilisateurs) ? utilisateurs[0] : null;
     return Number(utilisateur?.validerInscriptionMembre) !== 0;
   } catch (error) {
-    // Par prudence, si on ne peut pas lire le reglage, on garde le comportement
-    // historique (validation obligatoire) plutot que de tout ajouter en aveugle.
+    // Par prudence, si on ne peut pas lire le réglage, on garde le comportement
+    // historique (validation obligatoire) plutôt que de tout ajouter en aveugle.
     return true;
   }
 };
@@ -155,7 +155,7 @@ const recupDemandeInscriptionMembreById = (idDemandeInscription: number) => {
     try {
       const sql = 'SELECT * FROM membre_inscription_demande WHERE idDemandeInscription = ?;';
       const demandes: any = await _selectSql(sql, [idDemandeInscription]);
-      if (!demandes.length) return reject({ name: 'Erreur_demande_inscription', message: "Aucune demande d'inscription trouvee" });
+      if (!demandes.length) return reject({ name: 'Erreur_demande_inscription', message: "Aucune demande d'inscription trouvée" });
       resolve(demandes.map(normalizeDemandeInscriptionMembre));
     } catch (error) {
       reject(error);
@@ -192,24 +192,24 @@ const ajouterDemandeInscriptionMembre = (data: any) => {
         return;
       }
       if (!String(payload.contactMembre || '').trim()) {
-        reject(new Error('Le telephone du membre est requis.'));
+        reject(new Error('Le téléphone du membre est requis.'));
         return;
       }
 
       const doublonMembre = await recupMembreDoublonByIdentity(payload.idUtilisateur, payload.nomMembre, payload.prenomMembre, payload.contactMembre);
       if (doublonMembre) {
-        reject(new Error('Ce membre est deja enregistre dans la communaute.'));
+        reject(new Error('Ce membre est déjà enregistré dans la communauté.'));
         return;
       }
 
       const doublonDemande = await recupDemandeInscriptionDoublon(payload.idUtilisateur, payload.nomMembre, payload.prenomMembre, payload.contactMembre);
       if (doublonDemande) {
-        reject(new Error("Une demande d'inscription est deja en attente pour ce membre."));
+        reject(new Error("Une demande d'inscription est déjà en attente pour ce membre."));
         return;
       }
 
-      // Selon le reglage de l'eglise (Parametres > "Validation des inscriptions"),
-      // soit on cree tout de suite le membre (grande eglise, pas le temps de tout
+      // Selon le réglage de l'église (Paramètres > "Validation des inscriptions"),
+      // soit on cree tout de suite le membre (grande église, pas le temps de tout
       // valider), soit on garde le comportement historique : la demande attend
       // qu'un responsable clique "Valider et ajouter".
       const validationRequise = await doitValiderInscription(payload.idUtilisateur);
@@ -237,8 +237,8 @@ const ajouterDemandeInscriptionMembre = (data: any) => {
 
       if (!validationRequise) {
         // Validation automatique : on cree directement le membre (avec la
-        // meme verification anti-doublon que l'ajout manuel) et on marque
-        // la demande comme deja traitee, pour garder une trace.
+        // même vérification anti-doublon que l'ajout manuel) et on marque
+        // la demande comme déjà traitée, pour garder une trace.
         const membreCree: any = await ajouterMembre({ ...payload, idUtilisateur: payload.idUtilisateur });
         await _executeSql(`UPDATE membre_inscription_demande
           SET idMembreCree = ?, dateTraitement = CURRENT_TIMESTAMP
@@ -260,11 +260,11 @@ const validerDemandeInscriptionMembre = (idDemandeInscription: number, idUtilisa
       const demande = demandes[0];
 
       if (Number(demande.idUtilisateur) !== Number(idUtilisateur)) {
-        reject(new Error("Cette demande ne correspond pas a l'eglise connectee."));
+        reject(new Error("Cette demande ne correspond pas à l'église connectée."));
         return;
       }
       if (demande.statutDemande !== 'en_attente') {
-        reject(new Error('Cette demande a deja ete traitee.'));
+        reject(new Error('Cette demande a déjà été traitée.'));
         return;
       }
 
@@ -347,7 +347,7 @@ const ajouterMembre = (data: IMembre) => {
       const doublon = (await recupMembreDoublon(data.idUtilisateur, data.contactMembre, data.dateNaissMembre))
         || (await recupMembreDoublonByIdentity(data.idUtilisateur, data.nomMembre, data.prenomMembre, data.contactMembre));
       if (doublon) {
-        reject(new Error('Ce membre a deja ete enregistre.'));
+        reject(new Error('Ce membre a déjà été enregistré.'));
         return;
       }
 
@@ -435,7 +435,7 @@ const recupMembre = () => {
     try {
       const sql = 'SELECT * FROM membre WHERE COALESCE(estDecede, 0) <> 1 ORDER BY idMembre ASC;';
       const membre = await _selectSql(sql, []);
-      if (!membre.length) return reject({ name: 'Erreur_membre', message: 'Aucun membre trouve' });
+      if (!membre.length) return reject({ name: 'Erreur_membre', message: 'Aucun membre trouvé' });
       resolve(membre);
     } catch (error) {
       reject(error);
@@ -448,7 +448,7 @@ const recupMembreById = (id: number) => {
     try {
       const sql = 'SELECT * FROM membre WHERE idMembre = ?;';
       const membre = await _selectSql(sql, [id]);
-      if (!membre.length) return reject({ name: 'Erreur_membre', message: 'Aucun membre trouve' });
+      if (!membre.length) return reject({ name: 'Erreur_membre', message: 'Aucun membre trouvé' });
       resolve(membre);
     } catch (error) {
       reject(error);
@@ -461,7 +461,7 @@ const recupMembreByIdUtilsateur = (idUtilisateur: number) => {
     try {
       const sql = 'SELECT * FROM membre WHERE idUtilisateur = ? AND COALESCE(estDecede, 0) <> 1;';
       const membre = await _selectSql(sql, [idUtilisateur]);
-      if (!membre.length) return reject({ name: 'Erreur_membre', message: 'Aucun membre trouve' });
+      if (!membre.length) return reject({ name: 'Erreur_membre', message: 'Aucun membre trouvé' });
       resolve(membre);
     } catch (error) {
       reject(error);
@@ -500,7 +500,7 @@ const modifierMembre = (data: IMembre): Promise<boolean> => {
       ));
 
       if (doublon) {
-        reject(new Error('Ce membre a deja ete enregistre.'));
+        reject(new Error('Ce membre a déjà été enregistré.'));
         return;
       }
 

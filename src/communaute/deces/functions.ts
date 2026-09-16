@@ -52,7 +52,7 @@ const ajouterDeces = (data: IDeces) => {
       const [result] = await _selectSql(duplicateSql, duplicateParams);
 
       if (result?.count > 0) {
-        return reject(new Error('Ce deces est deja enregistre.'));
+        return reject(new Error('Ce décès est déjà enregistré.'));
       }
 
       const sql = 'INSERT INTO deces(idMembre, nomMembreDeces, dateDeces, lieuDeces, causeDeces, idUtilisateur) VALUES (?,?,?,?,?,?)';
@@ -94,7 +94,7 @@ const recupDecesByIdUtilsateur = (idUtilisateur: number) => {
     try {
       const sql = 'SELECT * FROM deces WHERE idUtilisateur = ?;';
       const deces = await _selectSql(sql, [idUtilisateur]);
-      if (!deces.length) return reject({ name: 'Erreur_deces', message: 'Aucun deces trouve' });
+      if (!deces.length) return reject({ name: 'Erreur_deces', message: 'Aucun décès trouvé' });
       resolve(deces);
     } catch (error) {
       reject(error);

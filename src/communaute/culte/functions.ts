@@ -21,11 +21,11 @@ const ajouterCulte = (data: ICulte) => {
 
   return new Promise(async (resolve, reject) => {
     try {
-      // Un culte identique ne doit pas bloquer une autre eglise.
+      // Un culte identique ne doit pas bloquer une autre église.
       const sqlCheck = `SELECT COUNT(*) as count FROM culte WHERE idUtilisateur = ? AND dateCulte = ?`;
       const [result] = await _selectSql(sqlCheck, [data.idUtilisateur, data.dateCulte]);
       if (result.count > 0) {
-        return reject(new Error("Ce culte existe deja."));
+        return reject(new Error("Ce culte existe déjà."));
       }
 
       const sql = `INSERT INTO culte(typeCulte,dateCulte,dirigeant,predication,passageBiblique,themePredication,nombreHommeCulte,nombreFemmeCulte,offrandeCulte,ecodim,filleEcodim,offrandeEcodim,resumePredication,idUtilisateur) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;

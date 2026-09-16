@@ -55,7 +55,7 @@ const ajouterQuestion = (data: IQuestions) => {
 };
 
 /**
- * recupererer toute les quetions
+ * récupérer toute les quetions
  * @returns 
  */
 const recupQuestion = () => {

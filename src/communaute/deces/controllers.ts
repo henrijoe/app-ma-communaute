@@ -29,7 +29,7 @@ const ajouterDeces = (req: Request, res: Response) => {
 
 
 /**
- * Récupérer une deces
+ * Récupérer une décès
  * @returns 
  */
 const recupDeces = (req: Request, res: Response) => {
@@ -50,7 +50,7 @@ const supprimerDeces = (req: Request, res: Response) => {
         (req as any).io.emit('supprimerDeces', result)
         res.status(200).send({ status: 1, data: result })
       } else {
-        res.status(400).send({ status: 0, errors: 'Deces non trouvée' })
+        res.status(400).send({ status: 0, errors: 'Décès non trouvée' })
       }
     })
     .catch((errors: any) => res.status(400).send({ status: 0, errors }))

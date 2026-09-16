@@ -13,7 +13,7 @@ const ajouterMembre = (req: Request, res: Response) => {
         .catch((error: any) => res.status(400).send({
             status: 0,
             error,
-            message: error?.message || 'Erreur lors de la creation du membre',
+            message: error?.message || 'Erreur lors de la création du membre',
         }));
 };
 
@@ -77,9 +77,9 @@ const ajouterDemandeInscriptionMembre = (req: Request, res: Response) => {
         .ajouterDemandeInscriptionMembre(req.body)
         .then((result: any) => {
             (req as any).io.emit("demandeInscriptionMembre", result);
-            // Si l'eglise a desactive la validation manuelle, la demande est
-            // deja marquee "validee" et un membre a ete cree : on previent
-            // aussi les postes connectes que la liste des membres a change.
+            // Si l'église a désactive la validation manuelle, la demande est
+            // déjà marquee "validée" et un membre a été créé : on prévient
+            // aussi les postes connectés que la liste des membres a change.
             if (result?.statutDemande === 'validee') {
                 (req as any).io.emit("ajouterMembre", result);
             }
@@ -114,7 +114,7 @@ const validerDemandeInscriptionMembre = (req: Request, res: Response) => {
         .catch((error: any) => res.status(400).send({
             status: 0,
             error,
-            message: error?.message || "La demande n'a pas pu etre validee",
+            message: error?.message || "La demande n'a pas pu être validée",
         }));
 };
 
@@ -129,7 +129,7 @@ const rejeterDemandeInscriptionMembre = (req: Request, res: Response) => {
         .catch((error: any) => res.status(400).send({
             status: 0,
             error,
-            message: error?.message || "La demande n'a pas pu etre rejetee",
+            message: error?.message || "La demande n'a pas pu être rejetée",
         }));
 };
 

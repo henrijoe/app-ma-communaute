@@ -52,7 +52,7 @@ const recupNaissanceByIdUtilsateur = (idUtilisateur: number) => {
       const sql = `SELECT * FROM naissance WHERE idUtilisateur= ?;`;
       const naissance = await _selectSql(sql, [idUtilisateur]);
       if (!naissance.length) {
-        return reject({ name: "Erreur_naissance", message: "Aucune naissance trouvee" });
+        return reject({ name: "Erreur_naissance", message: "Aucune naissance trouvée" });
       }
       resolve(naissance);
     } catch (error) {

@@ -23,7 +23,7 @@ const ajouterResponsabilite = (data: IResponsables) => {
 
 
 /**
- * recupererer toute les responsabilites
+ * récupérer toute les responsabilités
  * @returns 
  */
 const recupResponsabilite = () => {

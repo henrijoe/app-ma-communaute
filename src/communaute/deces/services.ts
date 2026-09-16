@@ -3,7 +3,7 @@ import { IDeces} from "./interfaces";
 
 /**
  * 
-Permet d'ajouter une deces
+Permet d'ajouter une décès
  * @returns 
  */
 const ajouterDeces = (data: IDeces) => {

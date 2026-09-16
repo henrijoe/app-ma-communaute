@@ -36,7 +36,7 @@ const ajouterMariage = (data: IMariage) => {
 };
 
 /**
- * recupererer toute les mariages
+ * récupérer toute les mariages
  * @returns 
  */
 const recupMariage = () => {

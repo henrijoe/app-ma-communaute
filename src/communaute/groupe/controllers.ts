@@ -7,6 +7,8 @@ const ajouterGroupe = (req: Request, res: Response) => {
   services
     .ajouterGroupe(data)
     .then((result: any) => {
+      // Signale la création aux clients connectés (tableau de bord, listes ouvertes).
+      (req as any).io?.emit("ajouterGroupe", { idUtilisateur: data?.idUtilisateur, data: result });
       res.status(200).send({ status: 1, data: result });
     })
     .catch((error: any) => res.status(400).send({ status: 0, error }));
@@ -39,9 +41,10 @@ const supprimerGroupe = (req: Request, res: Response) => {
     .supprimerGroupe(idGroupe, idUtilisateur)
     .then((result: any) => {
       if (result) {
+        (req as any).io?.emit("supprimerGroupe", { idUtilisateur, idGroupe, data: result });
         res.status(200).send({ status: 1, data: result });
       } else {
-        res.status(400).send({ status: 0, errors: "Groupe non trouve" });
+        res.status(400).send({ status: 0, errors: "Groupe non trouvé" });
       }
     })
     .catch((errors: any) => res.status(400).send({ status: 0, errors }));
@@ -53,6 +56,7 @@ const modifierGroupe = (req: Request, res: Response) => {
   services
     .modifierGroupe(data)
     .then((result: any) => {
+      (req as any).io?.emit("modifierGroupe", { idUtilisateur: data?.idUtilisateur, data: result });
       res.status(200).send({ status: 1, data: result });
     })
     .catch((errors: any) => res.status(400).send({ status: 0, errors }));

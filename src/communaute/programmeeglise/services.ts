@@ -1,9 +1,9 @@
 import functions from './functions';
 import { IProgrammeEglise } from './interfaces';
 
-// Couche intermediaire entre les controllers et les fonctions SQL. Ici elle
-// se contente de relayer l'appel : elle existe pour rester coherente avec
-// le decoupage utilise partout ailleurs dans le projet (controller -> service -> functions).
+// Couche intermédiaire entre les controllers et les fonctions SQL. Ici elle
+// se contente de relayer l'appel : elle existe pour rester cohérente avec
+// le découpage utilise partout ailleurs dans le projet (controller -> service -> functions).
 const ajouterProgrammeEglise = (data: Partial<IProgrammeEglise>) => functions.ajouterProgrammeEglise(data);
 
 const modifierProgrammeEglise = (data: Partial<IProgrammeEglise>) => functions.modifierProgrammeEglise(data);

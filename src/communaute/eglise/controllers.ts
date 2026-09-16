@@ -14,7 +14,7 @@ const ajouterEglise = (req: Request, res: Response) => {
 };
 
 /**
- * Récupérer une eglise
+ * Récupérer une église
  * @returns 
  */
 const recupEglise = (req: Request, res: Response) => {
@@ -34,7 +34,7 @@ const supprimerEglise = (req: Request, res: Response) => {
         if (result) {
           res.status(200).send({ status: 1, data: result })
         } else {
-          res.status(400).send({ status: 0, errors: 'Eglise non trouvé' })
+          res.status(400).send({ status: 0, errors: 'Église non trouvé' })
         }
       })
       .catch((errors: any) => res.status(400).send({ status: 0, errors }))

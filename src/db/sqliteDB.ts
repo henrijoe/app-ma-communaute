@@ -23,7 +23,7 @@ const resolveDefaultSqliteDirectory = (): string => {
       os.homedir(),
       "Library",
       "Application Support",
-      "Ma Communaute",
+      "Ma Communauté",
       "base-communaute"
     );
   }
@@ -66,7 +66,7 @@ type RestoreSqliteBackupResult = {
 export const isSqliteMode = (): boolean => process.env.DB_MODE === "sqlite";
 
 /**
- * Retourne le mode de base de donnees actif pour les logs de demarrage.
+ * Retourne le mode de base de données actif pour les logs de démarrage.
  */
 export const getDatabaseMode = (): "sqlite" | "mysql" =>
   (isSqliteMode() ? "sqlite" : "mysql");
@@ -77,8 +77,8 @@ export const getDatabaseMode = (): "sqlite" | "mysql" =>
 export const getSqliteDirectory = (): string => DEFAULT_SQLITE_DIR;
 
 /**
- * Retourne le chemin de la base SQLite generique utilisee avant la creation
- * definitive d'une eglise.
+ * Retourne le chemin de la base SQLite générique utilisée avant la création
+ * definitive d'une église.
  */
 export const getDefaultSqliteDatabasePath = (): string => DEFAULT_SQLITE_FILE;
 
@@ -125,7 +125,7 @@ const mapMysqlTypeToSqlite = (mysqlType: string): string => {
 };
 
 /**
- * Recupere les cles primaires declarees dans les ALTER TABLE du dump.
+ * Récupère les clés primaires declarees dans les ALTER TABLE du dump.
  */
 const extractPrimaryKeys = (dump: string): PrimaryKeyMap => {
   const primaryKeys: PrimaryKeyMap = {};
@@ -133,7 +133,7 @@ const extractPrimaryKeys = (dump: string): PrimaryKeyMap => {
 
   let match = regex.exec(dump);
   while (match) {
-    // On memorise les colonnes de cle primaire pour les reinjecter
+    // On mémorise les colonnes de clé primaire pour les reinjecter
     // ensuite dans les CREATE TABLE converts vers SQLite.
     primaryKeys[match[1]] = match[2]
       .split(",")
@@ -146,7 +146,7 @@ const extractPrimaryKeys = (dump: string): PrimaryKeyMap => {
 };
 
 /**
- * Recupere les indexes simples a recreer apres les CREATE TABLE.
+ * Récupère les indexes simples a recréer après les CREATE TABLE.
  */
 const extractIndexes = (dump: string): IndexDefinition[] => {
   const indexes: IndexDefinition[] = [];
@@ -154,7 +154,7 @@ const extractIndexes = (dump: string): IndexDefinition[] => {
 
   let blockMatch = alterBlockRegex.exec(dump);
   while (blockMatch) {
-    // Chaque bloc ALTER TABLE peut contenir plusieurs indexes a recreer.
+    // Chaque bloc ALTER TABLE peut contenir plusieurs indexes a recréer.
     const tableName = blockMatch[1];
     const statements = blockMatch[2];
     const keyRegex = /ADD KEY\s+`([^`]+)`\s+\(([^)]+)\)/g;
@@ -212,7 +212,7 @@ const convertCreateTableStatement = (
         .replace(/\s+/g, " ")
         .trim();
 
-      // On detecte le type de base MySQL pour le ramener vers
+      // On détecte le type de base MySQL pour le ramener vers
       // l'affinite SQLite la plus proche.
       const typeMatch = rawDefinition.match(/^([a-zA-Z]+(?:\(\d+(?:,\d+)?\))?)/);
       const sqliteType = mapMysqlTypeToSqlite(typeMatch ? typeMatch[1] : "text");
@@ -221,7 +221,7 @@ const convertCreateTableStatement = (
         && sqliteType === "INTEGER";
 
       if (isSingleIntegerPrimaryKey) {
-        // SQLite gere tres bien ce cas via INTEGER PRIMARY KEY AUTOINCREMENT.
+        // SQLite gere très bien ce cas via INTEGER PRIMARY KEY AUTOINCREMENT.
         return `"${columnName}" INTEGER PRIMARY KEY AUTOINCREMENT`;
       }
 
@@ -236,7 +236,7 @@ const convertCreateTableStatement = (
     .filter((line): line is string => Boolean(line));
 
   if (primaryKeyColumns.length > 1) {
-    // Pour les cles primaires composites, on ajoute une contrainte de table.
+    // Pour les clés primaires composites, on ajoute une contrainte de table.
     columnDefinitions.push(
       `PRIMARY KEY (${primaryKeyColumns.map((column) => `"${column}"`).join(", ")})`
     );
@@ -253,7 +253,7 @@ const convertInsertStatement = (statement: string): string => statement
   .replace(/`/g, '"');
 
 /**
- * Convertit le dump MySQL de reference en instructions SQLite.
+ * Convertit le dump MySQL de référence en instructions SQLite.
  */
 const convertMysqlDumpToSqliteStatements = (
   dump: string
@@ -265,9 +265,9 @@ const convertMysqlDumpToSqliteStatements = (
     .replace(/^\/\*![\s\S]*?\*\/;?$/gm, "")
     .trim();
 
-  // Le dump est separe entre schema et donnees afin de pouvoir :
+  // Le dump est separe entre schéma et données afin de pouvoir :
   // 1. initialiser une base vide avec ses seeds
-  // 2. mettre a jour une base existante sans reinserer les donnees.
+  // 2. mettre à jour une base existante sans reinserer les données.
   const primaryKeys = extractPrimaryKeys(sanitizedDump);
   const indexes = extractIndexes(sanitizedDump);
   const createStatements = [...sanitizedDump.matchAll(/CREATE TABLE[\s\S]*?ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;/g)]
@@ -424,7 +424,7 @@ const cleanupOldSqliteBackups = async (backupDirectory: string): Promise<number>
 };
 
 /**
- * Cree une sauvegarde zip quotidienne des bases SQLite locales.
+ * Crée une sauvegarde zip quotidienne des bases SQLite locales.
  */
 export const ensureDailySqliteBackup = async (): Promise<DailySqliteBackupResult> => {
   await ensureSqliteDirectory();
@@ -588,13 +588,13 @@ export const restoreSqliteBackupArchive = async (
 };
 
 /**
- * Construit les instructions completes d'initialisation d'une nouvelle base.
+ * Construit les instructions complètes d'initialisation d'une nouvelle base.
  */
 const buildFullInitializationStatements = (dump: string): string[] => {
   const { schemaStatements, seedStatements } = convertMysqlDumpToSqliteStatements(dump);
 
   return [
-    // On ouvre par PRAGMA OFF, puis schema, puis seeds, puis PRAGMA ON.
+    // On ouvre par PRAGMA OFF, puis schéma, puis seeds, puis PRAGMA ON.
     ...schemaStatements.slice(0, 1),
     ...schemaStatements.slice(1, -1),
     ...seedStatements,
@@ -603,7 +603,7 @@ const buildFullInitializationStatements = (dump: string): string[] => {
 };
 
 /**
- * Execute une liste d'instructions SQLite dans une transaction.
+ * Exécute une liste d'instructions SQLite dans une transaction.
  */
 const executeStatements = (
   database: sqlite3.Database,
@@ -875,9 +875,9 @@ const repairBrokenGalerieTables = async (database: sqlite3.Database): Promise<vo
   }
 };
 
-// Le dump d'origine ne declarait pas idMaladie comme cle primaire/auto-increment
-// (contrairement a deces/mariage) : les bases SQLite deja creees avant ce correctif
-// ont donc une table `maladie` qui rejette tout INSERT (idMaladie NOT NULL sans defaut).
+// Le dump d'origine ne declarait pas idMaladie comme clé primaire/auto-increment
+// (contrairement a décès/mariage) : les bases SQLite déjà créées avant ce correctif
+// ont donc une table `maladie` qui rejette tout INSERT (idMaladie NOT NULL sans défaut).
 const repairBrokenMaladieTable = async (database: sqlite3.Database): Promise<void> => {
   const maladieBroken = await hasBrokenAutoIncrementPrimaryKey(database, "maladie", "idMaladie");
   if (!maladieBroken) {
@@ -923,7 +923,7 @@ const repairBrokenMaladieTable = async (database: sqlite3.Database): Promise<voi
 };
 
 /**
- * Ajoute les tables et indexes manquants sur une base SQLite deja existante.
+ * Ajoute les tables et indexes manquants sur une base SQLite déjà existante.
  */
 const ensureSqliteSchemaUpdated = async (databasePath: string): Promise<void> => {
   const dump = await fs.promises.readFile(TEMPLATE_PATH, "utf-8");
@@ -931,8 +931,8 @@ const ensureSqliteSchemaUpdated = async (databasePath: string): Promise<void> =>
   const database = openDatabase(databasePath);
 
   try {
-    // Ici on n'execute pas les INSERT du dump : on veut seulement
-    // completer les tables et indexes manquants sans dupliquer les donnees.
+    // Ici on n'exécute pas les INSERT du dump : on veut seulement
+    // compléter les tables et indexes manquants sans dupliquer les données.
     await executeStatements(database, schemaStatements);
     await ensureMembreAndDecesColumns(database);
     await ensureMembreInscriptionDemandeTable(database);
@@ -956,7 +956,7 @@ const ensureSqliteSchemaUpdated = async (databasePath: string): Promise<void> =>
 };
 
 /**
- * Cree le dossier de travail SQLite s'il n'existe pas.
+ * Crée le dossier de travail SQLite s'il n'existe pas.
  */
 const ensureSqliteDirectory = async (): Promise<void> => {
   await fs.promises.mkdir(DEFAULT_SQLITE_DIR, { recursive: true });
@@ -1020,19 +1020,19 @@ export const getActiveSqliteDatabasePath = async (): Promise<string> => {
   await ensureSqliteDirectory();
 
   if (process.env.SQLITE_DB_PATH) {
-    // Priorite maximale a une base forcee explicitement par variable d'environnement.
+    // Priorité maximale à une base forcee explicitement par variable d'environnement.
     return process.env.SQLITE_DB_PATH;
   }
 
   const memorizedDatabasePath = await readActiveSqliteDatabasePath();
   if (memorizedDatabasePath && !isDefaultSqliteDatabasePath(memorizedDatabasePath)) {
-    // Sinon on relit la derniere base active memorisee par le serveur.
+    // Sinon on relit la dernière base active mémorisée par le serveur.
     return memorizedDatabasePath;
   }
 
   const preferredCommunityDatabasePath = await getPreferredCommunityDatabasePath();
   if (preferredCommunityDatabasePath) {
-    // Si une base d'eglise existe deja, elle doit prendre le dessus sur la base locale generique.
+    // Si une base d'église existe déjà, elle doit prendre le dessus sur la base locale générique.
     await setActiveSqliteDatabasePath(preferredCommunityDatabasePath);
     return preferredCommunityDatabasePath;
   }
@@ -1042,7 +1042,7 @@ export const getActiveSqliteDatabasePath = async (): Promise<string> => {
   }
 
   if (fs.existsSync(DEFAULT_SQLITE_FILE)) {
-    // Si aucune base active n'est memorisee, on retombe sur la base locale par defaut.
+    // Si aucune base active n'est mémorisée, on retombe sur la base locale par défaut.
     return DEFAULT_SQLITE_FILE;
   }
 
@@ -1051,7 +1051,7 @@ export const getActiveSqliteDatabasePath = async (): Promise<string> => {
     .sort();
 
   if (databaseFiles.length > 0) {
-    // Dernier filet de securite : prendre la premiere base trouvee dans le dossier.
+    // Dernier filet de sécurité : prendre la première base trouvée dans le dossier.
     return path.join(DEFAULT_SQLITE_DIR, databaseFiles[0]);
   }
 
@@ -1059,7 +1059,7 @@ export const getActiveSqliteDatabasePath = async (): Promise<string> => {
 };
 
 /**
- * Execute une instruction sur une base SQLite puis retourne un resultat proche de MySQL.
+ * Exécute une instruction sur une base SQLite puis retourne un résultat proche de MySQL.
  */
 const ensureSqliteDatabaseReady = async (databasePath: string): Promise<void> => {
   if (preparedSqliteDatabases.has(databasePath)) {
@@ -1108,7 +1108,7 @@ export const executeSqlite = async (
 };
 
 /**
- * Execute une requete SELECT sur la base SQLite active.
+ * Exécute une requête SELECT sur la base SQLite active.
  */
 export const selectSqlite = async (
   sql: string,
@@ -1128,7 +1128,7 @@ export const selectSqlite = async (
       }
 
       // Les lectures retournent directement le tableau de lignes attendu
-      // par la couche metier existante.
+      // par la couche métier existante.
       database.close((closeError) => {
         if (closeError) {
           reject(closeError);
@@ -1142,13 +1142,13 @@ export const selectSqlite = async (
 };
 
 /**
- * Cree une base SQLite a partir du dump de reference si le fichier n'existe pas.
+ * Crée une base SQLite à partir du dump de référence si le fichier n'existe pas.
  */
 export const initializeSqliteDatabase = async (databasePath: string): Promise<void> => {
   await ensureSqliteDirectory();
 
   if (fs.existsSync(databasePath)) {
-    // Si la base existe deja, on la migre au schema courant au lieu de la recreer.
+    // Si la base existe déjà, on la migre au schéma courant au lieu de la recréer.
     await ensureSqliteSchemaUpdated(databasePath);
     await setActiveSqliteDatabasePath(databasePath);
     return;
@@ -1158,7 +1158,7 @@ export const initializeSqliteDatabase = async (databasePath: string): Promise<vo
   const statements = buildFullInitializationStatements(dump);
   const database = openDatabase(databasePath);
 
-  // Ici on initialise une base neuve avec le schema complet et les donnees de reference.
+  // Ici on initialise une base neuve avec le schéma complet et les données de référence.
   await executeStatements(database, statements);
 
   await new Promise<void>((resolve, reject) => {
@@ -1176,7 +1176,7 @@ export const initializeSqliteDatabase = async (databasePath: string): Promise<vo
 };
 
 /**
- * Met a jour le schema de toutes les bases SQLite deja presentes dans le dossier local.
+ * Met à jour le schéma de toutes les bases SQLite déjà presentes dans le dossier local.
  */
 export const ensureAllSqliteDatabasesSchemasUpdated = async (): Promise<string[]> => {
   await ensureSqliteDirectory();
@@ -1186,7 +1186,7 @@ export const ensureAllSqliteDatabasesSchemasUpdated = async (): Promise<string[]
     .map((fileName) => path.join(DEFAULT_SQLITE_DIR, fileName));
 
   for (const databasePath of databaseFiles) {
-    // Chaque base locale deja creee est remise a niveau avec le schema courant.
+    // Chaque base locale déjà créée est remise a niveau avec le schéma courant.
     await ensureSqliteSchemaUpdated(databasePath);
   }
 
@@ -1194,7 +1194,7 @@ export const ensureAllSqliteDatabasesSchemasUpdated = async (): Promise<string[]
 };
 
 /**
- * Prepare une base locale par defaut au demarrage en mode SQLite.
+ * Prépare une base locale par défaut au démarrage en mode SQLite.
  */
 export const ensureDefaultSqliteDatabase = async (): Promise<string> => {
   await ensureSqliteDirectory();
@@ -1218,7 +1218,7 @@ export const ensureDefaultSqliteDatabase = async (): Promise<string> => {
 };
 
 /**
- * Construit un chemin de base SQLite local a partir du nom de la communaute.
+ * Construit un chemin de base SQLite local à partir du nom de la communauté.
  */
 export const buildSqliteDatabasePath = (communityName: string, idUtilisateur?: number): string => {
   const baseName = sanitizeFileName(communityName || "ma-communaute") || "ma-communaute";
@@ -1253,12 +1253,12 @@ export const findSqliteDatabaseForLogin = async (
       );
 
       if (rows.length > 0) {
-        // Des qu'on trouve la bonne base, on la memorise comme base active.
+        // Des qu'on trouve la bonne base, on la mémorise comme base active.
         await setActiveSqliteDatabasePath(databasePath);
         return databasePath;
       }
     } catch (error) {
-      console.error(`Erreur lors de la verification SQLite sur ${databasePath}:`, error);
+      console.error(`Erreur lors de la vérification SQLite sur ${databasePath}:`, error);
     }
   }
   return null;

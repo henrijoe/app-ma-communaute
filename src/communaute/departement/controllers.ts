@@ -7,6 +7,8 @@ const ajouterDepartement = (req: Request, res: Response) => {
   services
     .ajouterDepartement(data)
     .then((result: any) => {
+      // Signale la création aux clients connectés (tableau de bord, listes ouvertes).
+      (req as any).io?.emit("ajouterDepartement", { idUtilisateur: data?.idUtilisateur, data: result });
       res.status(200).send({ status: 1, data: result });
     })
     .catch((error: any) => {
@@ -20,7 +22,7 @@ const ajouterDepartement = (req: Request, res: Response) => {
 
 
 /**
- * RÃ©cupÃ©rer une departement
+ * Récupérer une département
  * @returns 
  */
 const recupDepartement = (req: Request, res: Response) => {
@@ -51,9 +53,10 @@ const supprimerDepartement = (req: Request, res: Response) => {
       .supprimerDepartement(idDepartement, idUtilisateur)
       .then((result: any) => {
         if (result) {
+          (req as any).io?.emit("supprimerDepartement", { idUtilisateur, idDepartement, data: result });
           res.status(200).send({ status: 1, data: result })
         } else {
-          res.status(400).send({ status: 0, error: 'Departement non trouve' })
+          res.status(400).send({ status: 0, error: 'Département non trouvé' })
         }
       })
       .catch((error: any) => res.status(400).send({ status: 0, error }))
@@ -65,6 +68,7 @@ const modifierDepartement = (req: Request, res: Response) => {
     services
       .modifierDepartement(data)
       .then((result: any) => {
+        (req as any).io?.emit("modifierDepartement", { idUtilisateur: data?.idUtilisateur, data: result });
         res.status(200).send({ status: 1, data: result })
       })
       .catch((error: any) => res.status(400).send({ status: 0, error }))

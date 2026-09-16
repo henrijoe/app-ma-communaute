@@ -7,10 +7,12 @@ const ajouterCellule = (req: Request, res: Response) => {
   services
     .ajouterCellule(data)
     .then((result: any) => {
+      // Signale la création aux clients connectés (tableau de bord, listes ouvertes).
+      (req as any).io?.emit("ajouterCellule", { idUtilisateur: data?.idUtilisateur, data: result });
       res.status(200).send({ status: 1, data: result });
     })
     .catch((error: any) => {
-      if (error.message?.includes("Cette cellule existe deja.")) {
+      if (error.message?.includes("Cette cellule existe déjà.")) {
         res.status(400).send({ status: 0, error: error.message });
       } else {
         res.status(400).send({ status: 0, error });
@@ -34,9 +36,10 @@ const supprimerCellule = (req: Request, res: Response) => {
     .supprimerCellule(idCellule, idUtilisateur)
     .then((result: any) => {
       if (result) {
+        (req as any).io?.emit("supprimerCellule", { idUtilisateur, idCellule, data: result });
         res.status(200).send({ status: 1, data: result });
       } else {
-        res.status(400).send({ status: 0, errors: "Cellule non trouvee" });
+        res.status(400).send({ status: 0, errors: "Cellule non trouvée" });
       }
     })
     .catch((errors: any) => res.status(400).send({ status: 0, errors }));
@@ -48,6 +51,7 @@ const modifierCellule = (req: Request, res: Response) => {
   services
     .modifierCellule(data)
     .then((result: any) => {
+      (req as any).io?.emit("modifierCellule", { idUtilisateur: data?.idUtilisateur, data: result });
       res.status(200).send({ status: 1, data: result });
     })
     .catch((errors: any) => res.status(400).send({ status: 0, errors }));

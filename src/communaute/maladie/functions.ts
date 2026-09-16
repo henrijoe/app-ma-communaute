@@ -18,7 +18,7 @@ const ajouterMaladie = (data: IMaladie) => {
       const [result] = await _selectSql(sqlCheck, [data.nomMembreMaladie, data.dateMaladie]);
 
       if (result?.count > 0) {
-        return reject(new Error('Ce cas de maladie existe deja.'));
+        return reject(new Error('Ce cas de maladie existe déjà.'));
       }
 
       const sql = `INSERT INTO maladie(idMembre,nomMembreMaladie,typeMaladie,dateMaladie,lieuHospitalisation,observationMaladie,idUtilisateur) VALUES (?,?,?,?,?,?,?)`;
@@ -54,7 +54,7 @@ const recupMaladieByIdUtilsateur = (idUtilisateur: number) => new Promise(async 
   try {
     const sql = `SELECT * FROM maladie WHERE idUtilisateur = ?;`;
     const maladie = await _selectSql(sql, [idUtilisateur]);
-    if (!maladie.length) return reject({ name: 'Erreur_maladie', message: 'Aucune maladie trouvee' });
+    if (!maladie.length) return reject({ name: 'Erreur_maladie', message: 'Aucune maladie trouvée' });
     resolve(maladie);
   } catch (error) {
     reject(error);

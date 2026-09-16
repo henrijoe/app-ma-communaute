@@ -11,12 +11,12 @@ const ajouterGroupe = (data: IGroupe) => {
 
   return new Promise(async (resolve, reject) => {
     try {
-      // Le doublon doit etre verifie par utilisateur pour isoler les eglises.
+      // Le doublon doit être verifie par utilisateur pour isoler les églises.
       const sqlCheck = `SELECT COUNT(*) as count FROM groupe WHERE idUtilisateur = ? AND libelleGroupe = ?`;
       const [result] = await _selectSql(sqlCheck, [data.idUtilisateur, data.libelleGroupe]);
 
       if (result.count > 0) {
-        return reject(new Error("Ce groupe existe deja."));
+        return reject(new Error("Ce groupe existe déjà."));
       }
 
       const sql = `INSERT INTO groupe(libelleGroupe,descriptionGroupe,responsableGroupe,idUtilisateur) VALUES (?,?,?,?)`;
@@ -58,7 +58,7 @@ const recupGroupeByIdUtilsateur = (idUtilisateur: number) => {
       const sql = `SELECT * FROM groupe WHERE idUtilisateur= ?;`;
       const groupes = await _selectSql(sql, [idUtilisateur]);
       if (groupes.length === 0) {
-        return reject({ name: "Erreur_groupe", message: "Aucun groupe trouve" });
+        return reject({ name: "Erreur_groupe", message: "Aucun groupe trouvé" });
       }
       resolve(groupes);
     } catch (error) {
@@ -87,7 +87,7 @@ const supprimerGroupe = (idGroupe: number, idUtilisateur?: number): Promise<bool
 const modifierGroupe = (data: IGroupe): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
     try {
-      // Correction importante: l'ordre des parametres doit suivre l'ordre des placeholders SQL.
+      // Correction importante: l'ordre des paramètres doit suivre l'ordre des placeholders SQL.
       const hasUserScope = typeof data.idUtilisateur === "number";
       const sql = hasUserScope
         ? `UPDATE groupe SET libelleGroupe=?, descriptionGroupe=?, responsableGroupe=?, idUtilisateur=? WHERE idGroupe=? AND idUtilisateur=?`

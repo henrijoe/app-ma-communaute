@@ -2,7 +2,7 @@
 import { IEglise } from "./interfaces";
 
 /**
- * Permet d'ajouter une eglise.
+ * Permet d'ajouter une église.
  */
 const ajouterEglise = (data: IEglise) => {
   return new Promise(async (resolve, reject) => {
@@ -27,7 +27,7 @@ const recupEglise = () => {
   });
 };
 
-// Renvoie l'eglise de l'utilisateur connecte.
+// Renvoie l'église de l'utilisateur connecte.
 const recupEgliseByUtilisateur = (idUtilisateur: number) => {
   return new Promise(async (resolve, reject) => {
     try {

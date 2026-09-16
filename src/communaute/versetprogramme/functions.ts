@@ -1,9 +1,9 @@
 import { _executeSql, _selectSql } from '../../db';
 import { IVersetProgramme } from './interfaces';
 
-// Ajoute un nouveau verset programme pour une eglise, a une date precise.
-// Refuse si un verset existe deja pour cette meme date (on demande alors
-// de modifier celui-ci plutot que d'en creer un deuxieme au meme endroit).
+// Ajoute un nouveau verset programme pour une église, à une date précise.
+// Refuse si un verset existe déjà pour cette même date (on demande alors
+// de modifier celui-ci plutôt que d'en créer un deuxième au même endroit).
 const ajouterVersetProgramme = (data: Partial<IVersetProgramme>) => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -24,7 +24,7 @@ const ajouterVersetProgramme = (data: Partial<IVersetProgramme>) => {
         return;
       }
 
-      // Un seul verset autorise par jour et par eglise : on verifie avant d'inserer.
+      // Un seul verset autorise par jour et par église : on verifie avant d'insérer.
       const existant: any = await _selectSql(
         'SELECT idVersetProgramme FROM verset_programme WHERE idUtilisateur = ? AND dateAffichage = ? LIMIT 1',
         [idUtilisateur, dateAffichage]
@@ -36,7 +36,7 @@ const ajouterVersetProgramme = (data: Partial<IVersetProgramme>) => {
 
       const sql = 'INSERT INTO verset_programme(idUtilisateur, dateAffichage, reference, texte) VALUES (?,?,?,?)';
       const result: any = await _executeSql(sql, [idUtilisateur, dateAffichage, data.reference || '', texte]);
-      // On relit la ligne fraichement creee pour renvoyer un objet complet
+      // On relit la ligne fraîchement créée pour renvoyer un objet complet
       // (avec son idVersetProgramme et sa dateCreation) au front.
       const inserted: any = await _selectSql('SELECT * FROM verset_programme WHERE idVersetProgramme = ?', [result.insertId]);
       resolve(inserted[0]);
@@ -46,8 +46,8 @@ const ajouterVersetProgramme = (data: Partial<IVersetProgramme>) => {
   });
 };
 
-// Modifie un verset deja programme (date, reference ou texte).
-// Meme regle qu'a l'ajout : pas deux versets pour la meme date.
+// Modifie un verset déjà programme (date, référence ou texte).
+// Même règle qu'à l'ajout : pas deux versets pour la même date.
 const modifierVersetProgramme = (data: Partial<IVersetProgramme>) => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -70,7 +70,7 @@ const modifierVersetProgramme = (data: Partial<IVersetProgramme>) => {
       }
 
       // On exclut le verset qu'on est en train de modifier (idVersetProgramme <> ?)
-      // pour ne pas se bloquer soi-meme si la date n'a pas change.
+      // pour ne pas se bloquer soi-même si la date n'a pas change.
       const doublon: any = await _selectSql(
         'SELECT idVersetProgramme FROM verset_programme WHERE idUtilisateur = ? AND dateAffichage = ? AND idVersetProgramme <> ? LIMIT 1',
         [idUtilisateur, dateAffichage, idVersetProgramme]
@@ -92,8 +92,8 @@ const modifierVersetProgramme = (data: Partial<IVersetProgramme>) => {
   });
 };
 
-// Retire un verset programme. Scope par idUtilisateur pour qu'une eglise
-// ne puisse jamais supprimer le verset d'une autre eglise.
+// Retire un verset programme. Scope par idUtilisateur pour qu'une église
+// ne puisse jamais supprimer le verset d'une autre église.
 const supprimerVersetProgramme = (idVersetProgramme: number, idUtilisateur: number): Promise<boolean> => {
   return new Promise((resolve, reject) => {
     _executeSql('DELETE FROM verset_programme WHERE idVersetProgramme = ? AND idUtilisateur = ?', [idVersetProgramme, idUtilisateur])
@@ -102,8 +102,8 @@ const supprimerVersetProgramme = (idVersetProgramme: number, idUtilisateur: numb
   });
 };
 
-// Recupere tous les versets programmes d'une eglise, tries du plus ancien
-// au plus recent (utilise a la fois par l'ecran de gestion dans Parametres
+// Récupère tous les versets programmes d'une église, tries du plus ancien
+// au plus récent (utilise à la fois par l'écran de gestion dans Paramètres
 // et par le tableau de bord pour trouver le verset du jour).
 const recupVersetsProgrammeByUtilisateur = (idUtilisateur: number) => {
   return new Promise(async (resolve, reject) => {

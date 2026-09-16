@@ -1,7 +1,7 @@
 ﻿import { _executeSql, _selectSql } from "../../db";
 import { IEglise } from "./interfaces";
 
-// Ajoute une eglise pour un utilisateur donne.
+// Ajoute une église pour un utilisateur donne.
 const ajouterEglise = (data: IEglise) => {
   const values = [data.nomEglise, data.idComptabilite, data.idUtilisateur];
 
@@ -17,7 +17,7 @@ const ajouterEglise = (data: IEglise) => {
 };
 
 /**
- * Recupere toutes les eglises.
+ * Récupère toutes les églises.
  */
 const recupEglise = () => {
   return new Promise(async (resolve, reject) => {
@@ -32,7 +32,7 @@ const recupEglise = () => {
 };
 
 /**
- * Recupere une eglise par son identifiant.
+ * Récupère une église par son identifiant.
  */
 const recupEgliseById = (id: number) => {
   return new Promise(async (resolve, reject) => {
@@ -47,7 +47,7 @@ const recupEgliseById = (id: number) => {
 };
 
 /**
- * Recupere l'eglise rattachee a un utilisateur.
+ * Récupère l'église rattachée à un utilisateur.
  */
 const recupEgliseByUtilisateur = (idUtilisateur: number) => {
   return new Promise(async (resolve, reject) => {
@@ -61,7 +61,7 @@ const recupEgliseByUtilisateur = (idUtilisateur: number) => {
   });
 };
 
-// Supprime l'eglise. Quand idUtilisateur est fourni, on verrouille la suppression.
+// Supprime l'église. Quand idUtilisateur est fourni, on verrouille la suppression.
 const supprimerEglise = (idEglise: number, idUtilisateur?: number): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -79,7 +79,7 @@ const supprimerEglise = (idEglise: number, idUtilisateur?: number): Promise<bool
   });
 };
 
-// Modifie l'eglise de l'utilisateur cible sans toucher aux autres eglises.
+// Modifie l'église de l'utilisateur cible sans toucher aux autres églises.
 const modifierEglise = (data: IEglise): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
     try {

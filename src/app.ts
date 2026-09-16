@@ -32,7 +32,7 @@ const compression = require("compression");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 
-// creation du serveur
+// création du serveur
 const httpServer = require("http").createServer(app);
 /**
  * -------------------------
@@ -158,17 +158,17 @@ const runDailySqliteBackup = async (logSkipped = false) => {
   const backupResult = await sqliteDB.ensureDailySqliteBackup();
 
   if (backupResult.created) {
-    console.log(`[DB] Sauvegarde SQLite creee: ${backupResult.filePath}`);
-    console.log(`[DB] Bases sauvegardees: ${backupResult.databaseCount}`);
+    console.log(`[DB] Sauvegarde SQLite créée: ${backupResult.filePath}`);
+    console.log(`[DB] Bases sauvegardées: ${backupResult.databaseCount}`);
   } else if (logSkipped) {
     const reason = backupResult.reason === "already-exists"
-      ? "déjà presente pour aujourd'hui"
+      ? "déjà présente pour aujourd'hui"
       : "aucune base SQLite à sauvegarder";
     console.log(`[DB] Sauvegarde SQLite: ${reason}`);
   }
 
   if (backupResult.deletedBackups > 0) {
-    console.log(`[DB] Anciennes sauvegardes supprimees: ${backupResult.deletedBackups}`);
+    console.log(`[DB] Anciennes sauvegardes supprimées: ${backupResult.deletedBackups}`);
   }
 };
 
@@ -185,7 +185,7 @@ const startSqliteBackupScheduler = () => {
 };
 
 /**
- * Affiche le moteur de base de donnees actif et prepare SQLite si besoin.
+ * Affiche le moteur de base de données actif et prépare SQLite si besoin.
  */
 const logDatabaseStartup = async () => {
   const databaseMode = sqliteDB.getDatabaseMode();
@@ -219,17 +219,17 @@ const qrValue = {
 
 httpServer.once("error", (error: NodeJS.ErrnoException) => {
   if (error.code === "EADDRINUSE") {
-    console.error(`[Server] Le port ${PORT} est deja utilise.`);
-    console.error(`[Server] Arrete l'autre instance Node ou lance ce serveur avec un autre port.`);
+    console.error(`[Server] Le port ${PORT} est déjà utilisé.`);
+    console.error(`[Server] Arrête l'autre instance Node ou lance ce serveur avec un autre port.`);
     console.error(`[Server] Exemple PowerShell: $env:PORT=49301; npm run dev`);
     process.exit(1);
   }
 
-  console.error("[Server] Erreur lors du demarrage du serveur:", error);
+  console.error("[Server] Erreur lors du démarrage du serveur:", error);
   process.exit(1);
 });
 
-// Ajouter recemment pour voir les logs
+// Ajouter récemment pour voir les logs
 httpServer.listen(PORT, () => {
   try {
     console.log(welcomeMsg);

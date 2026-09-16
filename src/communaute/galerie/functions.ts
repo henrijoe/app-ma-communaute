@@ -81,7 +81,7 @@ const ajouterGalerie = async (data: IGalerieEvenement): Promise<IGalerieEvenemen
 
   const galerie = await getGalerieById(idGalerie);
   if (!galerie) {
-    throw new Error("Galerie introuvable apres creation.");
+    throw new Error("Galerie introuvable après création.");
   }
 
   return galerie;
@@ -134,7 +134,7 @@ const ajouterImagesGalerie = async (payload: {
 }): Promise<IGalerieImage[]> => {
   const galerie = await getGalerieById(payload.idGalerie);
   if (!galerie) {
-    throw new Error("Evenement galerie introuvable.");
+    throw new Error("Événement galerie introuvable.");
   }
 
   const dossierGalerie = galerie.dossierGalerie || buildEventFolderName(payload.idGalerie, galerie.titreGalerie, galerie.dateEvenement);
@@ -198,14 +198,14 @@ const modifierImageGalerie = async (payload: { idGalerieImage: number; legendeIm
   }
 
   if (typeof payload.idUtilisateur === "number" && Number(image.idUtilisateur) !== Number(payload.idUtilisateur)) {
-    throw new Error("Modification non autorisee pour cette image.");
+    throw new Error("Modification non autorisée pour cette image.");
   }
 
   await _executeSql(`UPDATE galerie_image SET legendeImage = ? WHERE idGalerieImage = ?`, [payload.legendeImage || "", payload.idGalerieImage]);
   const updated = await getGalerieImageById(payload.idGalerieImage);
 
   if (!updated) {
-    throw new Error("Image galerie introuvable apres modification.");
+    throw new Error("Image galerie introuvable après modification.");
   }
 
   return updated;
@@ -214,16 +214,16 @@ const modifierImageGalerie = async (payload: { idGalerieImage: number; legendeIm
 const definirCouvertureGalerie = async (payload: { idGalerie: number; idGalerieImage: number; idUtilisateur?: number }): Promise<boolean> => {
   const galerie = await getGalerieById(payload.idGalerie);
   if (!galerie) {
-    throw new Error("Evenement galerie introuvable.");
+    throw new Error("Événement galerie introuvable.");
   }
 
   if (typeof payload.idUtilisateur === "number" && Number(galerie.idUtilisateur) !== Number(payload.idUtilisateur)) {
-    throw new Error("Modification non autorisee pour cette galerie.");
+    throw new Error("Modification non autorisée pour cette galerie.");
   }
 
   const image = await getGalerieImageById(payload.idGalerieImage);
   if (!image || Number(image.idGalerie) !== Number(payload.idGalerie)) {
-    throw new Error("Image de couverture introuvable pour cet evenement.");
+    throw new Error("Image de couverture introuvable pour cet événement.");
   }
 
   await _executeSql(`UPDATE galerie SET couvertureGalerie = ? WHERE idGalerie = ?`, [image.cheminImage, payload.idGalerie]);
@@ -238,11 +238,11 @@ const supprimerImageGalerie = async (idGalerieImage: number, idUtilisateur?: num
 
   const galerie = await getGalerieById(image.idGalerie);
   if (!galerie) {
-    throw new Error("Evenement galerie introuvable.");
+    throw new Error("Événement galerie introuvable.");
   }
 
   if (typeof idUtilisateur === "number" && Number(galerie.idUtilisateur) !== Number(idUtilisateur)) {
-    throw new Error("Suppression non autorisee pour cette image.");
+    throw new Error("Suppression non autorisée pour cette image.");
   }
 
   const absolutePath = ensureSafeGalleryPath(path.join(getGalerieMediaRootDirectory(), image.cheminImage));
@@ -264,11 +264,11 @@ const supprimerImageGalerie = async (idGalerieImage: number, idUtilisateur?: num
 const buildGalerieZip = async (idGalerie: number, idUtilisateur?: number): Promise<{ filePath: string; fileName: string }> => {
   const galerie = await getGalerieById(idGalerie);
   if (!galerie) {
-    throw new Error("Evenement galerie introuvable.");
+    throw new Error("Événement galerie introuvable.");
   }
 
   if (typeof idUtilisateur === "number" && Number(galerie.idUtilisateur) !== Number(idUtilisateur)) {
-    throw new Error("Telechargement non autorise pour cet evenement.");
+    throw new Error("Téléchargement non autorisé pour cet événement.");
   }
 
   const eventDir = ensureSafeGalleryPath(getGalerieEventDirectory(galerie.dossierGalerie));
@@ -292,7 +292,7 @@ const supprimerGalerie = async (idGalerie: number, idUtilisateur?: number): Prom
   }
 
   if (typeof idUtilisateur === "number" && Number(galerie.idUtilisateur) !== Number(idUtilisateur)) {
-    throw new Error("Suppression non autorisee pour cet evenement.");
+    throw new Error("Suppression non autorisée pour cet événement.");
   }
 
   const eventDir = ensureSafeGalleryPath(getGalerieEventDirectory(galerie.dossierGalerie));

@@ -4,7 +4,7 @@ import fs from "fs";
 import services from "./services";
 import { errorMsg } from "../functions";
 
-// Retourne l'etat courant de la licence desktop pour l'utilisateur fourni.
+// Retourne l'état courant de la licence desktop pour l'utilisateur fourni.
 const getDesktopLicenseStatus = async (req: Request, res: Response) => {
   try {
     const nomUtilisateur = String(req.query.nomUtilisateur || "");
@@ -15,7 +15,7 @@ const getDesktopLicenseStatus = async (req: Request, res: Response) => {
   }
 };
 
-// Debloque ou renouvelle l'application desktop a partir d'un compte superadmin.
+// Debloque ou renouvelle l'application desktop à partir d'un compte superadmin.
 const unlockDesktopLicense = async (req: Request, res: Response) => {
   try {
     const result = await services.unlockDesktopLicense(req.body);
@@ -25,7 +25,7 @@ const unlockDesktopLicense = async (req: Request, res: Response) => {
   }
 };
 
-// Rattache la licence locale a l'ordinateur courant.
+// Rattache la licence locale à l'ordinateur courant.
 const rebindDesktopLicenseMachine = async (req: Request, res: Response) => {
   try {
     const result = await services.rebindDesktopLicenseMachine(req.body);
@@ -35,7 +35,7 @@ const rebindDesktopLicenseMachine = async (req: Request, res: Response) => {
   }
 };
 
-// Debloque l'application desktop avec un code offline a usage unique.
+// Debloque l'application desktop avec un code offline à usage unique.
 const unlockDesktopLicenseWithCode = async (req: Request, res: Response) => {
   try {
     const result = await services.unlockDesktopLicenseWithCode(req.body);
@@ -45,7 +45,7 @@ const unlockDesktopLicenseWithCode = async (req: Request, res: Response) => {
   }
 };
 
-// Exporte une seule fois le pack initial de codes genere a la creation de la licence.
+// Exporte une seule fois le pack initial de codes génère à la création de la licence.
 const exportPendingDesktopUnlockCodes = async (req: Request, res: Response) => {
   try {
     const result = await services.exportPendingDesktopUnlockCodes(req.body);
@@ -55,7 +55,7 @@ const exportPendingDesktopUnlockCodes = async (req: Request, res: Response) => {
   }
 };
 
-// Genere un nouveau pack de codes et remplace les codes non utilises.
+// Génère un nouveau pack de codes et remplace les codes non utilisés.
 const generateDesktopUnlockCodes = async (req: Request, res: Response) => {
   try {
     const result = await services.generateDesktopUnlockCodes(req.body);
@@ -71,7 +71,7 @@ const restoreSqliteBackup = async (req: Request, res: Response) => {
 
   try {
     if (!uploadedFile?.path) {
-      throw new Error("Veuillez selectionner un fichier de sauvegarde .zip.");
+      throw new Error("Veuillez sélectionner un fichier de sauvegarde .zip.");
     }
 
     const result = await services.restoreSqliteBackup({
@@ -90,7 +90,7 @@ const restoreSqliteBackup = async (req: Request, res: Response) => {
   }
 };
 
-// Retourne les informations reseau du serveur pour construire l'URL LAN du navigateur.
+// Retourne les informations réseau du serveur pour construire l'URL LAN du navigateur.
 const getServerNetworkInfo = (req: Request, res: Response) => {
   try {
     const result = services.getServerNetworkInfo();

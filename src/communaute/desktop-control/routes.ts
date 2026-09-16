@@ -22,7 +22,7 @@ const sqliteRestoreUpload = multer({
     const isZip = path.extname(file.originalname || "").toLowerCase() === ".zip";
 
     if (!isZip) {
-      callback(new Error("Veuillez selectionner une sauvegarde au format .zip."));
+      callback(new Error("Veuillez sélectionner une sauvegarde au format .zip."));
       return;
     }
 

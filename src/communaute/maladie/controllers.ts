@@ -9,7 +9,7 @@ const ajouterMaladie = (req: Request, res: Response) => {
       res.status(200).send({ status: 1, data: result });
     })
     .catch((error: any) => {
-      if (error?.message?.includes('Ce cas de maladie existe deja.')) {
+      if (error?.message?.includes('Ce cas de maladie existe déjà.')) {
         res.status(400).send({ status: 0, error: error.message });
       } else {
         res.status(400).send({ status: 0, error });
@@ -34,7 +34,7 @@ const supprimerMaladie = (req: Request, res: Response) => {
       if (result) {
         res.status(200).send({ status: 1, data: result });
       } else {
-        res.status(400).send({ status: 0, errors: 'Maladie non trouvee' });
+        res.status(400).send({ status: 0, errors: 'Maladie non trouvée' });
       }
     })
     .catch((errors: any) => res.status(400).send({ status: 0, errors }));
