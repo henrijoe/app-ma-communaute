@@ -59,7 +59,7 @@ const recupNouvelleAme = () => {
         try {
             const sql = `SELECT * FROM nouvelleame ORDER BY idNouvelleAme ASC ;`
             const nouvelleAme = await _selectSql(sql, []);
-            if (!nouvelleAme.length) return reject({ name: "Erreur_ame", message: "Aucune âme trouvée pour les paramètres fournis" })
+            // Une liste vide est un résultat valide, pas une erreur.
             resolve(nouvelleAme)
         } catch (error) {
             reject(error);
@@ -100,6 +100,10 @@ const modifierNouvelleAme = (data: INouvelleAme): Promise<boolean> => {
         lieuHabitationNouvelleAme=?,fonctionNouvelleAme=?,contactNouvelleAme=?,sexeNouvelleAme=?,emailNouvelleAme=?,
         idEglise=?,idCellule=?,idDepartement=?,idResponsabilite=?,idDomaineActivite=?,idUtilisateur=?,idGroupe=? 
         WHERE idNouvelleAme=?`
+        // L'ordre suit exactement celui des "?" de la requête : les 15 colonnes du SET,
+        // puis l'identifiant du WHERE. Il était décalé (idNouvelleAme inséré en 12e
+        // position), ce qui écrivait idGroupe dans idResponsabilite et filtrait la mise
+        // à jour sur le mauvais identifiant.
         await _executeSql(sql, [
           data.nomNouvelleAme,
           data.prenomNouvelleAme,
@@ -109,14 +113,14 @@ const modifierNouvelleAme = (data: INouvelleAme): Promise<boolean> => {
           data.contactNouvelleAme,
           data.sexeNouvelleAme,
           data.emailNouvelleAme,
-          data.idEglise,  
+          data.idEglise,
           data.idCellule,
           data.idDepartement,
-          data.idNouvelleAme,    
           data.idResponsabilite,
-          data.idDomaineActivite,    
-          data.idUtilisateur,    
-          data.idGroupe,    
+          data.idDomaineActivite,
+          data.idUtilisateur,
+          data.idGroupe,
+          data.idNouvelleAme,
           ])
         resolve(true)
       } catch (error) {

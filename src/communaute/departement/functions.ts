@@ -63,9 +63,8 @@ const recupDepartementByIdUtilsateur = (idUtilisateur: number) => {
     try {
       const sql = `SELECT * FROM departement WHERE idUtilisateur= ?;`;
       const departements = await _selectSql(sql, [idUtilisateur]);
-      if (!departements.length) {
-        return reject({ name: "Erreur_departement", message: "Aucun département trouvé" });
-      }
+      // Une liste vide est un résultat valide, pas une erreur : une église qui n'a
+      // pas encore créé de département doit voir un écran vide, pas une alerte.
       resolve(departements);
     } catch (error) {
       reject(error);

@@ -1,8 +1,15 @@
 import express, { NextFunction, Request, Response } from "express";
 import { SERVER_NAME } from "./helpers/constants";
 import communauteRouter from "./communaute/routes";
+import authentification from "./communaute/authentification";
 import mysqlDB from "./db/mysqlDB";
 import sqliteDB from "./db/sqliteDB";
+import { _executeSql } from "./db";
+import {
+  SHARED_TABLES,
+  buildSharedColumnStatements,
+  buildSharedCreateStatements,
+} from "./db/schema";
 const qrcode = require('qrcode-terminal');
 const path = require('path');
 const dotenv = require('dotenv')
@@ -43,8 +50,15 @@ const sqliteRootDir = sqliteDB.getSqliteDirectory();
 const memberPhotosDir = path.join(sqliteRootDir, 'photo-membre');
 const galerieMediaDir = path.join(sqliteRootDir, 'galerie-evenements');
 const churchLogosDir = path.join(sqliteRootDir, 'logo-eglise');
+// Photos des enfants et images des activités de l'école du dimanche.
+const ecodimMediasDir = path.join(sqliteRootDir, 'ecodim-medias');
 
 // =================================== MIDDLEWARES =========================================================
+
+// Le webhook SasPay doit être monté AVANT les parseurs JSON : sa signature HMAC se
+// calcule sur les octets reçus. Une fois le corps transformé en objet puis resérialisé,
+// le moindre écart de formatage invalide la signature.
+app.use('/communaute/abonnement/webhook', express.raw({ type: '*/*', limit: '1mb' }));
 
 app.use(express.urlencoded({ limit: '100mb', extended: true, }));
 app.use(express.json({ limit: '100mb' }));
@@ -54,6 +68,7 @@ app.use(bodyParser.json());
 app.use('/photos', express.static(memberPhotosDir));
 app.use('/galerie-media', express.static(galerieMediaDir));
 app.use('/church-logos', express.static(churchLogosDir));
+app.use('/ecodim-medias', express.static(ecodimMediasDir));
 
 // ===================================Socket.io configuration =======================================
 const options = {
@@ -94,7 +109,9 @@ app.get("/test", function (_: any, res: any) {
   });
 });
 
-app.use("/communaute", communauteRouter);
+// Toute l'API est derrière le contrôle du jeton, sauf les routes explicitement
+// publiques listées dans le middleware (connexion, inscription, QR code...).
+app.use("/communaute", authentification, communauteRouter);
 
 app.get("/db-test", (req, res) => {
   if (sqliteDB.isSqliteMode()) {
@@ -185,6 +202,26 @@ const startSqliteBackupScheduler = () => {
 };
 
 /**
+ * Crée côté MySQL les tables décrites dans db/schema.ts, puis complète les colonnes
+ * manquantes. Les erreurs "existe déjà" sont le cas normal et sont ignorées.
+ */
+const ensureSharedSchemaForMysql = async (): Promise<number> => {
+  for (const statement of buildSharedCreateStatements("mysql")) {
+    await _executeSql(statement, []);
+  }
+
+  for (const statement of buildSharedColumnStatements("mysql")) {
+    try {
+      await _executeSql(statement, []);
+    } catch (_error) {
+      // colonne déjà en place
+    }
+  }
+
+  return SHARED_TABLES.length;
+};
+
+/**
  * Affiche le moteur de base de données actif et prépare SQLite si besoin.
  */
 const logDatabaseStartup = async () => {
@@ -206,6 +243,12 @@ const logDatabaseStartup = async () => {
   console.log(
     `[DB] Cible MySQL: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`
   );
+
+  // Le dump MySQL ne contient ni agenda, ni famille_jeunesse, ni nouvelleame : sans
+  // cette étape, ces trois modules répondraient "table inconnue" en ligne alors qu'ils
+  // fonctionnent en local. Voir db/schema.ts.
+  const createdTables = await ensureSharedSchemaForMysql();
+  console.log(`[DB] Tables partagées vérifiées: ${createdTables}`);
 };
 
 // httpServer.listen(PORT, () => {

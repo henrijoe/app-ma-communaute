@@ -91,6 +91,14 @@ type DesktopUnlockCodeExport = {
 };
 
 const DEFAULT_DESKTOP_TRIAL_DAYS = Number(process.env.DESKTOP_TRIAL_DAYS || 15);
+
+// Le verrou de licence protège une installation posée chez un client : il n'a aucun
+// sens sur un serveur partagé, où l'empreinte machine change au moindre redimensionnement
+// et où l'expiration bloquerait tous les comptes d'un coup.
+// DESKTOP_LICENSE_ENFORCED=false le neutralise pour ce déploiement-là uniquement.
+// Toute autre valeur (et surtout l'absence de variable) conserve le comportement actuel.
+const isDesktopLicenseEnforced = (): boolean =>
+  String(process.env.DESKTOP_LICENSE_ENFORCED ?? "true").trim().toLowerCase() !== "false";
 const DEFAULT_DESKTOP_SUPERADMINS = (process.env.DESKTOP_SUPERADMINS || DESKTOP_SUPERADMIN_USERNAME)
   .split(",")
   .map((item) => item.trim().toLowerCase())
@@ -539,10 +547,13 @@ export const getDesktopLicenseStatus = async (
   const isMachineMismatch = !machineBindingStatus.isCurrentMachine;
   // On combine le blocage manuel et l'expiration pour produire l'état brut de blocage.
   const rawBlocked = config.manuallyBlocked || isExpired || isMachineMismatch;
+  // Sur un déploiement serveur (DESKTOP_LICENSE_ENFORCED=false), l'état reste calculé
+  // et visible dans les paramètres, mais il ne ferme plus l'accès à personne.
+  const isEnforced = isDesktopLicenseEnforced();
 
   return {
     // Un créateur de l'application reste autorise a entrer même si la licence est techniquement bloquée.
-    isBlocked: rawBlocked && !isSuperAdmin,
+    isBlocked: isEnforced && rawBlocked && !isSuperAdmin,
     isSuperAdmin,
     expiresAt: config.expiresAt,
     manuallyBlocked: config.manuallyBlocked,

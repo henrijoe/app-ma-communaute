@@ -54,7 +54,7 @@ const recupMaladieByIdUtilsateur = (idUtilisateur: number) => new Promise(async 
   try {
     const sql = `SELECT * FROM maladie WHERE idUtilisateur = ?;`;
     const maladie = await _selectSql(sql, [idUtilisateur]);
-    if (!maladie.length) return reject({ name: 'Erreur_maladie', message: 'Aucune maladie trouvée' });
+    // Une liste vide est un résultat valide, pas une erreur.
     resolve(maladie);
   } catch (error) {
     reject(error);

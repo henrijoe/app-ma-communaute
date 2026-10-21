@@ -10,8 +10,30 @@ import functions from './functions';
 import { ICreateCommunauteDatabasePayload, IUtilisateur } from './interfaces';
 import sqlite from './sqlite';
 import { isSmtpConfigured, sendSmtpMail } from '../../utils/smtpMailer';
+import { signerJeton } from '../../helpers/jetons';
+import abonnementServices from '../abonnement/services';
 
 const bcrypt = require('bcrypt');
+
+/**
+ * Jeton d'accès renvoyé au client après une connexion réussie.
+ * Le périmètre porté par le jeton fait foi côté API : c'est lui, et non plus
+ * l'identifiant présent dans l'URL, qui délimite les données accessibles.
+ */
+const construireJeton = (utilisateur: any): string => {
+  const idUtilisateur = Number(utilisateur?.idUtilisateur || 0);
+  const idParent = Number(utilisateur?.idUtilisateurParent || 0);
+
+  return signerJeton({
+    idUtilisateur,
+    // Un utilisateur secondaire travaille dans le périmètre de son compte parent.
+    scope: idParent || idUtilisateur,
+    nomUtilisateur: String(utilisateur?.nomUtilisateur || ''),
+    role: String(utilisateur?.roleUtilisateur || 'admin'),
+    // Le superadmin fixe est le seul compte dont l'identifiant vaut 0.
+    superadmin: idUtilisateur === 0,
+  });
+};
 
 const ALL_MODULE_PERMISSIONS = JSON.stringify([
   'dashboard',
@@ -397,7 +419,7 @@ const login = (data: IUtilisateur) => {
           email: '',
         };
 
-        resolve(superAdminUser);
+        resolve({ ...superAdminUser, token: construireJeton(superAdminUser) });
         return;
       }
 
@@ -416,13 +438,26 @@ const login = (data: IUtilisateur) => {
       }
 
       const utilisateur: any = await functions.login(data);
+
+      // Sur le service en ligne (ABONNEMENT_REQUIS=true), c'est l'abonnement qui ouvre
+      // la porte, là où un poste local dépend de la licence desktop. Le contrôle se fait
+      // après l'identification, pour ne pas révéler l'existence d'un compte impayé.
+      const acces = await abonnementServices.accesBloque(
+        Number(utilisateur?.idUtilisateurParent || utilisateur?.idUtilisateur || 0)
+      );
+
+      if (acces.bloque) {
+        reject(new Error(acces.message));
+        return;
+      }
+
       const safeUtilisateur = sanitizeUtilisateurData({
         ...normalizeUtilisateurData(utilisateur),
         idUtilisateur: Number(utilisateur?.idUtilisateur || 0),
         idUtilisateurParent: utilisateur?.idUtilisateurParent ? Number(utilisateur.idUtilisateurParent) : null,
       });
 
-      resolve(safeUtilisateur);
+      resolve({ ...safeUtilisateur, token: construireJeton(safeUtilisateur) });
     } catch (error) {
       reject(error);
     }

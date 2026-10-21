@@ -4,6 +4,12 @@ import { IUtilisateur } from './interfaces';
 
 const bcrypt = require('bcrypt');
 
+// Coût bcrypt. Chaque palier double le temps de calcul : le facteur 20 utilisé
+// auparavant demandait environ 124 secondes par inscription sur un poste courant,
+// processeur saturé, et la requête n'aboutissait jamais côté client.
+// 10 est la valeur usuelle (~120 ms) et reste solide.
+const COUT_BCRYPT = Number(process.env.BCRYPT_COST || 10);
+
 const UTILISATEUR_OPTIONAL_TEXT_FIELDS = [
   'logoEglise',
   'nomEgliseCourt',
@@ -216,9 +222,13 @@ const ensureUtilisateurColumns = async (): Promise<void> => {
 const ajouterUtilisateur = (rawData: IUtilisateur) => {
   return new Promise(async (resolve, reject) => {
     const data = normalizeUtilisateurData(rawData);
-    const hashedconfirmPassword = await bcrypt.hash(data.confirmPassword, 20);
 
     try {
+      // Le hachage est à l'intérieur du try : placé avant, une erreur de bcrypt
+      // laissait cette promesse ni tenue ni rompue, et la requête restait suspendue
+      // indéfiniment au lieu de renvoyer une erreur.
+      const hashedconfirmPassword = await bcrypt.hash(data.confirmPassword, COUT_BCRYPT);
+
       await ensureUtilisateurColumns();
 
       const sql = `INSERT INTO utilisateur(

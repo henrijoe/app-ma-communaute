@@ -51,9 +51,7 @@ const recupNaissanceByIdUtilsateur = (idUtilisateur: number) => {
     try {
       const sql = `SELECT * FROM naissance WHERE idUtilisateur= ?;`;
       const naissance = await _selectSql(sql, [idUtilisateur]);
-      if (!naissance.length) {
-        return reject({ name: "Erreur_naissance", message: "Aucune naissance trouvée" });
-      }
+      // Une liste vide est un résultat valide, pas une erreur.
       resolve(naissance);
     } catch (error) {
       reject(error);

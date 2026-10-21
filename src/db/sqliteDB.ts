@@ -3,6 +3,8 @@ import os from "os";
 import path from "path";
 import sqlite3 from "sqlite3";
 
+import { buildSharedColumnStatements, buildSharedCreateStatements } from "./schema";
+
 const AdmZip = require("adm-zip");
 
 const WINDOWS_SQLITE_DIR = "C:\\base-communaute";
@@ -923,6 +925,26 @@ const repairBrokenMaladieTable = async (database: sqlite3.Database): Promise<voi
 };
 
 /**
+ * Applique le schéma partagé décrit dans db/schema.ts : les tables absentes du dump
+ * MySQL, définies une seule fois pour les deux moteurs.
+ */
+const ensureSharedSchemaTables = async (database: sqlite3.Database): Promise<void> => {
+  for (const statement of buildSharedCreateStatements("sqlite")) {
+    await execDatabase(database, statement);
+  }
+
+  // Une colonne déjà présente fait échouer l'ALTER : c'est le cas normal sur une base
+  // à jour, et ni SQLite ni MySQL 5.7 ne connaissent "ADD COLUMN IF NOT EXISTS".
+  for (const statement of buildSharedColumnStatements("sqlite")) {
+    try {
+      await execDatabase(database, statement);
+    } catch (_error) {
+      // colonne déjà en place
+    }
+  }
+};
+
+/**
  * Ajoute les tables et indexes manquants sur une base SQLite déjà existante.
  */
 const ensureSqliteSchemaUpdated = async (databasePath: string): Promise<void> => {
@@ -941,6 +963,7 @@ const ensureSqliteSchemaUpdated = async (databasePath: string): Promise<void> =>
     await ensureComptabiliteColumns(database);
     await repairBrokenGalerieTables(database);
     await repairBrokenMaladieTable(database);
+    await ensureSharedSchemaTables(database);
   } finally {
     await new Promise<void>((resolve, reject) => {
       database.close((closeError) => {
@@ -1160,6 +1183,8 @@ export const initializeSqliteDatabase = async (databasePath: string): Promise<vo
 
   // Ici on initialise une base neuve avec le schéma complet et les données de référence.
   await executeStatements(database, statements);
+  // Puis les tables que le dump ne contient pas (agenda, famille_jeunesse, nouvelleame).
+  await ensureSharedSchemaTables(database);
 
   await new Promise<void>((resolve, reject) => {
     database.close((closeError) => {

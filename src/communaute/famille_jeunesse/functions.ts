@@ -1,72 +1,35 @@
 import { _executeSql, _selectSql } from "../../db";
 import sqliteDB from "../../db/sqliteDB";
+import { SHARED_TABLES, buildAddColumnSql, buildCreateTableSql } from "../../db/schema";
 import { IFamilleJeunesse } from "./interfaces";
 
 const textValue = (value: unknown): string => String(value || "").trim();
 const numberValue = (value: unknown): number => Number(value || 0) || 0;
 
-const ensureColumn = async (columnName: string, sqliteDefinition: string, mysqlDefinition: string) => {
+const ensureColumn = async (alterStatement: string) => {
   try {
-    await _executeSql(
-      `ALTER TABLE famille_jeunesse ADD COLUMN ${columnName} ${
-        sqliteDB.isSqliteMode() ? sqliteDefinition : mysqlDefinition
-      }`,
-      []
-    );
+    await _executeSql(alterStatement, []);
   } catch (error) {
-    // La colonne existe deja sur les bases deja mises a jour.
+    // La colonne existe déjà sur les bases déjà mises à jour.
   }
 };
 
 const ensureFamilleJeunesseTable = async () => {
-  const createTableSql = sqliteDB.isSqliteMode()
-    ? `CREATE TABLE IF NOT EXISTS famille_jeunesse (
-      idFamilleJeunesse INTEGER PRIMARY KEY AUTOINCREMENT,
-      nomFamilleJeunesse TEXT DEFAULT '',
-      sloganFamille TEXT DEFAULT '',
-      conseillerFamille TEXT DEFAULT '',
-      nomAnimateur TEXT DEFAULT '',
-      nomViceAnimateur TEXT DEFAULT '',
-      nomSecretaire TEXT DEFAULT '',
-      nomSecretaireAdjoint TEXT DEFAULT '',
-      nomTresorier TEXT DEFAULT '',
-      nomTresorierAdjoint TEXT DEFAULT '',
-      nomSecretaireOrganisation1 TEXT DEFAULT '',
-      nomSecretaireOrganisation2 TEXT DEFAULT '',
-      nomSecretaireOrganisation3 TEXT DEFAULT '',
-      nomCommissaireAuCompte TEXT DEFAULT '',
-      nomCommissaireAuCompteAdjoint TEXT DEFAULT '',
-      nombreMembreTotal INTEGER DEFAULT 0,
-      nombreMembreActuel INTEGER DEFAULT 0,
-      remarque TEXT DEFAULT '',
-      idUtilisateur INTEGER NOT NULL
-    )`
-    : `CREATE TABLE IF NOT EXISTS famille_jeunesse (
-      idFamilleJeunesse INT AUTO_INCREMENT PRIMARY KEY,
-      nomFamilleJeunesse VARCHAR(255) DEFAULT '',
-      sloganFamille VARCHAR(255) DEFAULT '',
-      conseillerFamille VARCHAR(255) DEFAULT '',
-      nomAnimateur VARCHAR(255) DEFAULT '',
-      nomViceAnimateur VARCHAR(255) DEFAULT '',
-      nomSecretaire VARCHAR(255) DEFAULT '',
-      nomSecretaireAdjoint VARCHAR(255) DEFAULT '',
-      nomTresorier VARCHAR(255) DEFAULT '',
-      nomTresorierAdjoint VARCHAR(255) DEFAULT '',
-      nomSecretaireOrganisation1 VARCHAR(255) DEFAULT '',
-      nomSecretaireOrganisation2 VARCHAR(255) DEFAULT '',
-      nomSecretaireOrganisation3 VARCHAR(255) DEFAULT '',
-      nomCommissaireAuCompte VARCHAR(255) DEFAULT '',
-      nomCommissaireAuCompteAdjoint VARCHAR(255) DEFAULT '',
-      nombreMembreTotal INT DEFAULT 0,
-      nombreMembreActuel INT DEFAULT 0,
-      remarque TEXT,
-      idUtilisateur INT NOT NULL
-    )`;
+  // Le schéma n'est plus écrit ici : il vient de db/schema.ts, décrit une seule fois
+  // et traduit pour SQLite comme pour MySQL. Il est appliqué au démarrage du serveur ;
+  // on le rejoue à l'usage pour les bases ouvertes avant cette étape.
+  const dialect = sqliteDB.isSqliteMode() ? "sqlite" : "mysql";
+  const table = SHARED_TABLES.find((item) => item.name === "famille_jeunesse");
 
-  await _executeSql(createTableSql, []);
-  await ensureColumn("nomFamilleJeunesse", "TEXT DEFAULT ''", "VARCHAR(255) DEFAULT ''");
-  await ensureColumn("sloganFamille", "TEXT DEFAULT ''", "VARCHAR(255) DEFAULT ''");
-  await ensureColumn("conseillerFamille", "TEXT DEFAULT ''", "VARCHAR(255) DEFAULT ''");
+  if (!table) {
+    return;
+  }
+
+  await _executeSql(buildCreateTableSql(table, dialect), []);
+
+  for (const column of table.columns.filter((item) => item.type !== "pk")) {
+    await ensureColumn(buildAddColumnSql(table.name, column, dialect));
+  }
 };
 
 const getValues = (data: IFamilleJeunesse) => [

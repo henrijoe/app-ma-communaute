@@ -25,6 +25,8 @@ import agendaRouter from "./agenda/routes";
 import tunnelRouter from "./tunnel/routes";
 import versetProgrammeRouter from "./versetprogramme/routes";
 import programmeEgliseRouter from "./programmeeglise/routes";
+import abonnementRouter from "./abonnement/routes";
+import ecodimRouter from "./ecodim/routes";
 
 const communauteRouter: Router = express.Router();
 const getDataEgliseRouter: Router = express.Router();
@@ -56,5 +58,7 @@ communauteRouter.use(agendaRouter);
 communauteRouter.use(tunnelRouter);
 communauteRouter.use(versetProgrammeRouter);
 communauteRouter.use(programmeEgliseRouter);
+communauteRouter.use(abonnementRouter);
+communauteRouter.use(ecodimRouter);
 
 export default communauteRouter;
