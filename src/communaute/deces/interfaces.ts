@@ -1,12 +1,9 @@
-
-
-export interface IDeces {
-  idDeces: number|null;
+﻿export interface IDeces {
+  idDeces: number | null;
+  idMembre: number | null;
   nomMembreDeces: string;
-  dateDeces: string|null;
+  dateDeces: string | null;
   lieuDeces: string;
   causeDeces: string;
-  idUtilisateur: number|null;
+  idUtilisateur: number | null;
 }
-
-

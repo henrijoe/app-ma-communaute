@@ -21,7 +21,7 @@ const ajouterResponsabilite = (data: IResponsable) => {
 };
 
 /**
- * recupererer toute les responsabilites
+ * récupérer toute les responsabilités
  * @returns 
  */
 const recupResponsabilite = () => {
@@ -68,8 +68,8 @@ const modifierResponsabilite = (data: IResponsable): Promise<boolean> => {
         await _executeSql(sql, [
           data.libelleResponsabilite,
           data.descriptionResponsabilite,
-          data.idResponsabilite,    
-          data.idUtilisateur    
+          data.idUtilisateur,
+          data.idResponsabilite
             ])
         resolve(true)
       } catch (error) {

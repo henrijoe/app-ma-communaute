@@ -14,12 +14,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions_1 = __importDefault(require("./functions"));
 /**
- *
-Permet d'ajouter une naissance
- * @returns
+ * Permet d'ajouter une naissance.
  */
 const ajouterNaissance = (data) => {
-    console.log("🚀 ~ ajouterNaissance ~ data:", data);
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const idNaissance = yield functions_1.default.ajouterNaissance(Object.assign({}, data));
@@ -42,24 +39,22 @@ const recupNaissance = () => {
         }
     }));
 };
-// 
 const recupNaissanceByIdUtilsateur = (idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const membereByUtilisateur = yield functions_1.default.recupNaissanceByIdUtilsateur(idUtilisateur);
-            resolve(membereByUtilisateur);
+            const naissanceByUtilisateur = yield functions_1.default.recupNaissanceByIdUtilsateur(idUtilisateur);
+            resolve(naissanceByUtilisateur);
         }
         catch (error) {
-            console.log("🚀 ~ file: services.ts:830 ~ returnnewPromise ~ error:", error);
             reject(error);
         }
     }));
 };
-const supprimerNaissance = (idNaissance) => {
+const supprimerNaissance = (idNaissance, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            yield functions_1.default.supprimerNaissance(idNaissance);
-            resolve({ idNaissance: idNaissance });
+            yield functions_1.default.supprimerNaissance(idNaissance, idUtilisateur);
+            resolve({ idNaissance });
         }
         catch (error) {
             reject(error);
@@ -82,6 +77,6 @@ exports.default = {
     recupNaissance,
     supprimerNaissance,
     modifierNaissance,
-    recupNaissanceByIdUtilsateur
+    recupNaissanceByIdUtilsateur,
 };
 //# sourceMappingURL=services.js.map

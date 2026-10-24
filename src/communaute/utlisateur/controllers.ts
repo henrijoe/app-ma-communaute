@@ -1,117 +1,128 @@
-import { Request, Response, Errback } from "express";
-import services from "./services";
-import { errorMsg } from "../functions";
-const uuid = require("uuid")
-
+import { Request, Response } from 'express';
+import services from './services';
+import { errorMsg } from '../functions';
 
 const ajouterUtilisateur = (req: Request, res: Response) => {
-    const data = req.body
-    const io = (req as any).io;
-    services
-        .ajouterUtilisateur(data)
-        .then((result: any) => {
-          (req as any).io.emit("ajouterUtilisateur", result)
-            res.status(200).send({ status: 1, data: result });
-        })
-        .catch((error: any) => res.status(400).send({ status: 0, error }));
+  const data = req.body;
+  services
+    .ajouterUtilisateur(data)
+    .then((result: any) => {
+      (req as any).io.emit('ajouterUtilisateur', result);
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error }));
+};
+
+const creerBaseSqlite = (req: Request, res: Response) => {
+  const data = req.body;
+  services
+    .creerBaseSqlite(data)
+    .then((result: any) => {
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error }));
 };
 
 const recupUtilisateur = (req: Request, res: Response) => {
   services
-      .recupUtilisateur()
-      .then((result: any) => {
-          res.status(200).send({ status: 1, data: result });
-      })
-      .catch((error: any) => res.status(400).send({ status: 0, error }));
+    .recupUtilisateur()
+    .then((result: any) => {
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error }));
 };
 
+const recupUtilisateurByParentId = (req: Request, res: Response) => {
+  services
+    .recupUtilisateurByParentId(Number(req.params.idUtilisateurParent || 0))
+    .then((result: any) => {
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error }));
+};
 
 const supprimerUtilisateur = (req: Request, res: Response) => {
-    const { idUtilisateur } = req.body
-    services
-      .supprimerUtilisateur(idUtilisateur)
-      .then((result: any) => {
-        if (result) {
-          (req as any).io.emit("supprimerUtilisateur", result)
-          res.status(200).send({ status: 1, data: result })
-        } else {
-          res.status(400).send({ status: 0, errors: 'Utilisateur non trouvé' })
-        }
-      })
-      .catch((errors: any) => res.status(400).send({ status: 0, errors }))
-}
+  const { idUtilisateur } = req.body;
+  services
+    .supprimerUtilisateur(idUtilisateur)
+    .then((result: any) => {
+      if (result) {
+        (req as any).io.emit('supprimerUtilisateur', result);
+        res.status(200).send({ status: 1, data: result });
+      } else {
+        res.status(400).send({ status: 0, errors: 'Utilisateur non trouvé' });
+      }
+    })
+    .catch((errors: any) => res.status(400).send({ status: 0, errors }));
+};
 
 const modifierUtilisateur = (req: Request, res: Response) => {
-    const data = req.body
-    services
-      .modifierUtilisateur(data)
-      .then((result: any) => {
-        (req as any).io.emit("modifierUtilisateur",result)
-        res.status(200).send({ status: 1, data: result })
-      })
-      .catch((errors: any) => res.status(400).send({ status: 0, errors }))
+  const data = req.body;
+  services
+    .modifierUtilisateur(data)
+    .then((result: any) => {
+      const synchronizedResult = {
+        ...result,
+        __syncAt: Date.now(),
+      };
+
+      (req as any).io.emit('modifierUtilisateur', synchronizedResult);
+      res.status(200).send({ status: 1, data: synchronizedResult });
+    })
+    .catch((errors: any) => res.status(400).send({ status: 0, errors }));
+};
+
+const demanderResetPassword = async (req: Request, res: Response) => {
+  try {
+    const result = await services.requestPasswordReset(req.body);
+    res.status(200).send({ status: 1, data: result });
+  } catch (error) {
+    console.error(error);
+    res.status(400).send({ status: 0, error: errorMsg(error) });
   }
-
-
-  const connexionUtilisateur = async (req: Request, res: Response) => {
-    try {
-        // Récupérez les données du corps de la requête
-        const { nomUtilisateur, motDePasse } = req.body;
-
-        // Appelez la fonction connexionUtilisateur avec les données fournies
-        const utilisateur = await services.connexionUtilisateur(nomUtilisateur, motDePasse);
-        // console.log("🚀 ~ connexionUtilisateur ~ utilisateur:", utilisateur)
-
-        // Renvoyez la réponse avec le statut 200 et les données de l'utilisateur
-        res.status(200).send({ status: 1, data: utilisateur });
-    } catch (error) {
-        console.error(error);
-        res.status(400).send({ status: 0, error: errorMsg(error) });
-    }
 };
 
-  const login = async (req: Request, res: Response) => {
-    try {
-        // Récupérez les données du corps de la requête
-        const data = req.body;
-        // console.log("🚀 ~ login ~ data:", data)
-
-        // Appelez la fonction login avec les données fournies
-        const result = await services.login(data);
-        // console.log("🚀 ~ login ~ result:", result)
-
-        // Renvoyez la réponse avec le statut 200 et les données de l'utilisateur
-        res.status(200).send({ status: 1, data: result });
-    } catch (error) {
-        // Gérez les erreurs et renvoyez des messages d'erreur appropriés
-        console.error(error);
-        res.status(400).send({ status: 0, error: errorMsg(error) });
-    }
+const reinitialiserPassword = async (req: Request, res: Response) => {
+  try {
+    const result = await services.resetPassword(req.body);
+    res.status(200).send({ status: 1, data: result });
+  } catch (error) {
+    console.error(error);
+    res.status(400).send({ status: 0, error: errorMsg(error) });
+  }
 };
 
-/**
- * reinitilaiser le mot de passe d'un utilisateur
- * @param req 
- * @param res 
- */
-// export const reinitialiserLogin = (req: any, res: Response) => {
-//   const data = req.body
-//   services
-//       .modifierMotDePasse(data, "reinitialiser")
-//       .then((result: any) => {
-//           req.io.emit('utilisateur_modifie', result)
-//           res.status(200).send({ status: 1, data: result })
+const connexionUtilisateur = async (req: Request, res: Response) => {
+  try {
+    const { nomUtilisateur, motDePasse } = req.body;
+    const utilisateur = await services.connexionUtilisateur(nomUtilisateur, motDePasse);
+    res.status(200).send({ status: 1, data: utilisateur });
+  } catch (error) {
+    console.error(error);
+    res.status(400).send({ status: 0, error: errorMsg(error) });
+  }
+};
 
-//       })
-//       .catch((error: any) => res.status(400).send({ status: 0, error }));
-// };
-
+const login = async (req: Request, res: Response) => {
+  try {
+    const data = req.body;
+    const result = await services.login(data);
+    res.status(200).send({ status: 1, data: result });
+  } catch (error) {
+    console.error(error);
+    res.status(400).send({ status: 0, error: errorMsg(error) });
+  }
+};
 
 export default {
   ajouterUtilisateur,
-    recupUtilisateur,
-    supprimerUtilisateur,
-    modifierUtilisateur,
-    connexionUtilisateur,
-    login
-}
+  creerBaseSqlite,
+  recupUtilisateur,
+  recupUtilisateurByParentId,
+  supprimerUtilisateur,
+  modifierUtilisateur,
+  demanderResetPassword,
+  reinitialiserPassword,
+  connexionUtilisateur,
+  login,
+};

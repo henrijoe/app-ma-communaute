@@ -13,6 +13,8 @@ const db_1 = require("../../db");
 //   
 const ajouterMariage = (data) => {
     const values = [
+        data.idFrereMembre || null,
+        data.idSoeurMembre || null,
         data.nomFrereMariage,
         data.nomSoeurMariage,
         data.dateMariage,
@@ -32,7 +34,7 @@ const ajouterMariage = (data) => {
                 // Si les libellés existent déjà, rejeter avec un message approprié
                 return reject(new Error('Ce mariage existe déjà.'));
             }
-            const sql = `INSERT INTO mariage(nomFrereMariage,nomSoeurMariage,dateMariage,lieuMariage,culteMariage,temoin1Mariage,temoin2Mariage,lieuReception,contactMariage,idUtilisateur) VALUES (?,?,?,?,?,?,?,?,?,?)`;
+            const sql = `INSERT INTO mariage(idFrereMembre,idSoeurMembre,nomFrereMariage,nomSoeurMariage,dateMariage,lieuMariage,culteMariage,temoin1Mariage,temoin2Mariage,lieuReception,contactMariage,idUtilisateur) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
             const mariageData = yield (0, db_1._executeSql)(sql, [...values]);
             resolve(mariageData.insertId);
         }
@@ -42,7 +44,7 @@ const ajouterMariage = (data) => {
     }));
 };
 /**
- * recupererer toute les mariages
+ * récupérer toute les mariages
  * @returns
  */
 const recupMariage = () => {
@@ -75,8 +77,7 @@ const recupMariageByIdUtilsateur = (idUtilisateur) => {
         try {
             const sql = `SELECT * FROM mariage WHERE idUtilisateur= ?;`;
             const mariage = yield (0, db_1._selectSql)(sql, [idUtilisateur]);
-            if (!mariage.length)
-                return reject({ name: "Erreur_mariage", message: "Aucun mariage trouvé" });
+            // Une liste vide est un résultat valide, pas une erreur.
             resolve(mariage);
         }
         catch (error) {
@@ -99,8 +100,10 @@ const supprimerMariage = (idMariage) => {
 const modifierMariage = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const sql = `UPDATE mariage SET nomFrereMariage=?,nomSoeurMariage=?,dateMariage=?,lieuMariage=?,culteMariage=?,temoin1Mariage=?,temoin2Mariage=?,lieuReception=?,contactMariage=?,idUtilisateur=? WHERE idMariage=?`;
+            const sql = `UPDATE mariage SET idFrereMembre=?,idSoeurMembre=?,nomFrereMariage=?,nomSoeurMariage=?,dateMariage=?,lieuMariage=?,culteMariage=?,temoin1Mariage=?,temoin2Mariage=?,lieuReception=?,contactMariage=?,idUtilisateur=? WHERE idMariage=?`;
             yield (0, db_1._executeSql)(sql, [
+                data.idFrereMembre || null,
+                data.idSoeurMembre || null,
                 data.nomFrereMariage,
                 data.nomSoeurMariage,
                 data.dateMariage,

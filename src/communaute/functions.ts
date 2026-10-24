@@ -1,16 +1,13 @@
 import path from "path";
 import { _executeSql } from "../db";
 import { _selectSql } from "../db";
+import sqliteDB from "../db/sqliteDB";
 // import * as sharp from 'sharp';
 require('dotenv').config();
 
-
-
-
 export const isProd: boolean =process.env.NODE_ENV === 'production'
     ? true
-    : false;    
-
+    : false;
 
 export const msg= { name: "ERROR_OCCURED", message: "Une erreur est survenue." };
 
@@ -19,46 +16,104 @@ function hasOnlyProperties(obj, properties) {
     properties.every(prop => Object.keys(obj).includes(prop));
 }
 
-export const errorMsg=(response:any)=>{
-    const error={error:response}
-    if (error.hasOwnProperty("error") && hasOnlyProperties(error.error, ['name', 'message'])) return error.error;
-    return (isProd ? msg : error)
-}
+// Une erreur technique porte un code moteur (SQLITE_*, ER_*, ECONNREFUSED...) :
+// son message n'a aucun sens pour l'utilisateur et reste masqué en production.
+const isTechnicalError = (error: any): boolean =>
+  Boolean(error?.code) ||
+  /^(SQLITE_|ER_|ECONN|ENOENT|EADDR|EPERM|EACCES)/i.test(String(error?.message || ""));
+
+// Normalise toute erreur en { name, message } exploitable par le front.
+// Attention : les propriétés d'une instance Error ne sont pas énumérables, donc
+// `JSON.stringify(new Error("..."))` vaut "{}" ; sans cette normalisation le
+// client ne recevait aucun message et retombait sur le texte générique du code HTTP.
+export const errorMsg = (response: any) => {
+  if (response instanceof Error) {
+    if (isProd && isTechnicalError(response)) return msg;
+    return { name: response.name, message: response.message };
+  }
+
+  // Forme déjà normalisée par les couches métier : reject({ name, message }).
+  if (response && typeof response === "object" && hasOnlyProperties(response, ["name", "message"])) {
+    return response;
+  }
+
+  if (typeof response === "string" && response.trim()) {
+    return { name: "ERROR", message: response };
+  }
+
+  // Forme inattendue : on ne devine pas, on masque le détail en production.
+  return isProd ? msg : { error: response };
+};
 
 const fs = require("fs");
 // const sharp = require("sharp");
 const _ = require("lodash");
 
+const getMemberPhotosDirectory = (): string => {
+  const memberPhotosDir = path.join(sqliteDB.getSqliteDirectory(), 'photo-membre');
 
-
-// Old fonction
-// const getAvatarsPath = (id: number) => {
-//   const avatarsPath = path.join(__dirname, '..', '..', `/albums/avatars/${id}_avatar.jpg`);
-//   return avatarsPath;
-// }
-
-// functions.ts - version corrigée
- const getAvatarsPath = (fileNameOrId: string | number): string => {
-  let fileName: string;
-  
-  // Si c'est un nombre, on génère un nom de fichier basé sur l'ID
-  if (typeof fileNameOrId === 'number') {
-    fileName = `${fileNameOrId}_avatar.jpg`;
-  } else {
-    // Si c'est déjà une chaîne, on l'utilise directement
-    fileName = fileNameOrId;
+  if (!fs.existsSync(memberPhotosDir)) {
+    fs.mkdirSync(memberPhotosDir, { recursive: true });
   }
-  
-  const albumsDir = path.join(__dirname, '..', '..', 'albums');
-  
-  // Créer le dossier s'il n'existe pas
-  if (!fs.existsSync(albumsDir)) {
-    fs.mkdirSync(albumsDir, { recursive: true });
-  }
-  
-  return path.join(albumsDir, fileName);
+
+  return memberPhotosDir;
 };
 
+const getChurchLogosDirectory = (): string => {
+  const churchLogosDir = path.join(sqliteDB.getSqliteDirectory(), 'logo-eglise');
+
+  if (!fs.existsSync(churchLogosDir)) {
+    fs.mkdirSync(churchLogosDir, { recursive: true });
+  }
+
+  return churchLogosDir;
+};
+
+const getGalerieMediaRootDirectory = (): string => {
+  const galerieDir = path.join(sqliteDB.getSqliteDirectory(), 'galerie-evenements');
+
+  if (!fs.existsSync(galerieDir)) {
+    fs.mkdirSync(galerieDir, { recursive: true });
+  }
+
+  return galerieDir;
+};
+
+const sanitizeStorageName = (value: string): string => (value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[<>:"/\\|?*\x00-\x1f]/g, ' ')
+  .replace(/\s+/g, '-')
+  .replace(/-+/g, '-')
+  .replace(/^-|-$/g, '')
+  .toLowerCase();
+
+const getGalerieEventDirectory = (folderName: string): string => {
+  const safeFolderName = sanitizeStorageName(folderName) || `evenement-${Date.now()}`;
+  const galleryDir = path.join(getGalerieMediaRootDirectory(), safeFolderName);
+
+  if (!fs.existsSync(galleryDir)) {
+    fs.mkdirSync(galleryDir, { recursive: true });
+  }
+
+  return galleryDir;
+};
+
+const getAvatarsPath = (fileNameOrId: string | number): string => {
+  const fileName = typeof fileNameOrId === 'number'
+    ? `${fileNameOrId}_avatar.jpg`
+    : fileNameOrId;
+
+  return path.join(getMemberPhotosDirectory(), fileName);
+};
+
+const getChurchLogoPath = (fileNameOrId: string | number): string => {
+  const fileName = typeof fileNameOrId === 'number'
+    ? `eglise_${fileNameOrId}.jpg`
+    : fileNameOrId;
+
+  return path.join(getChurchLogosDirectory(), fileName);
+};
 
 // Fonction pour lire un fichier et retourner sa représentation en base64
 const getFileToBase64 = (filePath: string): Promise<string> => {
@@ -66,14 +121,10 @@ const getFileToBase64 = (filePath: string): Promise<string> => {
     try {
       const file = filePath;
       if (fs.existsSync(file)) {
-        // Lire le fichier sous forme de buffer
         const buffer = fs.readFileSync(file);
-        // Convertir le buffer en base64
         const avatar = buffer.toString('base64');
-        // Résoudre la promesse avec une URL de données base64
         resolve(`data:image/${path.extname(file).substring(1)};base64,${avatar}`);
       } else {
-        // Si le fichier n'existe pas, résoudre la promesse avec une chaîne vide
         resolve('');
       }
     } catch (error:any) {
@@ -90,8 +141,12 @@ const saveFileToBase64 = (filePath: string, fileFromBase64: string) => {
     try {
       const file = filePath;
       const buffer = Buffer.from(fileFromBase64, "base64");
+      const parentDir = path.dirname(file);
 
-      // Enregistrer le fichier sans conversion
+      if (!fs.existsSync(parentDir)) {
+        fs.mkdirSync(parentDir, { recursive: true });
+      }
+
       fs.writeFileSync(file, buffer);
 
       resolve(true);
@@ -102,10 +157,14 @@ const saveFileToBase64 = (filePath: string, fileFromBase64: string) => {
   });
 };
 
-
 export {
   getAvatarsPath,
+  getChurchLogoPath,
   getFileToBase64,
   saveFileToBase64,
+  getMemberPhotosDirectory,
+  getChurchLogosDirectory,
+  getGalerieMediaRootDirectory,
+  getGalerieEventDirectory,
+  sanitizeStorageName,
 };
-

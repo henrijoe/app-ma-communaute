@@ -8,7 +8,7 @@ const responsabiliteRouter: Router = express.Router();
 responsabiliteRouter.post("/insererresponsabilite",validator.ajouterResponsabiliteValidator(), controllers.ajouterResponsabilite);
 responsabiliteRouter.get("/listeresponsabilite", controllers.recupResponsabilite);
 responsabiliteRouter.post("/supprimerresponsabilite", controllers.supprimerResponsabilite);
-responsabiliteRouter.post("/modifierresponsabilite",validator.ajouterResponsabiliteValidator(), controllers.modifierResponsabilite);
+responsabiliteRouter.post("/modifierresponsabilite",validator.modifierResponsabiliteValidator(), controllers.modifierResponsabilite);
 
 
 export default responsabiliteRouter;

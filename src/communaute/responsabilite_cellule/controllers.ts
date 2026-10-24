@@ -15,7 +15,7 @@ const ajouterResponsabilite = (req: Request, res: Response) => {
 };
 
 /**
- * Récupérer une departement
+ * Récupérer une département
  * @returns 
  */
 const recupResponsabilite = (req: Request, res: Response) => {

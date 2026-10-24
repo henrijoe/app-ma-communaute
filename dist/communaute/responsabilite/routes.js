@@ -10,6 +10,6 @@ const responsabiliteRouter = express_1.default.Router();
 responsabiliteRouter.post("/insererresponsabilite", validator_1.default.ajouterResponsabiliteValidator(), controllers_1.default.ajouterResponsabilite);
 responsabiliteRouter.get("/listeresponsabilite", controllers_1.default.recupResponsabilite);
 responsabiliteRouter.post("/supprimerresponsabilite", controllers_1.default.supprimerResponsabilite);
-responsabiliteRouter.post("/modifierresponsabilite", validator_1.default.ajouterResponsabiliteValidator(), controllers_1.default.modifierResponsabilite);
+responsabiliteRouter.post("/modifierresponsabilite", validator_1.default.modifierResponsabiliteValidator(), controllers_1.default.modifierResponsabilite);
 exports.default = responsabiliteRouter;
 //# sourceMappingURL=routes.js.map

@@ -6,14 +6,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const services_1 = __importDefault(require("./services"));
 const ajouterDepartement = (req, res) => {
     const data = req.body;
-    const io = req.io;
     services_1.default
         .ajouterDepartement(data)
         .then((result) => {
+        var _a;
+        // Signale la création aux clients connectés (tableau de bord, listes ouvertes).
+        (_a = req.io) === null || _a === void 0 ? void 0 : _a.emit("ajouterDepartement", { idUtilisateur: data === null || data === void 0 ? void 0 : data.idUtilisateur, data: result });
         res.status(200).send({ status: 1, data: result });
     })
         .catch((error) => {
-        if (error.message.includes('Ce département existe déjà.')) {
+        var _a;
+        if ((_a = error === null || error === void 0 ? void 0 : error.message) === null || _a === void 0 ? void 0 : _a.includes('Ce département existe déjà.')) {
             res.status(400).send({ status: 0, error: error.message });
         }
         else {
@@ -22,7 +25,7 @@ const ajouterDepartement = (req, res) => {
     });
 };
 /**
- * Récupérer une departement
+ * Récupérer une département
  * @returns
  */
 const recupDepartement = (req, res) => {
@@ -43,28 +46,35 @@ const recupDepartementByIdUtilsateur = (req, res) => {
         .catch((error) => res.status(400).send({ status: 0, error }));
 };
 const supprimerDepartement = (req, res) => {
-    const { idDepartement } = req.body;
+    const { idDepartement, idUtilisateur } = req.body;
+    if (!idUtilisateur) {
+        return res.status(400).send({ status: 0, error: 'idUtilisateur requis' });
+    }
     services_1.default
-        .supprimerDepartement(idDepartement)
+        .supprimerDepartement(idDepartement, idUtilisateur)
         .then((result) => {
+        var _a;
         if (result) {
+            (_a = req.io) === null || _a === void 0 ? void 0 : _a.emit("supprimerDepartement", { idUtilisateur, idDepartement, data: result });
             res.status(200).send({ status: 1, data: result });
         }
         else {
-            res.status(400).send({ status: 0, errors: 'Departement non trouvé' });
+            res.status(400).send({ status: 0, error: 'Département non trouvé' });
         }
     })
-        .catch((errors) => res.status(400).send({ status: 0, errors }));
+        .catch((error) => res.status(400).send({ status: 0, error }));
 };
 const modifierDepartement = (req, res) => {
     const data = req.body;
-    // console.log("🚀 ~ modifierDepartement ~ data:", data)
+    // console.log("modifierDepartement data:", data)
     services_1.default
         .modifierDepartement(data)
         .then((result) => {
+        var _a;
+        (_a = req.io) === null || _a === void 0 ? void 0 : _a.emit("modifierDepartement", { idUtilisateur: data === null || data === void 0 ? void 0 : data.idUtilisateur, data: result });
         res.status(200).send({ status: 1, data: result });
     })
-        .catch((errors) => res.status(400).send({ status: 0, errors }));
+        .catch((error) => res.status(400).send({ status: 0, error }));
 };
 exports.default = {
     ajouterDepartement,

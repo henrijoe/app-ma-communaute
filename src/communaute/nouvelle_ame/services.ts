@@ -3,7 +3,7 @@ import {  INouvelleAme, } from "./interfaces";
 
 /**
  * 
-Permet d'ajouter une ame
+Permet d'ajouter une âme
  * @returns 
  */
 const ajouterNouvelleAme = (data: INouvelleAme) => {

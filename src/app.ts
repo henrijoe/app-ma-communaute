@@ -1,37 +1,74 @@
 import express, { NextFunction, Request, Response } from "express";
 import { SERVER_NAME } from "./helpers/constants";
 import communauteRouter from "./communaute/routes";
+import authentification from "./communaute/authentification";
 import mysqlDB from "./db/mysqlDB";
+import sqliteDB from "./db/sqliteDB";
+import { _executeSql } from "./db";
+import {
+  SHARED_TABLES,
+  buildSharedColumnStatements,
+  buildSharedCreateStatements,
+} from "./db/schema";
 const qrcode = require('qrcode-terminal');
 const path = require('path');
 const dotenv = require('dotenv')
 dotenv.config();
 
 const app = express();
-// const PORT = 49300;
-const PORT = process.env.PORT || 49300;
+const DEFAULT_PORT = 49300;
+const getConfiguredPort = () => {
+  const rawPort = process.env.PORT;
+
+  if (!rawPort) {
+    return DEFAULT_PORT;
+  }
+
+  const parsedPort = Number(rawPort);
+
+  if (!Number.isInteger(parsedPort) || parsedPort <= 0 || parsedPort > 65535) {
+    console.warn(`[Server] PORT invalide "${rawPort}". Utilisation du port ${DEFAULT_PORT}.`);
+    return DEFAULT_PORT;
+  }
+
+  return parsedPort;
+};
+const PORT = getConfiguredPort();
 const IP = require("ip").address();
 const compression = require("compression");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 
-// creation du serveur
+// création du serveur
 const httpServer = require("http").createServer(app);
 /**
  * -------------------------
  * chemin du dossier contenant les clients 
  */
 const htmlPath = path.join(__dirname, '..','views')
-const albumDir = path.join(__dirname, '..','albums');
+const sqliteRootDir = sqliteDB.getSqliteDirectory();
+const memberPhotosDir = path.join(sqliteRootDir, 'photo-membre');
+const galerieMediaDir = path.join(sqliteRootDir, 'galerie-evenements');
+const churchLogosDir = path.join(sqliteRootDir, 'logo-eglise');
+// Photos des enfants et images des activités de l'école du dimanche.
+const ecodimMediasDir = path.join(sqliteRootDir, 'ecodim-medias');
 
 // =================================== MIDDLEWARES =========================================================
+
+// Le webhook SasPay doit être monté AVANT les parseurs JSON : sa signature HMAC se
+// calcule sur les octets reçus. Une fois le corps transformé en objet puis resérialisé,
+// le moindre écart de formatage invalide la signature.
+app.use('/communaute/abonnement/webhook', express.raw({ type: '*/*', limit: '1mb' }));
 
 app.use(express.urlencoded({ limit: '100mb', extended: true, }));
 app.use(express.json({ limit: '100mb' }));
 app.use(cors({ credentials: true, optionsSuccessStatus: 200, origin: true }));
 app.use(compression());
 app.use(bodyParser.json());
-app.use('/photos', express.static(albumDir));
+app.use('/photos', express.static(memberPhotosDir));
+app.use('/galerie-media', express.static(galerieMediaDir));
+app.use('/church-logos', express.static(churchLogosDir));
+app.use('/ecodim-medias', express.static(ecodimMediasDir));
 
 // ===================================Socket.io configuration =======================================
 const options = {
@@ -72,9 +109,25 @@ app.get("/test", function (_: any, res: any) {
   });
 });
 
-app.use("/communaute", communauteRouter);
+// Toute l'API est derrière le contrôle du jeton, sauf les routes explicitement
+// publiques listées dans le middleware (connexion, inscription, QR code...).
+app.use("/communaute", authentification, communauteRouter);
 
 app.get("/db-test", (req, res) => {
+  if (sqliteDB.isSqliteMode()) {
+    sqliteDB.selectSqlite("SELECT 1 AS status")
+      .then(() => {
+        res.json({ status: "SQLite connecté" });
+      })
+      .catch((error) => {
+        res.status(500).json({
+          status: "ERREUR",
+          error: error.message,
+        });
+      });
+    return;
+  }
+
   mysqlDB.query("SELECT 1", (err) => {
     if (err) {
       return res.status(500).json({
@@ -82,12 +135,12 @@ app.get("/db-test", (req, res) => {
         error: err.message,
       });
     }
-    res.json({ status: "MySQL connecté 🎉" });
+    res.json({ status: "MySQL connecté" });
   });
 });
 
 
-// Middleware personnalisé qui définit un cookie
+// Middleware personnalisÃƒÆ’Ã‚Â© qui dÃƒÆ’Ã‚Â©finit un cookie
 const setAppCookie = (req, res, next) => {
   const serverUrl = `${req.protocol}://${req.get('host')}`
   res.cookie(
@@ -98,7 +151,7 @@ const setAppCookie = (req, res, next) => {
   next();
 };
 
-app.use(setAppCookie); // utilise le middleware personnalisé qui définit le cookie
+app.use(setAppCookie); // utilise le middleware personnalisé qui est  déjà ‚définit le cookie
 app.use('/', express.static(htmlPath));
 app.get("/*", function (req, res) {
   res.sendFile(`${htmlPath}/index.html`);
@@ -110,29 +163,129 @@ const welcomeMsg = `
 ${SERVER_NAME}
 Port: ${PORT}
 Ip: ${IP}
-Url: "http://localhost:49300"
+Url: "http://localhost:${PORT}"
 Start: ${new Date().toLocaleString("fr-FR")}
 ============================
 `;
+
+const SQLITE_BACKUP_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+let sqliteBackupCheckTimer: NodeJS.Timeout | null = null;
+
+const runDailySqliteBackup = async (logSkipped = false) => {
+  const backupResult = await sqliteDB.ensureDailySqliteBackup();
+
+  if (backupResult.created) {
+    console.log(`[DB] Sauvegarde SQLite créée: ${backupResult.filePath}`);
+    console.log(`[DB] Bases sauvegardées: ${backupResult.databaseCount}`);
+  } else if (logSkipped) {
+    const reason = backupResult.reason === "already-exists"
+      ? "déjà présente pour aujourd'hui"
+      : "aucune base SQLite à sauvegarder";
+    console.log(`[DB] Sauvegarde SQLite: ${reason}`);
+  }
+
+  if (backupResult.deletedBackups > 0) {
+    console.log(`[DB] Anciennes sauvegardes supprimées: ${backupResult.deletedBackups}`);
+  }
+};
+
+const startSqliteBackupScheduler = () => {
+  if (sqliteBackupCheckTimer) {
+    return;
+  }
+
+  sqliteBackupCheckTimer = setInterval(() => {
+    runDailySqliteBackup().catch((error) => {
+      console.error("[DB] Erreur lors de la sauvegarde SQLite automatique:", error);
+    });
+  }, SQLITE_BACKUP_CHECK_INTERVAL_MS);
+};
+
+/**
+ * Crée côté MySQL les tables décrites dans db/schema.ts, puis complète les colonnes
+ * manquantes. Les erreurs "existe déjà" sont le cas normal et sont ignorées.
+ */
+const ensureSharedSchemaForMysql = async (): Promise<number> => {
+  for (const statement of buildSharedCreateStatements("mysql")) {
+    await _executeSql(statement, []);
+  }
+
+  for (const statement of buildSharedColumnStatements("mysql")) {
+    try {
+      await _executeSql(statement, []);
+    } catch (_error) {
+      // colonne déjà en place
+    }
+  }
+
+  return SHARED_TABLES.length;
+};
+
+/**
+ * Affiche le moteur de base de données actif et prépare SQLite si besoin.
+ */
+const logDatabaseStartup = async () => {
+  const databaseMode = sqliteDB.getDatabaseMode();
+
+  if (databaseMode === "sqlite") {
+    const activeDatabasePath = await sqliteDB.ensureDefaultSqliteDatabase();
+    const updatedDatabases = await sqliteDB.ensureAllSqliteDatabasesSchemasUpdated();
+    console.log(`[DB] Mode actif: sqlite`);
+    console.log(`[DB] Dossier SQLite: ${sqliteDB.getSqliteDirectory()}`);
+    console.log(`[DB] Base SQLite active: ${activeDatabasePath}`);
+    console.log(`[DB] Bases SQLite verifiées: ${updatedDatabases.length}`);
+    await runDailySqliteBackup(true);
+    startSqliteBackupScheduler();
+    return;
+  }
+
+  console.log(`[DB] Mode actif: mysql`);
+  console.log(
+    `[DB] Cible MySQL: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`
+  );
+
+  // Le dump MySQL ne contient ni agenda, ni famille_jeunesse, ni nouvelleame : sans
+  // cette étape, ces trois modules répondraient "table inconnue" en ligne alors qu'ils
+  // fonctionnent en local. Voir db/schema.ts.
+  const createdTables = await ensureSharedSchemaForMysql();
+  console.log(`[DB] Tables partagées vérifiées: ${createdTables}`);
+};
 
 // httpServer.listen(PORT, () => {
 //   console.log(welcomeMsg);
 // });
 
-// Ajouter recemment pour voir les logs
+const qrValue = {
+  wifi: `http://${IP}:${PORT}`,
+  tunnel: "non configure",
+};
+
+httpServer.once("error", (error: NodeJS.ErrnoException) => {
+  if (error.code === "EADDRINUSE") {
+    console.error(`[Server] Le port ${PORT} est déjà utilisé.`);
+    console.error(`[Server] Arrête l'autre instance Node ou lance ce serveur avec un autre port.`);
+    console.error(`[Server] Exemple PowerShell: $env:PORT=49301; npm run dev`);
+    process.exit(1);
+  }
+
+  console.error("[Server] Erreur lors du démarrage du serveur:", error);
+  process.exit(1);
+});
+
+// Ajouter récemment pour voir les logs
 httpServer.listen(PORT, () => {
   try {
     console.log(welcomeMsg);
+    qrcode.generate(JSON.stringify(qrValue));
+    logDatabaseStartup().catch((error) => {
+      console.error("[DB] Erreur lors de l'initialisation de la base:", error);
+    });
   } catch (err) {
     console.error('Erreur lors du démarrage du serveur:', err);
   }
 });
 
 
-const qrValue = {
-  wifi: `http://${IP}:${PORT}`,
-  tunnel: 'non configuré',
-}
-qrcode.generate(JSON.stringify(qrValue));
+
 
 

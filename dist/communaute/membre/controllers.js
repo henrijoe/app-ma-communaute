@@ -13,7 +13,11 @@ const ajouterMembre = (req, res) => {
         req.io.emit("ajouterMembre", result);
         res.status(200).send({ status: 1, data: result });
     })
-        .catch((error) => res.status(400).send({ status: 0, error }));
+        .catch((error) => res.status(400).send({
+        status: 0,
+        error,
+        message: (error === null || error === void 0 ? void 0 : error.message) || 'Erreur lors de la création du membre',
+    }));
 };
 /**
  * Récupérer un membre
@@ -28,9 +32,9 @@ const recupMembre = (req, res) => {
         .catch((error) => res.status(400).send({ status: 0, error }));
 };
 const supprimerMembre = (req, res) => {
-    const { idMembre } = req.body;
+    const { idMembre, idUtilisateur } = req.body;
     services_1.default
-        .supprimerMembre(idMembre)
+        .supprimerMembre(idMembre, idUtilisateur)
         .then((result) => {
         if (result) {
             req.io.emit("supprimerMembre", result);
@@ -50,7 +54,11 @@ const modifierMembre = (req, res) => {
         req.io.emit("modifierMembre", result);
         res.status(200).send({ status: 1, data: result });
     })
-        .catch((errors) => res.status(400).send({ status: 0, errors }));
+        .catch((errors) => res.status(400).send({
+        status: 0,
+        errors,
+        message: (errors === null || errors === void 0 ? void 0 : errors.message) || 'Erreur lors de la modification du membre',
+    }));
 };
 const recupMembreByIdUtilsateur = (req, res) => {
     const { idUtilisateur } = req === null || req === void 0 ? void 0 : req.params;
@@ -62,11 +70,72 @@ const recupMembreByIdUtilsateur = (req, res) => {
     })
         .catch((error) => res.status(400).send({ status: 0, error }));
 };
+const ajouterDemandeInscriptionMembre = (req, res) => {
+    services_1.default
+        .ajouterDemandeInscriptionMembre(req.body)
+        .then((result) => {
+        req.io.emit("demandeInscriptionMembre", result);
+        // Si l'église a désactive la validation manuelle, la demande est
+        // déjà marquee "validée" et un membre a été créé : on prévient
+        // aussi les postes connectés que la liste des membres a change.
+        if ((result === null || result === void 0 ? void 0 : result.statutDemande) === 'validee') {
+            req.io.emit("ajouterMembre", result);
+        }
+        res.status(200).send({ status: 1, data: result });
+    })
+        .catch((error) => res.status(400).send({
+        status: 0,
+        error,
+        message: (error === null || error === void 0 ? void 0 : error.message) || "Erreur lors de l'enregistrement de la demande d'inscription",
+    }));
+};
+const recupDemandesInscriptionMembreByUtilisateur = (req, res) => {
+    const { idUtilisateur } = req.params;
+    services_1.default
+        .recupDemandesInscriptionMembreByUtilisateur(Number(idUtilisateur))
+        .then((result) => {
+        res.status(200).send({ status: 1, data: result });
+    })
+        .catch((error) => res.status(400).send({ status: 0, error }));
+};
+const validerDemandeInscriptionMembre = (req, res) => {
+    const { idDemandeInscription, idUtilisateur } = req.body;
+    services_1.default
+        .validerDemandeInscriptionMembre(idDemandeInscription, idUtilisateur)
+        .then((result) => {
+        req.io.emit("ajouterMembre", result);
+        req.io.emit("demandeInscriptionMembreTraitee", result);
+        res.status(200).send({ status: 1, data: result });
+    })
+        .catch((error) => res.status(400).send({
+        status: 0,
+        error,
+        message: (error === null || error === void 0 ? void 0 : error.message) || "La demande n'a pas pu être validée",
+    }));
+};
+const rejeterDemandeInscriptionMembre = (req, res) => {
+    const { idDemandeInscription, idUtilisateur } = req.body;
+    services_1.default
+        .rejeterDemandeInscriptionMembre(idDemandeInscription, idUtilisateur)
+        .then((result) => {
+        req.io.emit("demandeInscriptionMembreTraitee", result);
+        res.status(200).send({ status: 1, data: result });
+    })
+        .catch((error) => res.status(400).send({
+        status: 0,
+        error,
+        message: (error === null || error === void 0 ? void 0 : error.message) || "La demande n'a pas pu être rejetée",
+    }));
+};
 exports.default = {
     recupMembre,
     ajouterMembre,
     supprimerMembre,
     modifierMembre,
-    recupMembreByIdUtilsateur
+    recupMembreByIdUtilsateur,
+    ajouterDemandeInscriptionMembre,
+    recupDemandesInscriptionMembreByUtilisateur,
+    validerDemandeInscriptionMembre,
+    rejeterDemandeInscriptionMembre,
 };
 //# sourceMappingURL=controllers.js.map

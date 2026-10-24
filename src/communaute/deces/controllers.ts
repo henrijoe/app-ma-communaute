@@ -9,6 +9,13 @@ const ajouterDeces = (req: Request, res: Response) => {
   services
     .ajouterDeces(data)
     .then((result: any) => {
+      io.emit('ajouterDeces', {
+        idUtilisateur: data?.idUtilisateur || null,
+        idMembre: data?.idMembre || null,
+        nomMembreDeces: data?.nomMembreDeces || result?.[0]?.nomMembreDeces || '',
+        dateDeces: data?.dateDeces || result?.[0]?.dateDeces || null,
+        data: result,
+      });
       res.status(200).send({ status: 1, data: result });
     })
     .catch((error: any) => {
@@ -22,7 +29,7 @@ const ajouterDeces = (req: Request, res: Response) => {
 
 
 /**
- * Récupérer une deces
+ * Récupérer une décès
  * @returns 
  */
 const recupDeces = (req: Request, res: Response) => {
@@ -40,9 +47,10 @@ const supprimerDeces = (req: Request, res: Response) => {
     .supprimerDeces(idDeces)
     .then((result: any) => {
       if (result) {
+        (req as any).io.emit('supprimerDeces', result)
         res.status(200).send({ status: 1, data: result })
       } else {
-        res.status(400).send({ status: 0, errors: 'Deces non trouvée' })
+        res.status(400).send({ status: 0, errors: 'Décès non trouvée' })
       }
     })
     .catch((errors: any) => res.status(400).send({ status: 0, errors }))
@@ -53,6 +61,13 @@ const modifierDeces = (req: Request, res: Response) => {
   services
     .modifierDeces(data)
     .then((result: any) => {
+      (req as any).io.emit('modifierDeces', {
+        idUtilisateur: data?.idUtilisateur || null,
+        idMembre: data?.idMembre || null,
+        nomMembreDeces: data?.nomMembreDeces || '',
+        dateDeces: data?.dateDeces || null,
+        data: result,
+      })
       res.status(200).send({ status: 1, data: result })
     })
     .catch((errors: any) => res.status(400).send({ status: 0, errors }))

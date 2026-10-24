@@ -11,6 +11,8 @@ const ajouterCulte = (req, res) => {
     services_1.default
         .ajouterCulte(data)
         .then((result) => {
+        // Signale la création aux clients connectés (tableau de bord, listes ouvertes).
+        io === null || io === void 0 ? void 0 : io.emit("ajouterCulte", { idUtilisateur: data === null || data === void 0 ? void 0 : data.idUtilisateur, data: result });
         res.status(200).send({ status: 1, data: result });
     })
         .catch((error) => {
@@ -35,11 +37,16 @@ const recupCulte = (req, res) => {
         .catch((error) => res.status(400).send({ status: 0, error }));
 };
 const supprimerCulte = (req, res) => {
-    const { idCulte } = req.body;
+    const { idCulte, idUtilisateur } = req.body;
+    if (!idUtilisateur) {
+        return res.status(400).send({ status: 0, error: 'idUtilisateur requis' });
+    }
     services_1.default
-        .supprimerCulte(idCulte)
+        .supprimerCulte(idCulte, idUtilisateur)
         .then((result) => {
+        var _a;
         if (result) {
+            (_a = req.io) === null || _a === void 0 ? void 0 : _a.emit("supprimerCulte", { idUtilisateur, idCulte, data: result });
             res.status(200).send({ status: 1, data: result });
         }
         else {
@@ -53,6 +60,8 @@ const modifierCulte = (req, res) => {
     services_1.default
         .modifierCulte(data)
         .then((result) => {
+        var _a;
+        (_a = req.io) === null || _a === void 0 ? void 0 : _a.emit("modifierCulte", { idUtilisateur: data === null || data === void 0 ? void 0 : data.idUtilisateur, data: result });
         res.status(200).send({ status: 1, data: result });
     })
         .catch((errors) => res.status(400).send({ status: 0, errors }));

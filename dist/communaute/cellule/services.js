@@ -14,9 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions_1 = __importDefault(require("./functions"));
 /**
- *
-Permet d'ajouter une cellule
- * @returns
+ * Permet d'ajouter une cellule.
  */
 const ajouterCellule = (data) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
@@ -41,24 +39,22 @@ const recupCellule = () => {
         }
     }));
 };
-// 
 const recupCelluleByIdUtilsateur = (idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const membereByUtilisateur = yield functions_1.default.recupCelluleByIdUtilsateur(idUtilisateur);
-            resolve(membereByUtilisateur);
+            const celluleByUtilisateur = yield functions_1.default.recupCelluleByIdUtilsateur(idUtilisateur);
+            resolve(celluleByUtilisateur);
         }
         catch (error) {
-            console.log("🚀 ~ file: services.ts:830 ~ returnnewPromise ~ error:", error);
             reject(error);
         }
     }));
 };
-const supprimerCellule = (idCellule) => {
+const supprimerCellule = (idCellule, idUtilisateur) => {
     return new Promise((resolve, reject) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            yield functions_1.default.supprimerCellule(idCellule);
-            resolve({ idCellule: idCellule });
+            yield functions_1.default.supprimerCellule(idCellule, idUtilisateur);
+            resolve({ idCellule });
         }
         catch (error) {
             reject(error);
@@ -81,6 +77,6 @@ exports.default = {
     recupCellule,
     supprimerCellule,
     modifierCellule,
-    recupCelluleByIdUtilsateur
+    recupCelluleByIdUtilsateur,
 };
 //# sourceMappingURL=services.js.map

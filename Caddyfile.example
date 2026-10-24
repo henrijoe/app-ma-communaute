@@ -1,0 +1,37 @@
+# Caddyfile — reverse proxy HTTPS devant Ma Communauté
+#
+# Installation : à copier en /etc/caddy/Caddyfile puis `sudo systemctl reload caddy`.
+#
+# Caddy obtient et renouvelle le certificat Let's Encrypt tout seul, à condition
+# que le nom de domaine pointe déjà vers l'IP publique de la VM et que les ports
+# 80 et 443 soient ouverts. Un certificat ne peut pas être délivré pour une IP
+# nue : il faut un nom de domaine, même gratuit.
+
+communaute.exemple.org {
+	encode zstd gzip
+
+	# Le WebSocket de Socket.IO passe sans réglage particulier : Caddy relaie
+	# nativement la mise à niveau de connexion, contrairement à Nginx qui demande
+	# les en-têtes Upgrade/Connection explicites.
+	reverse_proxy 127.0.0.1:49300 {
+		# L'import Excel, l'envoi de photos et la restauration d'une sauvegarde
+		# peuvent dépasser la minute : on relève les délais par défaut.
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+
+	log {
+		output file /var/log/caddy/ma-communaute.log
+		format json
+	}
+}
+
+# Variante sans nom de domaine, uniquement pour un test rapide :
+# le certificat sera auto-signé, donc le navigateur affichera un avertissement.
+#
+# :443 {
+# 	tls internal
+# 	reverse_proxy 127.0.0.1:49300
+# }

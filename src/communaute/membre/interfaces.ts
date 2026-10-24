@@ -1,8 +1,8 @@
-export interface IMembre {
+﻿export interface IMembre {
 	idMembre: number;
 	nomMembre: string;
 	prenomMembre: string;
-	dateNaissMembre: string|null;
+	dateNaissMembre: string | null;
 	lieuNaissMembre: string;
 	sexeMembre: string;
 	emailMembre: string;
@@ -20,7 +20,6 @@ export interface IMembre {
 	capaciteSpirituelleMembre: string;
 	situationMatrimonialeMembre: string;
 	nomFiance: string;
-	nombreEnfantMembre: number;
 	photoMembre: string;
 	lieuBaptemeEauMembre: string;
 	contactParentMembre: string;
@@ -34,12 +33,14 @@ export interface IMembre {
 	raisonNonVisiteMembre: string;
 	heureVisiteMembre: string;
 	dateDecisionMembre: string;
-	idNiveauEtude: number|null;
+	idNiveauEtude: number | null;
 	idEglise: number;
-	idCellule: number|null;
-	idDepartement: number|null;
-	idGroupe: number|null;
-	idResponsabilite: number|null;
-	idDomaineActivite: number|null;
+	idCellule: number | null;
+	idDepartement: number | null;
+	idGroupe: number | null;
+	idResponsabilite: number | null;
+	idDomaineActivite: number | null;
+	estDecede?: number | null;
+	dateDecesMembre?: string | null;
 	idUtilisateur: number;
-  }
+}
