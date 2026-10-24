@@ -4,6 +4,11 @@ export interface IUtilisateur {
   nomTemple: string;
   nomEgliseCourt: string;
   lieuEglise: string;
+  /**
+   * Region ecclesiastique, en tete des fiches du departement enfants.
+   * Optionnelle : les comptes crees avant son ajout n'en portent aucune.
+   */
+  regionEglise?: string;
   nomUtilisateur: string;
   prenomUtilisateur: string;
   telephoneUtilisateur: string;

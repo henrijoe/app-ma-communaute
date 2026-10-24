@@ -61,6 +61,15 @@ export interface IEnfantEcodim {
   tuteurConverti?: string;
   vitAvec?: string;
 
+  // Champs de la fiche d'inscription du département enfants.
+  groupeEcodimEnfant?: string;
+  ecoleEnfant?: string;
+  religionPere?: string;
+  religionMere?: string;
+  avecQuiVientEglise?: string;
+  responsabiliteTuteurEglise?: string;
+  professionTuteur?: string;
+
   dateEntreeEcodim?: string | null;
   niveauEntreeEcodim?: string;
   niveauActuelEcodim?: string;
@@ -123,4 +132,12 @@ export interface INoteEcodim {
   idEvaluation: number;
   idEnfantEcodim: number;
   valeurNote?: string | number | null;
+}
+
+/** Une ligne d'appel : un enfant, pour une seance donnee. */
+export interface IPresenceEcodim {
+  idEnfantEcodim: number;
+  /** present, absent ou excuse. Sans accent, comme les autres valeurs a choix. */
+  statutPresence?: string;
+  motifPresence?: string;
 }

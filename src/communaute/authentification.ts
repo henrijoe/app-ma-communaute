@@ -25,6 +25,7 @@ const ROUTES_PUBLIQUES: RegExp[] = [
   /^\/demander-reset-password$/,
   /^\/reinitialiser-password$/,
   /^\/demandeinscriptionmembre$/, // fiche envoyée par le QR code public
+  /^\/demandeinscriptionenfant$/, // fiche enfant envoyée par le QR code public
   /^\/listeutilisateurparent\/\d+$/, // choix du compte sur l'écran de connexion
   /^\/desktop-control\/status$/, // état de licence, lu avant connexion
   /^\/desktop-control\/unlock-code$/, // déblocage par code depuis l'écran bloqué

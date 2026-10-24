@@ -52,4 +52,21 @@ ecodimRouter.post("/supprimerevaluationecodim", controllers.supprimerEvaluation)
 ecodimRouter.get("/recupnoteecodimbyutilisateur/:idUtilisateur", controllers.recupNotesByUtilisateur);
 ecodimRouter.post("/enregistrernoteecodim", controllers.enregistrerNotes);
 
+// Assiduité : l'appel nominatif d'une séance, rattaché à son culte.
+ecodimRouter.get(
+  "/recuppresenceecodimbyutilisateur/:idUtilisateur",
+  controllers.recupPresencesByUtilisateur
+);
+ecodimRouter.post("/enregistrerappelecodim", controllers.enregistrerAppel);
+
+// Inscription d un enfant par QR code. Le depot est PUBLIC (un parent sur son
+// telephone) ; la lecture et le traitement des demandes exigent une session.
+ecodimRouter.post("/demandeinscriptionenfant", controllers.ajouterDemandeEnfant);
+ecodimRouter.get(
+  "/demandesinscriptionenfantbyutilisateur/:idUtilisateur",
+  controllers.recupDemandesEnfantByUtilisateur
+);
+ecodimRouter.post("/validerdemandeinscriptionenfant", controllers.validerDemandeEnfant);
+ecodimRouter.post("/rejeterdemandeinscriptionenfant", controllers.rejeterDemandeEnfant);
+
 export default ecodimRouter;

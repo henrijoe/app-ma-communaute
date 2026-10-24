@@ -19,6 +19,7 @@ import {
   IMoniteurEcodim,
   INoteEcodim,
   IEvaluationEcodim,
+  IPresenceEcodim,
 } from "./interfaces";
 
 // Les images de l'école du dimanche vivent à côté des photos de membres, dans le
@@ -449,6 +450,7 @@ const CHAMPS_ENFANT: { nom: string; valeur: (data: IEnfantEcodim) => any }[] = [
   { nom: "professionPere", valeur: (d) => texte(d.professionPere) },
   { nom: "contactPere", valeur: (d) => texte(d.contactPere) },
   { nom: "pereConverti", valeur: (d) => texte(d.pereConverti) },
+  { nom: "religionPere", valeur: (d) => texte(d.religionPere) },
 
   { nom: "nomMere", valeur: (d) => texte(d.nomMere) },
   { nom: "prenomMere", valeur: (d) => texte(d.prenomMere) },
@@ -456,8 +458,16 @@ const CHAMPS_ENFANT: { nom: string; valeur: (data: IEnfantEcodim) => any }[] = [
   { nom: "professionMere", valeur: (d) => texte(d.professionMere) },
   { nom: "contactMere", valeur: (d) => texte(d.contactMere) },
   { nom: "mereConverti", valeur: (d) => texte(d.mereConverti) },
+  { nom: "religionMere", valeur: (d) => texte(d.religionMere) },
 
   { nom: "vitAvec", valeur: (d) => texte(d.vitAvec) },
+
+  // Fiche d'inscription du département enfants.
+  { nom: "groupeEcodimEnfant", valeur: (d) => texte(d.groupeEcodimEnfant) },
+  { nom: "ecoleEnfant", valeur: (d) => texte(d.ecoleEnfant) },
+  { nom: "avecQuiVientEglise", valeur: (d) => texte(d.avecQuiVientEglise) },
+  { nom: "responsabiliteTuteurEglise", valeur: (d) => texte(d.responsabiliteTuteurEglise) },
+  { nom: "professionTuteur", valeur: (d) => texte(d.professionTuteur) },
 
   { nom: "dateEntreeEcodim", valeur: (d) => texte(d.dateEntreeEcodim) || null },
   { nom: "niveauEntreeEcodim", valeur: (d) => texte(d.niveauEntreeEcodim) },
@@ -665,6 +675,13 @@ export const supprimerEnfant = async (
     [idEnfantEcodim, idUtilisateur]
   );
 
+  // Les appels où l'enfant figurait partent avec lui : une présence rattachée à
+  // un enfant disparu gonflerait les effectifs sans qu'on puisse l'expliquer.
+  await _executeSql("DELETE FROM ecodim_presence WHERE idEnfantEcodim = ? AND idUtilisateur = ?", [
+    idEnfantEcodim,
+    idUtilisateur,
+  ]);
+
   await _executeSql("DELETE FROM ecodim_enfant WHERE idEnfantEcodim = ? AND idUtilisateur = ?", [
     idEnfantEcodim,
     idUtilisateur,
@@ -695,33 +712,47 @@ export const recupActivites = (idUtilisateur: number): Promise<any[]> =>
     [idUtilisateur]
   );
 
-const valeursActivite = (data: any) => [
-  texte(data.titreActivite),
-  texte(data.typeActivite),
-  texte(data.descriptionActivite),
-  texte(data.lieuActivite),
-  texte(data.dateDebutActivite) || null,
-  texte(data.dateFinActivite) || null,
-  texte(data.heureDebutActivite),
-  texte(data.heureFinActivite),
-  nombre(data.idClasseEcodim),
-  nombre(data.idMoniteurDirigeant),
-  nombre(data.idMoniteurEnseignant),
-  texte(data.textesBibliques),
-  Number(data.nombreFilles) || 0,
-  Number(data.nombreGarcons) || 0,
-  texte(data.statutActivite) || "Planifiee",
-  data.actifActivite === 0 ? 0 : 1,
+/**
+ * Les colonnes d'une activité, avec la façon d'en extraire la valeur.
+ *
+ * Même raison que pour le dossier enfant et le cahier de texte : les noms de
+ * colonnes, les points d'interrogation et les valeurs étaient tenus dans trois
+ * listes séparées. Elles se décalent d'un cran au premier champ ajouté, et la
+ * requête écrit alors chaque donnée dans la colonne voisine sans qu'aucune
+ * erreur ne soit levée.
+ */
+const CHAMPS_ACTIVITE: { nom: string; valeur: (data: any) => any }[] = [
+  { nom: "titreActivite", valeur: (d) => texte(d.titreActivite) },
+  { nom: "typeActivite", valeur: (d) => texte(d.typeActivite) },
+  { nom: "descriptionActivite", valeur: (d) => texte(d.descriptionActivite) },
+  { nom: "lieuActivite", valeur: (d) => texte(d.lieuActivite) },
+  { nom: "dateDebutActivite", valeur: (d) => texte(d.dateDebutActivite) || null },
+  { nom: "dateFinActivite", valeur: (d) => texte(d.dateFinActivite) || null },
+  { nom: "heureDebutActivite", valeur: (d) => texte(d.heureDebutActivite) },
+  { nom: "heureFinActivite", valeur: (d) => texte(d.heureFinActivite) },
+  { nom: "idClasseEcodim", valeur: (d) => nombre(d.idClasseEcodim) },
+  { nom: "idMoniteurDirigeant", valeur: (d) => nombre(d.idMoniteurDirigeant) },
+  { nom: "idMoniteurEnseignant", valeur: (d) => nombre(d.idMoniteurEnseignant) },
+  { nom: "textesBibliques", valeur: (d) => texte(d.textesBibliques) },
+  { nom: "nombreFilles", valeur: (d) => Number(d.nombreFilles) || 0 },
+  { nom: "nombreGarcons", valeur: (d) => Number(d.nombreGarcons) || 0 },
+  // Les moniteurs présents à l'activité : ils encadrent la sortie ou la veillée,
+  // et ne sont pas comptés parmi les enfants.
+  { nom: "nombreMoniteurs", valeur: (d) => Number(d.nombreMoniteurs) || 0 },
+  { nom: "statutActivite", valeur: (d) => texte(d.statutActivite) || "Planifiee" },
+  { nom: "actifActivite", valeur: (d) => (d.actifActivite === 0 ? 0 : 1) },
 ];
+
+const COLONNES_ACTIVITE = CHAMPS_ACTIVITE.map((champ) => champ.nom).join(", ");
+const PLACEHOLDERS_ACTIVITE = CHAMPS_ACTIVITE.map(() => "?").join(",");
+const AFFECTATIONS_ACTIVITE = CHAMPS_ACTIVITE.map((champ) => `${champ.nom} = ?`).join(", ");
+
+const valeursActivite = (data: any) => CHAMPS_ACTIVITE.map((champ) => champ.valeur(data));
 
 export const ajouterActivite = async (data: any): Promise<any> => {
   const resultat: any = await _executeSql(
-    `INSERT INTO ecodim_activite
-       (titreActivite, typeActivite, descriptionActivite, lieuActivite, dateDebutActivite,
-        dateFinActivite, heureDebutActivite, heureFinActivite, idClasseEcodim,
-        idMoniteurDirigeant, idMoniteurEnseignant, textesBibliques, nombreFilles,
-        nombreGarcons, statutActivite, actifActivite, idUtilisateur)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO ecodim_activite (${COLONNES_ACTIVITE}, idUtilisateur)
+     VALUES (${PLACEHOLDERS_ACTIVITE},?)`,
     [...valeursActivite(data), data.idUtilisateur]
   );
 
@@ -730,12 +761,7 @@ export const ajouterActivite = async (data: any): Promise<any> => {
 
 export const modifierActivite = async (data: any): Promise<boolean> => {
   await _executeSql(
-    `UPDATE ecodim_activite
-        SET titreActivite = ?, typeActivite = ?, descriptionActivite = ?, lieuActivite = ?,
-            dateDebutActivite = ?, dateFinActivite = ?, heureDebutActivite = ?,
-            heureFinActivite = ?, idClasseEcodim = ?, idMoniteurDirigeant = ?,
-            idMoniteurEnseignant = ?, textesBibliques = ?, nombreFilles = ?,
-            nombreGarcons = ?, statutActivite = ?, actifActivite = ?
+    `UPDATE ecodim_activite SET ${AFFECTATIONS_ACTIVITE}
       WHERE idActiviteEcodim = ? AND idUtilisateur = ?`,
     [...valeursActivite(data), data.idActiviteEcodim, data.idUtilisateur]
   );
@@ -882,6 +908,14 @@ export const supprimerCulte = async (
   idCulteEcodim: number,
   idUtilisateur: number
 ): Promise<boolean> => {
+  // L'appel part avec la séance : sans cela, ses lignes resteraient rattachées à
+  // un culte disparu et fausseraient les taux d'assiduité sans plus pouvoir être
+  // retrouvées depuis l'interface.
+  await _executeSql("DELETE FROM ecodim_presence WHERE idCulteEcodim = ? AND idUtilisateur = ?", [
+    idCulteEcodim,
+    idUtilisateur,
+  ]);
+
   await _executeSql(
     "DELETE FROM ecodim_culte WHERE idCulteEcodim = ? AND idUtilisateur = ?",
     [idCulteEcodim, idUtilisateur]
@@ -1192,6 +1226,339 @@ export const enregistrerNotes = async (donnees: {
   return enregistrees;
 };
 
+// --------------------------------------------------------------- assiduité
+
+/** Statuts d'appel acceptés. Sans accent, comme les autres valeurs à choix. */
+const STATUTS_PRESENCE = ["present", "absent", "excuse"];
+
+/**
+ * Appel nominatif, toutes séances confondues.
+ *
+ * La date et la classe viennent du culte, jointes ici : la grille mensuelle et
+ * la fiche de suivi en ont besoin à chaque ligne, et les recopier dans la table
+ * des présences créerait deux versions de la même information.
+ */
+export const recupPresences = (idUtilisateur: number): Promise<any[]> =>
+  _selectSql(
+    `SELECT presence.idPresenceEcodim,
+            presence.idCulteEcodim,
+            presence.idEnfantEcodim,
+            presence.statutPresence,
+            presence.motifPresence,
+            culte.dateCulte,
+            culte.idClasseEcodim
+       FROM ecodim_presence presence
+       JOIN ecodim_culte culte ON culte.idCulteEcodim = presence.idCulteEcodim
+      WHERE presence.idUtilisateur = ?
+      ORDER BY culte.dateCulte DESC, presence.idPresenceEcodim`,
+    [idUtilisateur]
+  );
+
+/**
+ * Recompte les filles et les garçons présents d'après l'appel.
+ *
+ * Ces deux compteurs se tapaient à la main dans le cahier de texte. Dès qu'un
+ * appel existe, les laisser diverger n'aurait pas de sens : c'est la même
+ * séance comptée deux fois, et c'est le nominatif qui fait foi.
+ *
+ * Les cultes anciens, sans appel, gardent leurs compteurs saisis : la fonction
+ * n'est appelée qu'après un enregistrement d'appel.
+ */
+const recalculerEffectifsCulte = async (
+  idCulteEcodim: number,
+  idUtilisateur: number
+): Promise<void> => {
+  const lignes: any = await _selectSql(
+    `SELECT enfant.sexeEnfant AS sexe, COUNT(*) AS total
+       FROM ecodim_presence presence
+       JOIN ecodim_enfant enfant ON enfant.idEnfantEcodim = presence.idEnfantEcodim
+      WHERE presence.idCulteEcodim = ?
+        AND presence.idUtilisateur = ?
+        AND presence.statutPresence = ?
+      GROUP BY enfant.sexeEnfant`,
+    [idCulteEcodim, idUtilisateur, "present"]
+  );
+
+  const parSexe: any[] = Array.isArray(lignes) ? lignes : [];
+  const compter = (sexe: string) =>
+    Number(parSexe.find((ligne) => String(ligne?.sexe || "") === sexe)?.total || 0);
+
+  await _executeSql(
+    `UPDATE ecodim_culte SET nombreFilles = ?, nombreGarcons = ?
+      WHERE idCulteEcodim = ? AND idUtilisateur = ?`,
+    [compter("F"), compter("M"), idCulteEcodim, idUtilisateur]
+  );
+};
+
+/**
+ * Enregistre l'appel d'une séance d'un bloc.
+ *
+ * L'appel du culte est remplacé en entier plutôt que modifié ligne à ligne :
+ * l'écran envoie toujours la liste complète, et un enfant sorti de la classe
+ * entre deux saisies ne doit pas laisser derrière lui une présence orpheline.
+ *
+ * Un enfant absent de la liste envoyée n'a pas été appelé — ce qui n'est pas la
+ * même chose qu'une absence. Aucune ligne n'est créée pour lui, et la fiche de
+ * suivi laisse la case vide au lieu d'y porter une croix qui serait fausse.
+ */
+export const enregistrerAppel = async (donnees: {
+  idUtilisateur: number;
+  idCulteEcodim: number;
+  presences: IPresenceEcodim[];
+}): Promise<number> => {
+  const idCulteEcodim = nombre(donnees.idCulteEcodim);
+
+  if (!idCulteEcodim) {
+    throw new Error("La séance de l'appel est requise.");
+  }
+
+  // Le culte doit appartenir à l'église qui enregistre : sans ce contrôle, un
+  // identifiant deviné suffirait à écrire dans le cahier d'une autre église.
+  const culte: any = await _selectSql(
+    "SELECT idCulteEcodim FROM ecodim_culte WHERE idCulteEcodim = ? AND idUtilisateur = ?",
+    [idCulteEcodim, donnees.idUtilisateur]
+  );
+
+  if (!Array.isArray(culte) || !culte.length) {
+    throw new Error("Cette séance est introuvable.");
+  }
+
+  await _executeSql("DELETE FROM ecodim_presence WHERE idCulteEcodim = ? AND idUtilisateur = ?", [
+    idCulteEcodim,
+    donnees.idUtilisateur,
+  ]);
+
+  const lignes = Array.isArray(donnees.presences) ? donnees.presences : [];
+  let enregistrees = 0;
+
+  for (const ligne of lignes) {
+    const idEnfantEcodim = nombre(ligne?.idEnfantEcodim);
+    const statut = texte(ligne?.statutPresence) || "present";
+
+    if (!idEnfantEcodim || !STATUTS_PRESENCE.includes(statut)) {
+      continue;
+    }
+
+    await _executeSql(
+      `INSERT INTO ecodim_presence
+         (idCulteEcodim, idEnfantEcodim, statutPresence, motifPresence, idUtilisateur)
+       VALUES (?,?,?,?,?)`,
+      [idCulteEcodim, idEnfantEcodim, statut, texte(ligne?.motifPresence), donnees.idUtilisateur]
+    );
+
+    enregistrees += 1;
+  }
+
+  await recalculerEffectifsCulte(idCulteEcodim, donnees.idUtilisateur);
+
+  return enregistrees;
+};
+
+// ------------------------------------- inscription d'un enfant par QR code
+
+/**
+ * L'église exige-t-elle une validation avant d'inscrire ?
+ *
+ * C'est le même réglage que pour les membres : une église qui fait confiance aux
+ * fiches remplies par les parents n'a aucune raison de le régler deux fois, et
+ * deux réglages voisins finiraient par se contredire sans qu'on sache lequel
+ * s'applique.
+ */
+const doitValiderInscriptionEnfant = async (idUtilisateur: number): Promise<boolean> => {
+  try {
+    const lignes: any = await _selectSql(
+      "SELECT validerInscriptionMembre FROM utilisateur WHERE idUtilisateur = ?",
+      [idUtilisateur]
+    );
+    const utilisateur = Array.isArray(lignes) ? lignes[0] : null;
+
+    return Number(utilisateur?.validerInscriptionMembre) !== 0;
+  } catch (_error) {
+    // Si le réglage est illisible, on garde le comportement le plus prudent :
+    // la demande attend un responsable plutôt que d'entrer en aveugle.
+    return true;
+  }
+};
+
+const normaliserNom = (valeur: unknown): string =>
+  String(valeur ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+/**
+ * Enregistre la fiche envoyée depuis le QR code public.
+ *
+ * La route est ouverte, sans jeton : c'est un parent sur son téléphone qui la
+ * remplit. Tout ce qui arrive est donc traité comme une proposition, jamais
+ * comme une donnée de confiance — d'où le périmètre pris dans le lien et non
+ * dans la fiche, et le passage obligé par la table des demandes.
+ */
+export const ajouterDemandeEnfant = async (data: any): Promise<any> => {
+  const idUtilisateur = nombre(data?.idUtilisateur);
+
+  if (!idUtilisateur) {
+    throw new Error("Lien d'inscription incomplet.");
+  }
+
+  if (!texte(data?.nomEnfant)) {
+    throw new Error("Le nom de l'enfant est requis.");
+  }
+
+  if (!texte(data?.contactParentEnfant)) {
+    throw new Error("Le contact du parent ou tuteur est requis.");
+  }
+
+  const nom = normaliserNom(data?.nomEnfant);
+  const prenom = normaliserNom(data?.prenomEnfant);
+
+  // Un enfant déjà inscrit ne doit pas réapparaître parce qu'un second parent a
+  // scanné le même QR code.
+  const enfants: any = await _selectSql(
+    "SELECT nomEnfant, prenomEnfant FROM ecodim_enfant WHERE idUtilisateur = ?",
+    [idUtilisateur]
+  );
+
+  const dejaInscrit = (Array.isArray(enfants) ? enfants : []).some(
+    (enfant: any) =>
+      normaliserNom(enfant.nomEnfant) === nom && normaliserNom(enfant.prenomEnfant) === prenom
+  );
+
+  if (dejaInscrit) {
+    throw new Error("Cet enfant est déjà inscrit à l'école du dimanche.");
+  }
+
+  const demandes: any = await _selectSql(
+    "SELECT nomEnfant, prenomEnfant FROM ecodim_enfant_demande WHERE idUtilisateur = ? AND statutDemande = ?",
+    [idUtilisateur, "en_attente"]
+  );
+
+  const dejaDemande = (Array.isArray(demandes) ? demandes : []).some(
+    (demande: any) =>
+      normaliserNom(demande.nomEnfant) === nom && normaliserNom(demande.prenomEnfant) === prenom
+  );
+
+  if (dejaDemande) {
+    throw new Error("Une demande d'inscription est déjà en attente pour cet enfant.");
+  }
+
+  // Le périmètre vient du lien, jamais de la fiche : sinon n'importe qui
+  // pourrait inscrire un enfant dans l'église de son choix.
+  const fiche = { ...data, idUtilisateur };
+  const validationRequise = await doitValiderInscriptionEnfant(idUtilisateur);
+
+  const resultat: any = await _executeSql(
+    `INSERT INTO ecodim_enfant_demande
+       (idUtilisateur, nomEnfant, prenomEnfant, contactParentEnfant, payloadDemande, statutDemande)
+     VALUES (?,?,?,?,?,?)`,
+    [
+      idUtilisateur,
+      texte(data?.nomEnfant),
+      texte(data?.prenomEnfant),
+      texte(data?.contactParentEnfant),
+      JSON.stringify(fiche),
+      validationRequise ? "en_attente" : "validee",
+    ]
+  );
+
+  const idDemandeEnfant = resultat?.insertId ?? resultat?.lastID ?? null;
+
+  if (!validationRequise) {
+    // L'église a choisi l'inscription directe : on crée l'enfant tout de suite,
+    // et la demande garde la trace de ce qui a été envoyé.
+    const idEnfantCree = await ajouterEnfant(fiche);
+
+    await _executeSql(
+      `UPDATE ecodim_enfant_demande
+          SET idEnfantCree = ?, dateTraitement = CURRENT_TIMESTAMP
+        WHERE idDemandeEnfant = ?`,
+      [idEnfantCree, idDemandeEnfant]
+    );
+  }
+
+  return { idDemandeEnfant, validationRequise };
+};
+
+/** Demandes d'une église, les plus récentes d'abord. */
+export const recupDemandesEnfant = (idUtilisateur: number): Promise<any[]> =>
+  _selectSql(
+    `SELECT * FROM ecodim_enfant_demande
+      WHERE idUtilisateur = ?
+      ORDER BY dateCreation DESC, idDemandeEnfant DESC`,
+    [idUtilisateur]
+  );
+
+/**
+ * Accepte une demande : l'enfant est créé à partir de la fiche conservée.
+ *
+ * Les corrections faites à l'écran avant validation sont prises en compte, mais
+ * le périmètre et le statut restent ceux du serveur.
+ */
+export const validerDemandeEnfant = async (donnees: {
+  idDemandeEnfant: number;
+  idUtilisateur: number;
+  modifications?: any;
+}): Promise<any> => {
+  const lignes: any = await _selectSql(
+    "SELECT * FROM ecodim_enfant_demande WHERE idDemandeEnfant = ? AND idUtilisateur = ?",
+    [donnees.idDemandeEnfant, donnees.idUtilisateur]
+  );
+
+  const demande = Array.isArray(lignes) ? lignes[0] : null;
+
+  if (!demande) {
+    throw new Error("Cette demande est introuvable.");
+  }
+
+  if (demande.statutDemande !== "en_attente") {
+    throw new Error("Cette demande a déjà été traitée.");
+  }
+
+  let fiche: any = {};
+  try {
+    fiche = JSON.parse(demande.payloadDemande || "{}");
+  } catch (_error) {
+    fiche = {};
+  }
+
+  const idEnfantCree = await ajouterEnfant({
+    ...fiche,
+    ...(donnees.modifications || {}),
+    idUtilisateur: donnees.idUtilisateur,
+  });
+
+  await _executeSql(
+    `UPDATE ecodim_enfant_demande
+        SET statutDemande = ?, idEnfantCree = ?, dateTraitement = CURRENT_TIMESTAMP
+      WHERE idDemandeEnfant = ? AND idUtilisateur = ?`,
+    ["validee", idEnfantCree, donnees.idDemandeEnfant, donnees.idUtilisateur]
+  );
+
+  return idEnfantCree;
+};
+
+/** Rejette une demande. La fiche est conservée : on doit pouvoir y revenir. */
+export const rejeterDemandeEnfant = async (donnees: {
+  idDemandeEnfant: number;
+  idUtilisateur: number;
+  motifRejet?: string;
+}): Promise<boolean> => {
+  await _executeSql(
+    `UPDATE ecodim_enfant_demande
+        SET statutDemande = ?, motifRejet = ?, dateTraitement = CURRENT_TIMESTAMP
+      WHERE idDemandeEnfant = ? AND idUtilisateur = ? AND statutDemande = ?`,
+    [
+      "rejetee",
+      texte(donnees.motifRejet),
+      donnees.idDemandeEnfant,
+      donnees.idUtilisateur,
+      "en_attente",
+    ]
+  );
+
+  return true;
+};
+
 export default {
   recupClasses,
   ajouterClasse,
@@ -1223,4 +1590,10 @@ export default {
   supprimerEvaluation,
   recupNotes,
   enregistrerNotes,
+  recupPresences,
+  enregistrerAppel,
+  ajouterDemandeEnfant,
+  recupDemandesEnfant,
+  validerDemandeEnfant,
+  rejeterDemandeEnfant,
 };

@@ -240,6 +240,23 @@ const ecodimEnfant: TableDefinition = {
     // Avec qui vit l'enfant : Pere, Mere ou Tuteur.
     { name: "vitAvec", type: "text", default: "''" },
 
+    // ------------------------------------------------------------------
+    // Champs propres a la fiche d'inscription du departement enfants.
+    //
+    // "religionParents" existait deja, mais la fiche demande la religion du pere
+    // et celle de la mere separement : elles ne sont pas toujours les memes, et
+    // c'est precisement ce que la fiche cherche a savoir. L'ancienne colonne
+    // reste en place, le formulaire d'identification s'en sert toujours.
+    { name: "groupeEcodimEnfant", type: "text", default: "''" },
+    { name: "ecoleEnfant", type: "text", default: "''" },
+    { name: "religionPere", type: "text", default: "''" },
+    { name: "religionMere", type: "text", default: "''" },
+    // Qui accompagne l'enfant au culte : ce n'est pas toujours celui chez qui il
+    // vit, et c'est la personne que les moniteurs croisent chaque dimanche.
+    { name: "avecQuiVientEglise", type: "text", default: "''" },
+    { name: "responsabiliteTuteurEglise", type: "text", default: "''" },
+    { name: "professionTuteur", type: "text", default: "''" },
+
     { name: "dateEntreeEcodim", type: "text" },
     { name: "niveauEntreeEcodim", type: "text", default: "''" },
     { name: "niveauActuelEcodim", type: "text", default: "''" },
@@ -287,6 +304,9 @@ const ecodimActivite: TableDefinition = {
     { name: "textesBibliques", type: "longtext", default: "''" },
     { name: "nombreFilles", type: "int", default: "0" },
     { name: "nombreGarcons", type: "int", default: "0" },
+    // Moniteurs presents : ils encadrent la sortie ou la veillee, et ne sont pas
+    // comptes parmi les enfants.
+    { name: "nombreMoniteurs", type: "int", default: "0" },
 
     // Valeur stockée, volontairement sans accent : l'affichage passe par un
     // dictionnaire de libellés, comme pour les statuts de l'agenda.
@@ -475,6 +495,65 @@ const ecodimNote: TableDefinition = {
   ],
 };
 
+/**
+ * Appel nominatif d'un dimanche, enfant par enfant.
+ *
+ * L'appel se rattache au CULTE et non a une date libre : un culte porte deja le
+ * dimanche, la classe, le moniteur et la lecon. Creer une seconde notion de
+ * "dimanche" ferait deux verites pour la meme seance, qui finiraient par diverger.
+ *
+ * Les compteurs "nombreFilles" et "nombreGarcons" du culte deviennent de ce fait
+ * calculables : ils restent saisissables pour les seances anciennes, ou l'appel
+ * n'a jamais ete fait.
+ *
+ * Le statut est stocke SANS ACCENT, comme les autres valeurs a choix : present,
+ * absent ou excuse. Un enfant sans ligne n'a pas ete appele -- ce qui n'est pas
+ * la meme chose qu'une absence, et doit le rester.
+ */
+const ecodimPresence: TableDefinition = {
+  name: "ecodim_presence",
+  columns: [
+    { name: "idPresenceEcodim", type: "pk" },
+    { name: "idCulteEcodim", type: "int", notNull: true },
+    { name: "idEnfantEcodim", type: "int", notNull: true },
+    { name: "statutPresence", type: "text", default: "'present'" },
+    // Motif d'une absence excusee : maladie, voyage, examen...
+    { name: "motifPresence", type: "text", default: "''" },
+    { name: "idUtilisateur", type: "int", notNull: true },
+    { name: "dateCreation", type: "datetime", default: "CURRENT_TIMESTAMP" },
+  ],
+};
+
+/**
+ * Demande d'inscription d'un enfant, envoyee depuis le QR code public.
+ *
+ * Meme principe que "membre_inscription_demande" : la fiche remplie par le
+ * parent est conservee telle quelle en JSON, et l'enfant n'est cree qu'une fois
+ * la demande acceptee. Garder la fiche d'origine permet de retrouver ce qui a
+ * ete saisi meme apres correction, et de rejeter sans rien perdre.
+ *
+ * Les trois colonnes nommees a cote du JSON ne sont pas une duplication : la
+ * liste des demandes en attente doit s'afficher et se dedoublonner sans avoir a
+ * ouvrir chaque fiche.
+ */
+const ecodimEnfantDemande: TableDefinition = {
+  name: "ecodim_enfant_demande",
+  columns: [
+    { name: "idDemandeEnfant", type: "pk" },
+    { name: "idUtilisateur", type: "int", notNull: true },
+    { name: "nomEnfant", type: "text", default: "''" },
+    { name: "prenomEnfant", type: "text", default: "''" },
+    { name: "contactParentEnfant", type: "text", default: "''" },
+    { name: "payloadDemande", type: "longtext", default: "''" },
+    // en_attente, validee ou rejetee. Sans accent, comme les autres statuts.
+    { name: "statutDemande", type: "text", default: "'en_attente'" },
+    { name: "idEnfantCree", type: "int" },
+    { name: "motifRejet", type: "text", default: "''" },
+    { name: "dateCreation", type: "datetime", default: "CURRENT_TIMESTAMP" },
+    { name: "dateTraitement", type: "datetime" },
+  ],
+};
+
 export const SHARED_TABLES: TableDefinition[] = [
   agenda,
   familleJeunesse,
@@ -490,6 +569,8 @@ export const SHARED_TABLES: TableDefinition[] = [
   ecodimEvaluation,
   ecodimEvaluationClasse,
   ecodimNote,
+  ecodimPresence,
+  ecodimEnfantDemande,
 ];
 
 export type TableColumnsPatch = {

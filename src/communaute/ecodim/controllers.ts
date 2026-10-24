@@ -330,6 +330,74 @@ const enregistrerNotes = (req: Request, res: Response) => {
     .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
 };
 
+const recupPresencesByUtilisateur = (req: Request, res: Response) =>
+  repondre(res, functions.recupPresences(Number(req.params.idUtilisateur)));
+
+const enregistrerAppel = (req: Request, res: Response) => {
+  const data = req.body;
+
+  return functions
+    .enregistrerAppel({
+      idUtilisateur: Number(data?.idUtilisateur),
+      idCulteEcodim: Number(data?.idCulteEcodim),
+      presences: data?.presences,
+    })
+    .then((result: any) => {
+      diffuser(req, "enregistrerAppelEcodim", { idUtilisateur: data?.idUtilisateur });
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
+};
+
+/**
+ * Dépôt d'une fiche depuis le QR code public : aucune session n'est requise,
+ * c'est un parent sur son téléphone. La route est donc listée comme publique
+ * dans le middleware d'authentification.
+ */
+const ajouterDemandeEnfant = (req: Request, res: Response) =>
+  functions
+    .ajouterDemandeEnfant(req.body)
+    .then((result: any) => {
+      diffuser(req, "demandeEnfantEcodim", { idUtilisateur: req.body?.idUtilisateur });
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
+
+const recupDemandesEnfantByUtilisateur = (req: Request, res: Response) =>
+  repondre(res, functions.recupDemandesEnfant(Number(req.params.idUtilisateur)));
+
+const validerDemandeEnfant = (req: Request, res: Response) => {
+  const data = req.body;
+
+  return functions
+    .validerDemandeEnfant({
+      idDemandeEnfant: Number(data?.idDemandeEnfant),
+      idUtilisateur: Number(data?.idUtilisateur),
+      modifications: data?.modifications,
+    })
+    .then((result: any) => {
+      diffuser(req, "validerDemandeEnfantEcodim", { idUtilisateur: data?.idUtilisateur });
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
+};
+
+const rejeterDemandeEnfant = (req: Request, res: Response) => {
+  const data = req.body;
+
+  return functions
+    .rejeterDemandeEnfant({
+      idDemandeEnfant: Number(data?.idDemandeEnfant),
+      idUtilisateur: Number(data?.idUtilisateur),
+      motifRejet: data?.motifRejet,
+    })
+    .then((result: any) => {
+      diffuser(req, "rejeterDemandeEnfantEcodim", { idUtilisateur: data?.idUtilisateur });
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
+};
+
 export default {
   recupClassesByUtilisateur,
   ajouterClasse,
@@ -361,4 +429,10 @@ export default {
   supprimerEvaluation,
   recupNotesByUtilisateur,
   enregistrerNotes,
+  recupPresencesByUtilisateur,
+  enregistrerAppel,
+  ajouterDemandeEnfant,
+  recupDemandesEnfantByUtilisateur,
+  validerDemandeEnfant,
+  rejeterDemandeEnfant,
 };
