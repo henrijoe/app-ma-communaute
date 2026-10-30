@@ -398,6 +398,78 @@ const rejeterDemandeEnfant = (req: Request, res: Response) => {
     .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
 };
 
+// ----------------------------------------------------------------- finances
+
+const recupFinancesByUtilisateur = (req: Request, res: Response) =>
+  repondre(res, functions.recupFinances(Number(req.params.idUtilisateur)));
+
+const recupFinancesSupprimeesByUtilisateur = (req: Request, res: Response) =>
+  repondre(res, functions.recupFinancesSupprimees(Number(req.params.idUtilisateur)));
+
+const ajouterFinance = (req: Request, res: Response) => {
+  const data = req.body;
+
+  return functions
+    .ajouterFinance(data)
+    .then((result: any) => {
+      diffuser(req, "ajouterFinanceEcodim", { idUtilisateur: data?.idUtilisateur, data: result });
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
+};
+
+const modifierFinance = (req: Request, res: Response) => {
+  const data = req.body;
+
+  return functions
+    .modifierFinance(data)
+    .then((result: any) => {
+      diffuser(req, "modifierFinanceEcodim", { idUtilisateur: data?.idUtilisateur, data: result });
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
+};
+
+const supprimerFinance = (req: Request, res: Response) => {
+  const { idFinanceEcodim, idUtilisateur, motifSuppressionFinance } = req.body;
+
+  return functions
+    .supprimerFinance(
+      Number(idFinanceEcodim),
+      Number(idUtilisateur),
+      motifSuppressionFinance
+    )
+    .then((result: any) => {
+      diffuser(req, "supprimerFinanceEcodim", { idUtilisateur, idFinanceEcodim });
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
+};
+
+const restaurerFinance = (req: Request, res: Response) => {
+  const { idFinanceEcodim, idUtilisateur } = req.body;
+
+  return functions
+    .restaurerFinance(Number(idFinanceEcodim), Number(idUtilisateur))
+    .then((result: any) => {
+      diffuser(req, "restaurerFinanceEcodim", { idUtilisateur, idFinanceEcodim });
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
+};
+
+const supprimerFinanceDefinitivement = (req: Request, res: Response) => {
+  const { idFinanceEcodim, idUtilisateur } = req.body;
+
+  return functions
+    .supprimerFinanceDefinitivement(Number(idFinanceEcodim), Number(idUtilisateur))
+    .then((result: any) => {
+      diffuser(req, "supprimerFinanceEcodimDefinitivement", { idUtilisateur, idFinanceEcodim });
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
+};
+
 export default {
   recupClassesByUtilisateur,
   ajouterClasse,
@@ -435,4 +507,11 @@ export default {
   recupDemandesEnfantByUtilisateur,
   validerDemandeEnfant,
   rejeterDemandeEnfant,
+  recupFinancesByUtilisateur,
+  recupFinancesSupprimeesByUtilisateur,
+  ajouterFinance,
+  modifierFinance,
+  supprimerFinance,
+  restaurerFinance,
+  supprimerFinanceDefinitivement,
 };

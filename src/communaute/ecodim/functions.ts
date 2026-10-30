@@ -13,6 +13,11 @@ import path from "path";
 import { _executeSql, _selectSql } from "../../db";
 import sqliteDB from "../../db/sqliteDB";
 import {
+  REGISTRE_ENFANT,
+  attribuerMatricule,
+  reprendreMatricules,
+} from "../../helpers/matricule";
+import {
   IClasseEcodim,
   ICulteEcodim,
   IEnfantEcodim,
@@ -103,6 +108,26 @@ const reprendreRattachementsAnciens = async (idUtilisateur: number): Promise<voi
   }
 };
 
+/**
+ * Condition qui écarte un moniteur dont le membre est décédé.
+ *
+ * Un décès retire le membre de toutes ses listes (`membre` est lu avec
+ * `COALESCE(estDecede, 0) <> 1`). Son rattachement à l'Ecodim doit suivre : il
+ * serait incompréhensible de ne plus le trouver dans les membres et de le voir
+ * encore proposé comme moniteur d'une classe.
+ *
+ * Rien n'est supprimé : la ligne `ecodim_moniteur` reste en base avec ses
+ * classes. Retirer le décès du membre le fait réapparaître tel qu'il était.
+ *
+ * La sous-requête est corrélée plutôt que jointe pour servir aussi dans les
+ * `COUNT` de `recupClasses`, où la table `membre` n'est pas de la partie. Le
+ * `COALESCE` couvre le moniteur sans membre rattaché : la sous-requête ne rend
+ * alors rien, la valeur vaut 0, et le moniteur est conservé.
+ */
+const MONITEUR_VIVANT = `COALESCE(
+      (SELECT membre.estDecede FROM membre WHERE membre.idMembre = moniteur.idMembre), 0
+    ) <> 1`;
+
 // ----------------------------------------------------------------- classes
 
 /**
@@ -122,7 +147,8 @@ export const recupClasses = async (idUtilisateur: number): Promise<any[]> => {
             (SELECT COUNT(*) FROM ecodim_moniteur_classe lien
                JOIN ecodim_moniteur moniteur ON moniteur.idMoniteur = lien.idMoniteur
               WHERE lien.idClasseEcodim = classe.idClasseEcodim
-                AND COALESCE(moniteur.actifMoniteur, 1) = 1) AS nombreMoniteurs,
+                AND COALESCE(moniteur.actifMoniteur, 1) = 1
+                AND ${MONITEUR_VIVANT}) AS nombreMoniteurs,
             (SELECT lien.idMoniteur
                FROM ecodim_moniteur_classe lien
               WHERE lien.idClasseEcodim = classe.idClasseEcodim
@@ -139,7 +165,8 @@ export const recupClasses = async (idUtilisateur: number): Promise<any[]> => {
        FROM ecodim_moniteur_classe lien
        JOIN ecodim_moniteur moniteur ON moniteur.idMoniteur = lien.idMoniteur
        LEFT JOIN membre ON membre.idMembre = moniteur.idMembre
-      WHERE lien.idUtilisateur = ? AND lien.estPrincipal = 1`,
+      WHERE lien.idUtilisateur = ? AND lien.estPrincipal = 1
+        AND ${MONITEUR_VIVANT}`,
     [idUtilisateur]
   );
 
@@ -211,8 +238,14 @@ export const supprimerClasse = async (
   idUtilisateur: number
 ): Promise<boolean> => {
   const rattaches: any = await _selectSql(
+    // Un moniteur décédé ne compte pas : il n'apparaît plus nulle part, et
+    // refuser la suppression à cause de lui laisserait une classe impossible
+    // à supprimer sans qu'on puisse voir ce qui la retient.
     `SELECT (SELECT COUNT(*) FROM ecodim_enfant WHERE idClasseEcodim = ?) AS enfants,
-            (SELECT COUNT(*) FROM ecodim_moniteur_classe WHERE idClasseEcodim = ?) AS moniteurs`,
+            (SELECT COUNT(*) FROM ecodim_moniteur_classe lien
+               JOIN ecodim_moniteur moniteur ON moniteur.idMoniteur = lien.idMoniteur
+              WHERE lien.idClasseEcodim = ?
+                AND ${MONITEUR_VIVANT}) AS moniteurs`,
     [idClasseEcodim, idClasseEcodim]
   );
 
@@ -265,6 +298,7 @@ export const recupMoniteurs = async (idUtilisateur: number): Promise<any[]> => {
        FROM ecodim_moniteur moniteur
        LEFT JOIN membre ON membre.idMembre = moniteur.idMembre
       WHERE moniteur.idUtilisateur = ?
+        AND ${MONITEUR_VIVANT}
       ORDER BY membre.nomMembre ASC`,
     [idUtilisateur]
   );
@@ -406,8 +440,18 @@ export const supprimerMoniteur = async (
 
 // ----------------------------------------------------------------- enfants
 
-export const recupEnfants = (idUtilisateur: number): Promise<any[]> =>
-  _selectSql(
+export const recupEnfants = async (idUtilisateur: number): Promise<any[]> => {
+  // Les enfants saisis avant l'arrivée du matricule reçoivent le leur ici, au
+  // premier affichage de la liste — comme les rattachements de moniteurs plus
+  // haut. L'année retenue est celle de l'inscription, puis de l'entrée, puis de
+  // la création : un enfant entré en 2024 doit garder 2024 dans son numéro.
+  await reprendreMatricules(REGISTRE_ENFANT, idUtilisateur, [
+    "dateInscriptionEcodim",
+    "dateEntreeEcodim",
+    "dateCreation",
+  ]);
+
+  return _selectSql(
     `SELECT enfant.*, classe.libelleClasse
        FROM ecodim_enfant enfant
        LEFT JOIN ecodim_classe classe ON classe.idClasseEcodim = enfant.idClasseEcodim
@@ -415,6 +459,11 @@ export const recupEnfants = (idUtilisateur: number): Promise<any[]> =>
       ORDER BY enfant.nomEnfant ASC, enfant.prenomEnfant ASC`,
     [idUtilisateur]
   );
+};
+
+/** La case « inscrit » arrive en booléen du formulaire, en nombre d'une ligne relue. */
+const estInscrit = (d: IEnfantEcodim): boolean =>
+  d.inscritEcodim === true || Number(d.inscritEcodim) === 1;
 
 /**
  * Les colonnes du dossier enfant, avec la façon d'en extraire la valeur.
@@ -469,6 +518,13 @@ const CHAMPS_ENFANT: { nom: string; valeur: (data: IEnfantEcodim) => any }[] = [
   { nom: "responsabiliteTuteurEglise", valeur: (d) => texte(d.responsabiliteTuteurEglise) },
   { nom: "professionTuteur", valeur: (d) => texte(d.professionTuteur) },
 
+  { nom: "inscritEcodim", valeur: (d) => (estInscrit(d) ? 1 : 0) },
+  // Une date d'inscription sans la case cochée se lirait comme une inscription :
+  // décocher efface donc la date.
+  {
+    nom: "dateInscriptionEcodim",
+    valeur: (d) => (estInscrit(d) ? texte(d.dateInscriptionEcodim) || null : null),
+  },
   { nom: "dateEntreeEcodim", valeur: (d) => texte(d.dateEntreeEcodim) || null },
   { nom: "niveauEntreeEcodim", valeur: (d) => texte(d.niveauEntreeEcodim) },
   { nom: "niveauActuelEcodim", valeur: (d) => texte(d.niveauActuelEcodim) },
@@ -614,6 +670,22 @@ export const ajouterEnfant = async (data: IEnfantEcodim): Promise<any> => {
   );
 
   const idEnfantEcodim = resultat?.insertId ?? resultat?.lastID ?? null;
+
+  // Le matricule est posé juste après l'insertion : il se calcule à partir des
+  // matricules déjà attribués, donc une fois la ligne en base. L'année est
+  // celle de l'inscription si elle est connue, sinon l'année courante.
+  if (idEnfantEcodim) {
+    const anneeInscription = Number(
+      String(texte(data.dateInscriptionEcodim) || texte(data.dateEntreeEcodim)).slice(0, 4)
+    );
+
+    await attribuerMatricule(
+      REGISTRE_ENFANT,
+      Number(idEnfantEcodim),
+      Number(data.idUtilisateur),
+      anneeInscription > 1900 ? anneeInscription : undefined
+    );
+  }
 
   // La photo ne peut être nommée qu'une fois l'identifiant connu, comme pour un membre.
   const photoRecue = texte((data as any).photoEnfant);
@@ -1229,7 +1301,7 @@ export const enregistrerNotes = async (donnees: {
 // --------------------------------------------------------------- assiduité
 
 /** Statuts d'appel acceptés. Sans accent, comme les autres valeurs à choix. */
-const STATUTS_PRESENCE = ["present", "absent", "excuse"];
+const STATUTS_PRESENCE = ["present", "absent", "deplacement"];
 
 /**
  * Appel nominatif, toutes séances confondues.
@@ -1559,6 +1631,158 @@ export const rejeterDemandeEnfant = async (donnees: {
   return true;
 };
 
+// ----------------------------------------------------------------- finances
+
+/**
+ * Les colonnes de la caisse, avec la façon d'en extraire la valeur.
+ *
+ * Même principe que pour le cahier de texte et le dossier enfant : les noms de
+ * colonnes, les points d'interrogation et les valeurs dérivent tous de cette
+ * unique liste, pour qu'un champ ajouté ne décale pas la requête d'un cran.
+ */
+const CHAMPS_FINANCE: { nom: string; valeur: (data: any) => any }[] = [
+  { nom: "libelleFinance", valeur: (d) => texte(d.libelleFinance) },
+  // Une ligne est une recette OU une dépense : le type décide lequel des deux
+  // montants est renseigné, et l'autre reste à zéro. Les additionner en aveugle
+  // sur une ligne mal saisie fausserait tout le solde.
+  { nom: "typeFinance", valeur: (d) => (texte(d.typeFinance) === "recette" ? "recette" : "depense") },
+  {
+    nom: "entreeFinance",
+    valeur: (d) => (texte(d.typeFinance) === "recette" ? Number(d.montantFinance) || 0 : 0),
+  },
+  {
+    nom: "sortieFinance",
+    valeur: (d) => (texte(d.typeFinance) === "recette" ? 0 : Number(d.montantFinance) || 0),
+  },
+  { nom: "dateFinance", valeur: (d) => texte(d.dateFinance) || null },
+  { nom: "categorieFinance", valeur: (d) => texte(d.categorieFinance) },
+  { nom: "observationFinance", valeur: (d) => texte(d.observationFinance) },
+  { nom: "idClasseEcodim", valeur: (d) => nombre(d.idClasseEcodim) },
+  { nom: "idActiviteEcodim", valeur: (d) => nombre(d.idActiviteEcodim) },
+];
+
+const COLONNES_FINANCE = CHAMPS_FINANCE.map((champ) => champ.nom).join(", ");
+const PLACEHOLDERS_FINANCE = CHAMPS_FINANCE.map(() => "?").join(",");
+const AFFECTATIONS_FINANCE = CHAMPS_FINANCE.map((champ) => `${champ.nom} = ?`).join(", ");
+
+const valeursFinance = (data: any) => CHAMPS_FINANCE.map((champ) => champ.valeur(data));
+
+/**
+ * Mouvements de la caisse, du plus récent au plus ancien.
+ *
+ * Les lignes mises à la corbeille sont écartées : `recupFinancesSupprimees` les
+ * rend séparément, comme le fait la comptabilité de l'église.
+ */
+export const recupFinances = async (idUtilisateur: number): Promise<any[]> => {
+  const lignes: any = await _selectSql(
+    `SELECT finance.*,
+            classe.libelleClasse,
+            activite.titreActivite
+       FROM ecodim_finance finance
+       LEFT JOIN ecodim_classe classe ON classe.idClasseEcodim = finance.idClasseEcodim
+       LEFT JOIN ecodim_activite activite ON activite.idActiviteEcodim = finance.idActiviteEcodim
+      WHERE finance.idUtilisateur = ?
+        AND COALESCE(finance.estSupprimeFinance, 0) <> 1
+      ORDER BY finance.dateFinance DESC, finance.idFinanceEcodim DESC`,
+    [idUtilisateur]
+  );
+
+  return Array.isArray(lignes) ? lignes : [];
+};
+
+/** Mouvements mis à la corbeille, pour les relire ou les restaurer. */
+export const recupFinancesSupprimees = async (idUtilisateur: number): Promise<any[]> => {
+  const lignes: any = await _selectSql(
+    `SELECT finance.*,
+            classe.libelleClasse,
+            activite.titreActivite
+       FROM ecodim_finance finance
+       LEFT JOIN ecodim_classe classe ON classe.idClasseEcodim = finance.idClasseEcodim
+       LEFT JOIN ecodim_activite activite ON activite.idActiviteEcodim = finance.idActiviteEcodim
+      WHERE finance.idUtilisateur = ?
+        AND COALESCE(finance.estSupprimeFinance, 0) = 1
+      ORDER BY finance.dateSuppressionFinance DESC, finance.idFinanceEcodim DESC`,
+    [idUtilisateur]
+  );
+
+  return Array.isArray(lignes) ? lignes : [];
+};
+
+export const ajouterFinance = async (data: any): Promise<any> => {
+  const resultat: any = await _executeSql(
+    `INSERT INTO ecodim_finance (${COLONNES_FINANCE}, idUtilisateur)
+     VALUES (${PLACEHOLDERS_FINANCE},?)`,
+    [...valeursFinance(data), data.idUtilisateur]
+  );
+
+  return resultat?.insertId ?? resultat?.lastID ?? null;
+};
+
+export const modifierFinance = async (data: any): Promise<boolean> => {
+  await _executeSql(
+    `UPDATE ecodim_finance SET ${AFFECTATIONS_FINANCE}
+      WHERE idFinanceEcodim = ? AND idUtilisateur = ?`,
+    [...valeursFinance(data), data.idFinanceEcodim, data.idUtilisateur]
+  );
+
+  return true;
+};
+
+/**
+ * Met un mouvement à la corbeille.
+ *
+ * Une caisse ne se corrige pas en effaçant : une ligne retirée doit rester
+ * consultable, avec son motif, pour que le point financier d'un mois passé
+ * puisse toujours s'expliquer.
+ */
+export const supprimerFinance = async (
+  idFinanceEcodim: number,
+  idUtilisateur: number,
+  motif?: string
+): Promise<boolean> => {
+  await _executeSql(
+    `UPDATE ecodim_finance
+        SET estSupprimeFinance = 1,
+            dateSuppressionFinance = ?,
+            motifSuppressionFinance = ?
+      WHERE idFinanceEcodim = ? AND idUtilisateur = ?`,
+    [new Date().toISOString(), texte(motif), idFinanceEcodim, idUtilisateur]
+  );
+
+  return true;
+};
+
+export const restaurerFinance = async (
+  idFinanceEcodim: number,
+  idUtilisateur: number
+): Promise<boolean> => {
+  await _executeSql(
+    `UPDATE ecodim_finance
+        SET estSupprimeFinance = 0,
+            dateSuppressionFinance = NULL,
+            motifSuppressionFinance = ''
+      WHERE idFinanceEcodim = ? AND idUtilisateur = ?`,
+    [idFinanceEcodim, idUtilisateur]
+  );
+
+  return true;
+};
+
+/** Suppression définitive, réservée aux lignes déjà à la corbeille. */
+export const supprimerFinanceDefinitivement = async (
+  idFinanceEcodim: number,
+  idUtilisateur: number
+): Promise<boolean> => {
+  await _executeSql(
+    `DELETE FROM ecodim_finance
+      WHERE idFinanceEcodim = ? AND idUtilisateur = ?
+        AND COALESCE(estSupprimeFinance, 0) = 1`,
+    [idFinanceEcodim, idUtilisateur]
+  );
+
+  return true;
+};
+
 export default {
   recupClasses,
   ajouterClasse,
@@ -1596,4 +1820,11 @@ export default {
   recupDemandesEnfant,
   validerDemandeEnfant,
   rejeterDemandeEnfant,
+  recupFinances,
+  recupFinancesSupprimees,
+  ajouterFinance,
+  modifierFinance,
+  supprimerFinance,
+  restaurerFinance,
+  supprimerFinanceDefinitivement,
 };

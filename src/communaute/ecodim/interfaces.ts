@@ -70,6 +70,9 @@ export interface IEnfantEcodim {
   responsabiliteTuteurEglise?: string;
   professionTuteur?: string;
 
+  inscritEcodim?: number | boolean;
+  dateInscriptionEcodim?: string | null;
+
   dateEntreeEcodim?: string | null;
   niveauEntreeEcodim?: string;
   niveauActuelEcodim?: string;
@@ -137,7 +140,7 @@ export interface INoteEcodim {
 /** Une ligne d'appel : un enfant, pour une seance donnee. */
 export interface IPresenceEcodim {
   idEnfantEcodim: number;
-  /** present, absent ou excuse. Sans accent, comme les autres valeurs a choix. */
+  /** present, absent ou deplacement. Sans accent, comme les autres valeurs a choix. */
   statutPresence?: string;
   motifPresence?: string;
 }

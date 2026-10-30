@@ -3,7 +3,11 @@ import os from "os";
 import path from "path";
 import sqlite3 from "sqlite3";
 
-import { buildSharedColumnStatements, buildSharedCreateStatements } from "./schema";
+import {
+  SHARED_DATA_MIGRATIONS,
+  buildSharedColumnStatements,
+  buildSharedCreateStatements,
+} from "./schema";
 
 const AdmZip = require("adm-zip");
 
@@ -940,6 +944,17 @@ const ensureSharedSchemaTables = async (database: sqlite3.Database): Promise<voi
       await execDatabase(database, statement);
     } catch (_error) {
       // colonne déjà en place
+    }
+  }
+
+  // Reprises de contenu : une valeur à choix renommée. Sans effet une fois
+  // passées, et une base où la table n'existe pas encore ne doit pas bloquer le
+  // démarrage pour autant.
+  for (const statement of SHARED_DATA_MIGRATIONS) {
+    try {
+      await execDatabase(database, statement);
+    } catch (_error) {
+      // rien à reprendre sur cette base
     }
   }
 };

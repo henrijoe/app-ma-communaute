@@ -7,6 +7,7 @@ import sqliteDB from "./db/sqliteDB";
 import { _executeSql } from "./db";
 import {
   SHARED_TABLES,
+  SHARED_DATA_MIGRATIONS,
   buildSharedColumnStatements,
   buildSharedCreateStatements,
 } from "./db/schema";
@@ -215,6 +216,16 @@ const ensureSharedSchemaForMysql = async (): Promise<number> => {
       await _executeSql(statement, []);
     } catch (_error) {
       // colonne déjà en place
+    }
+  }
+
+  // Reprises de contenu : une valeur à choix renommée. Sans effet une fois
+  // passées, elles doivent tourner sur les deux moteurs.
+  for (const statement of SHARED_DATA_MIGRATIONS) {
+    try {
+      await _executeSql(statement, []);
+    } catch (_error) {
+      // rien à reprendre sur cette base
     }
   }
 

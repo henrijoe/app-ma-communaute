@@ -12,9 +12,9 @@ const ajouterCulte = (data: ICulte) => {
     data.nombreHommeCulte,
     data.nombreFemmeCulte,
     data.offrandeCulte,
+    data.dimeCulte,
     data.ecodim,
     data.filleEcodim,
-    data.offrandeEcodim,
     data.resumePredication,
     data.idUtilisateur,
   ];
@@ -28,7 +28,10 @@ const ajouterCulte = (data: ICulte) => {
         return reject(new Error("Ce culte existe déjà."));
       }
 
-      const sql = `INSERT INTO culte(typeCulte,dateCulte,dirigeant,predication,passageBiblique,themePredication,nombreHommeCulte,nombreFemmeCulte,offrandeCulte,ecodim,filleEcodim,offrandeEcodim,resumePredication,idUtilisateur) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+      // `offrandeEcodim` ne figure plus ici : la caisse de l'école du dimanche
+      // est tenue à part (table `ecodim_finance`). La colonne reste en base
+      // pour que les relevés déjà saisis gardent leur montant.
+      const sql = `INSERT INTO culte(typeCulte,dateCulte,dirigeant,predication,passageBiblique,themePredication,nombreHommeCulte,nombreFemmeCulte,offrandeCulte,dimeCulte,ecodim,filleEcodim,resumePredication,idUtilisateur) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
       const culteData: any = await _executeSql(sql, values);
       resolve(culteData.insertId);
     } catch (error) {
@@ -91,7 +94,9 @@ const supprimerCulte = (idCulte: number, idUtilisateur: number): Promise<boolean
 const modifierCulte = (data: ICulte): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
     try {
-      const sql = `UPDATE culte SET typeCulte=?,dateCulte=?,dirigeant=?,predication=?,passageBiblique=?,themePredication=?,nombreHommeCulte=?,nombreFemmeCulte=?,offrandeCulte=?,ecodim=?,filleEcodim=?,offrandeEcodim=?,resumePredication=? WHERE idCulte=? AND idUtilisateur=?`;
+      // Même remarque qu'à l'insertion : `offrandeEcodim` n'est plus écrite,
+      // donc une modification de culte ne l'efface pas non plus.
+      const sql = `UPDATE culte SET typeCulte=?,dateCulte=?,dirigeant=?,predication=?,passageBiblique=?,themePredication=?,nombreHommeCulte=?,nombreFemmeCulte=?,offrandeCulte=?,dimeCulte=?,ecodim=?,filleEcodim=?,resumePredication=? WHERE idCulte=? AND idUtilisateur=?`;
       await _executeSql(sql, [
         data.typeCulte,
         data.dateCulte,
@@ -102,9 +107,9 @@ const modifierCulte = (data: ICulte): Promise<boolean> => {
         data.nombreHommeCulte,
         data.nombreFemmeCulte,
         data.offrandeCulte,
+        data.dimeCulte,
         data.ecodim,
         data.filleEcodim,
-        data.offrandeEcodim,
         data.resumePredication,
         data.idCulte,
         data.idUtilisateur,

@@ -90,7 +90,14 @@ type DesktopUnlockCodeExport = {
   exportedAt: string;
 };
 
-const DEFAULT_DESKTOP_TRIAL_DAYS = Number(process.env.DESKTOP_TRIAL_DAYS || 15);
+// Période d'essai d'une installation neuve, et durée par défaut d'un
+// renouvellement manuel. Portée de 15 à 30 jours pour la phase de test : deux
+// semaines laissaient à peine le temps de saisir les membres et de tenir un
+// mois de cultes avant que l'accès ne se ferme.
+//
+// Rien d'autre ne change dans le verrou : même blocage, même déblocage, mêmes
+// codes. DESKTOP_TRIAL_DAYS permet de régler la durée sans retoucher le code.
+const DEFAULT_DESKTOP_TRIAL_DAYS = Number(process.env.DESKTOP_TRIAL_DAYS || 30);
 
 // Le verrou de licence protège une installation posée chez un client : il n'a aucun
 // sens sur un serveur partagé, où l'empreinte machine change au moindre redimensionnement

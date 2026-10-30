@@ -1,6 +1,11 @@
 ﻿import fs from 'fs';
 
 import { _executeSql, _selectSql } from '../../db';
+import {
+  REGISTRE_MEMBRE,
+  attribuerMatricule,
+  reprendreMatricules,
+} from '../../helpers/matricule';
 import { getAvatarsPath, saveFileToBase64 } from '../functions';
 import utilisateurFunctions from '../utlisateur/functions';
 import { IMembre } from './interfaces';
@@ -421,6 +426,11 @@ const ajouterMembre = (data: IMembre) => {
         }
       }
 
+      // Le matricule est posé après l'insertion, et non dans la requête
+      // ci-dessus : celle-ci aligne trente-neuf valeurs positionnelles, et y
+      // glisser une colonne de plus décalerait tout sans lever d'erreur.
+      await attribuerMatricule(REGISTRE_MEMBRE, Number(insertedId), Number(data.idUtilisateur));
+
       const membre: any = await recupMembreById(insertedId);
       resolve(membre[0]);
     } catch (error) {
@@ -459,6 +469,12 @@ const recupMembreById = (id: number) => {
 const recupMembreByIdUtilsateur = (idUtilisateur: number) => {
   return new Promise(async (resolve, reject) => {
     try {
+      // Les membres saisis avant l'arrivée du matricule reçoivent le leur ici,
+      // au premier affichage de la liste. La table `membre` ne porte aucune
+      // date de création : ces reprises prennent donc l'année courante, dans
+      // leur ordre d'enregistrement.
+      await reprendreMatricules(REGISTRE_MEMBRE, idUtilisateur);
+
       const sql = 'SELECT * FROM membre WHERE idUtilisateur = ? AND COALESCE(estDecede, 0) <> 1;';
       const membre = await _selectSql(sql, [idUtilisateur]);
       // Une liste vide est un résultat valide : une église qui vient d'être créée
