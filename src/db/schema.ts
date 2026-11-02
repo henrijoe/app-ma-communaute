@@ -274,6 +274,15 @@ const ecodimEnfant: TableDefinition = {
     // elle, dit depuis quand l'enfant vient, inscrit ou non.
     { name: "inscritEcodim", type: "int", default: "0" },
     { name: "dateInscriptionEcodim", type: "text" },
+    // Frais verses par l'enfant a son inscription, en francs CFA — donc un
+    // entier : la monnaie n'a pas de centimes, et un reel introduirait des
+    // arrondis la ou il n'y en a pas.
+    //
+    // Le montant est porte par l'enfant et non par un tarif unique : une
+    // paroisse module selon les familles, et une fratrie ne paie pas toujours
+    // le plein tarif. Zero est une valeur valable — un enfant inscrit sans
+    // avoir encore verse.
+    { name: "montantInscriptionEcodim", type: "int", default: "0" },
 
     { name: "dateEntreeEcodim", type: "text" },
     { name: "niveauEntreeEcodim", type: "text", default: "''" },

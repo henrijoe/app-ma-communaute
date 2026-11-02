@@ -525,6 +525,13 @@ const CHAMPS_ENFANT: { nom: string; valeur: (data: IEnfantEcodim) => any }[] = [
     nom: "dateInscriptionEcodim",
     valeur: (d) => (estInscrit(d) ? texte(d.dateInscriptionEcodim) || null : null),
   },
+  // Même règle pour les frais : décocher l'inscription remet le montant à
+  // zéro, sinon un enfant non inscrit continuerait de peser dans le total
+  // encaissé.
+  {
+    nom: "montantInscriptionEcodim",
+    valeur: (d) => (estInscrit(d) ? Number(d.montantInscriptionEcodim) || 0 : 0),
+  },
   { nom: "dateEntreeEcodim", valeur: (d) => texte(d.dateEntreeEcodim) || null },
   { nom: "niveauEntreeEcodim", valeur: (d) => texte(d.niveauEntreeEcodim) },
   { nom: "niveauActuelEcodim", valeur: (d) => texte(d.niveauActuelEcodim) },

@@ -72,6 +72,8 @@ export interface IEnfantEcodim {
 
   inscritEcodim?: number | boolean;
   dateInscriptionEcodim?: string | null;
+  /** Frais versés à l'inscription, en francs CFA. */
+  montantInscriptionEcodim?: number | string | null;
 
   dateEntreeEcodim?: string | null;
   niveauEntreeEcodim?: string;
