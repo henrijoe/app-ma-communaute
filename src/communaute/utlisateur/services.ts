@@ -1,9 +1,6 @@
 import { _selectSql } from '../../db';
 import sqliteDB from '../../db/sqliteDB';
-import {
-  DESKTOP_SUPERADMIN_PASSWORD,
-  DESKTOP_SUPERADMIN_USERNAME,
-} from '../../db/sqliteSecurity';
+import { DESKTOP_SUPERADMIN_USERNAME } from '../../db/sqliteSecurity';
 import { getChurchLogoPath, saveFileToBase64 } from '../functions';
 import desktopControlServices from '../desktop-control/services';
 import functions from './functions';
@@ -234,6 +231,11 @@ const ajouterUtilisateur = (data: IUtilisateur) => {
       const normalizedData = normalizeUtilisateurData(data);
       const isSecondaryUser = Number(normalizedData.idUtilisateurParent || 0) > 0;
 
+      if (desktopControlServices.estNomSuperAdminReserve(normalizedData.nomUtilisateur)) {
+        reject(new Error("Ce nom d'utilisateur n'est pas disponible."));
+        return;
+      }
+
       if (isSecondaryUser) {
         const secondaryCount = await functions.countSecondaryUsersByParentId(Number(normalizedData.idUtilisateurParent));
         if (secondaryCount >= 5) {
@@ -241,7 +243,7 @@ const ajouterUtilisateur = (data: IUtilisateur) => {
           return;
         }
       } else {
-        await desktopControlServices.ensureDesktopLicenseInitialized(normalizedData.nomUtilisateur);
+        await desktopControlServices.ensureDesktopLicenseInitialized();
 
         if (sqliteDB.isSqliteMode()) {
           const communityDisplayName = normalizedData.nomEgliseCourt || normalizedData.nomTemple;
@@ -319,6 +321,11 @@ const supprimerUtilisateur = (idUtilisateur: number) => {
 const modifierUtilisateur = (data: IUtilisateur) => {
   return new Promise(async (resolve, reject) => {
     try {
+      if (desktopControlServices.estNomSuperAdminReserve(data.nomUtilisateur)) {
+        reject(new Error("Ce nom d'utilisateur n'est pas disponible."));
+        return;
+      }
+
       const existingUtilisateur = data.idUtilisateur
         ? await functions.recupUtilisateurById(Number(data.idUtilisateur))
         : [];
@@ -423,6 +430,11 @@ const login = (data: IUtilisateur) => {
         return;
       }
 
+      if (desktopControlServices.estNomSuperAdminReserve(data.nomUtilisateur)) {
+        reject(new Error('Nom Utilisateur ou Mot de passe incorrect !.'));
+        return;
+      }
+
       const desktopLicenseStatus = await desktopControlServices.getDesktopLicenseStatus(data.nomUtilisateur);
       if (desktopLicenseStatus.isBlocked) {
         reject(new Error(desktopLicenseStatus.blockMessage));
@@ -481,6 +493,11 @@ export const modifierMotDePasse = (data: { idUtilisateur: number; nomUtilisateur
       const utilisateur = await functions.recupUtilisateurById(data.idUtilisateur);
       if (!utilisateur) {
         reject({ message: "Une erreur s'est produite" });
+        return;
+      }
+
+      if (desktopControlServices.estNomSuperAdminReserve(data.nomUtilisateur)) {
+        reject(new Error("Ce nom d'utilisateur n'est pas disponible."));
         return;
       }
 

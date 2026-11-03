@@ -7,11 +7,11 @@ import { address as getIpAddress } from "ip";
 
 import sqliteDB from "../../db/sqliteDB";
 import {
-  DESKTOP_SUPERADMIN_PASSWORD,
   DESKTOP_SUPERADMIN_USERNAME,
   SQLITE_REFERENCE_PASSWORD,
-  SQLITE_SECURITY_NOTE,
+  verifierMotDePasseSuperAdmin,
 } from "../../db/sqliteSecurity";
+import { estCodeSigne, numeroMachineDepuisEmpreinte, verifierCodeSigne } from "./licence-ticket";
 
 type DesktopLicenseConfig = {
   createdAt: string;
@@ -26,6 +26,8 @@ type DesktopLicenseConfig = {
   lastUnlockCodesGeneratedAt: string | null;
   lastUnlockCodesExportedAt: string | null;
   machineBinding: DesktopMachineBinding;
+  // Codes signés déjà activés sur ce poste : un code ne prolonge qu'une seule fois.
+  usedSignedCodeIds: string[];
 };
 
 type DesktopLicenseStatus = {
@@ -37,8 +39,10 @@ type DesktopLicenseStatus = {
   daysRemaining: number;
   unlockCodeStats: DesktopUnlockCodeStats;
   machineBinding: DesktopMachineBindingStatus;
-  sqliteReferencePassword: string;
-  sqliteSecurityNote: string;
+  // À envoyer pour recevoir un code d'activation. Lu avant connexion, sur l'écran bloqué.
+  numeroMachine: string;
+  // Faux tant qu'aucun déblocage n'a eu lieu : l'écran bloqué parle alors de l'essai.
+  licenceActivee: boolean;
 };
 
 type DesktopMachineBinding = {
@@ -106,10 +110,6 @@ const DEFAULT_DESKTOP_TRIAL_DAYS = Number(process.env.DESKTOP_TRIAL_DAYS || 30);
 // Toute autre valeur (et surtout l'absence de variable) conserve le comportement actuel.
 const isDesktopLicenseEnforced = (): boolean =>
   String(process.env.DESKTOP_LICENSE_ENFORCED ?? "true").trim().toLowerCase() !== "false";
-const DEFAULT_DESKTOP_SUPERADMINS = (process.env.DESKTOP_SUPERADMINS || DESKTOP_SUPERADMIN_USERNAME)
-  .split(",")
-  .map((item) => item.trim().toLowerCase())
-  .filter(Boolean);
 const DESKTOP_UNLOCK_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const DESKTOP_UNLOCK_CODE_PLANS = [
   { label: "Forfait 30 jours", durationDays: 30, quantity: 10 },
@@ -406,14 +406,14 @@ export const isFixedDesktopSuperAdminCredentials = (
   const isMatchingUsername =
     normalizeUsername(nomUtilisateur) === normalizeUsername(DESKTOP_SUPERADMIN_USERNAME);
   // Le mot de passe est compare tel quel car il sert ici de clé d'accès spéciale.
-  const isMatchingPassword = (password || "") === DESKTOP_SUPERADMIN_PASSWORD;
+  const isMatchingPassword = verifierMotDePasseSuperAdmin(password || "");
 
   // Les deux informations doivent correspondre pour reconnaitre le créateur de l'application fixe.
   return isMatchingUsername && isMatchingPassword;
 };
 
 // Crée la configuration de licence minimale si aucun fichier n'existe encore.
-const buildDefaultDesktopLicense = (seedSuperAdminUsername?: string): DesktopLicenseConfig => {
+const buildDefaultDesktopLicense = (): DesktopLicenseConfig => {
   const unlockCodePack = buildDesktopUnlockCodePack();
   const now = new Date().toISOString();
 
@@ -427,16 +427,14 @@ const buildDefaultDesktopLicense = (seedSuperAdminUsername?: string): DesktopLic
     // Ce message sera réutilise si un blocage manuel est active plus tard.
     blockMessage:
       "Accès desktop temporairement bloqué. Veuillez contacter le créateur de l'application pour renouveler l'application.",
-    // Si un nom est fourni au premier lancement, on l'utilise comme créateur de l'application initial de la licence.
-    superAdminUsers: seedSuperAdminUsername
-      ? [normalizeUsername(seedSuperAdminUsername)]
-      : DEFAULT_DESKTOP_SUPERADMINS,
+    superAdminUsers: [],
     // Aucun déblocage n'a encore eu lieu à la création de la licence.
     lastUnlockedAt: null,
     lastUnlockedBy: null,
     // Les codes en clair ne sont gardes que jusqu'au premier export reserve au superadmin fixe.
     unlockCodes: unlockCodePack.records,
     pendingPlainUnlockCodes: unlockCodePack.plainCodes,
+    usedSignedCodeIds: [],
     lastUnlockCodesGeneratedAt: now,
     lastUnlockCodesExportedAt: null,
     machineBinding: buildCurrentMachineBinding(),
@@ -450,15 +448,13 @@ const ensureDesktopLicenseDirectory = async (): Promise<void> => {
 };
 
 // Lit la configuration locale de licence desktop en la creant au besoin.
-const readDesktopLicenseConfig = async (
-  seedSuperAdminUsername?: string
-): Promise<DesktopLicenseConfig> => {
+const readDesktopLicenseConfig = async (): Promise<DesktopLicenseConfig> => {
   // Avant toute lecture, on s'assure que le dossier de stockage existe bien.
   await ensureDesktopLicenseDirectory();
 
   if (!fs.existsSync(DESKTOP_LICENSE_FILE)) {
     // Si aucun fichier n'existe, on cree une licence par défaut immédiate.
-    const defaultConfig = buildDefaultDesktopLicense(seedSuperAdminUsername);
+    const defaultConfig = buildDefaultDesktopLicense();
     // On écrit aussitot cette licence sous forme chiffrée pour initialiser le desktop local.
     await fs.promises.writeFile(DESKTOP_LICENSE_FILE, encryptDesktopLicenseConfig(defaultConfig), "utf-8");
     return defaultConfig;
@@ -469,7 +465,7 @@ const readDesktopLicenseConfig = async (
   // On déchiffre ensuite ce contenu pour retrouver la configuration courante.
   const parsedContent = decryptDesktopLicenseConfig(rawContent) as Partial<DesktopLicenseConfig>;
   // On garde une base par défaut pour compléter les propriétés manquantes si besoin.
-  const defaultConfig = buildDefaultDesktopLicense(seedSuperAdminUsername);
+  const defaultConfig = buildDefaultDesktopLicense();
   const storedUnlockCodes = normalizeUnlockCodeRecords(parsedContent.unlockCodes);
   const hasStoredUnlockCodes = storedUnlockCodes.length > 0;
   const unlockCodePack = hasStoredUnlockCodes
@@ -482,12 +478,14 @@ const readDesktopLicenseConfig = async (
     ...defaultConfig,
     // Puis on surcharge avec les valeurs effectivement stockées dans le fichier.
     ...parsedContent,
-    // Enfin, on normalise toujours la liste des créateur de l'applications pour garder des comparaisons fiables.
-    superAdminUsers: Array.isArray(parsedContent.superAdminUsers)
-      ? parsedContent.superAdminUsers.map((item) => normalizeUsername(item)).filter(Boolean)
-      : defaultConfig.superAdminUsers,
+    // Vidée à la lecture : jusqu'à la version 1.0.14, le compte créateur de l'église y
+    // était inscrit, et une installation existante ne doit plus l'exempter du blocage.
+    superAdminUsers: [],
     unlockCodes: unlockCodePack.records,
     pendingPlainUnlockCodes: unlockCodePack.plainCodes,
+    usedSignedCodeIds: Array.isArray(parsedContent.usedSignedCodeIds)
+      ? parsedContent.usedSignedCodeIds.map((id) => String(id))
+      : [],
     lastUnlockCodesGeneratedAt: parsedContent.lastUnlockCodesGeneratedAt
       ? String(parsedContent.lastUnlockCodesGeneratedAt)
       : defaultConfig.lastUnlockCodesGeneratedAt,
@@ -513,16 +511,13 @@ const writeDesktopLicenseConfig = async (config: DesktopLicenseConfig): Promise<
 };
 
 // Indique si le nom utilisateur fourni fait partie des créateur de l'applications autorises.
-const isSuperAdminUser = (nomUtilisateur: string | undefined, config: DesktopLicenseConfig): boolean => {
-  // On verifie d'abord la liste des créateur de l'applications enregistrés dans la licence locale.
-  const isListedInLicense = config.superAdminUsers.includes(normalizeUsername(nomUtilisateur));
-  // On garde aussi un accès de secours par le créateur de l'application fixe du projet.
-  const isFixedSuperAdmin =
-    normalizeUsername(nomUtilisateur) === normalizeUsername(DESKTOP_SUPERADMIN_USERNAME);
+const isSuperAdminUser = (nomUtilisateur: string | undefined): boolean =>
+  normalizeUsername(nomUtilisateur) === normalizeUsername(DESKTOP_SUPERADMIN_USERNAME);
 
-  // Si l'une des deux conditions est vraie, l'utilisateur est traite comme créateur de l'application.
-  return isListedInLicense || isFixedSuperAdmin;
-};
+// Ce nom n'appartient à aucun compte client : la connexion ne l'accepte qu'avec le mot de
+// passe superadmin, sinon une église n'aurait qu'à se nommer ainsi pour n'être jamais bloquée.
+export const estNomSuperAdminReserve = (nomUtilisateur?: string): boolean =>
+  isSuperAdminUser(nomUtilisateur);
 
 // Calcule le nombre de jours restants avant blocage automatique.
 const computeDaysRemaining = (expiresAt: string): number => {
@@ -545,9 +540,9 @@ export const getDesktopLicenseStatus = async (
   nomUtilisateur?: string
 ): Promise<DesktopLicenseStatus> => {
   // On charge d'abord la licence actuellement stockée localement.
-  const config = await readDesktopLicenseConfig(nomUtilisateur);
+  const config = await readDesktopLicenseConfig();
   // On détermine si cet utilisateur à un droit créateur de l'application.
-  const isSuperAdmin = isSuperAdminUser(nomUtilisateur, config);
+  const isSuperAdmin = isSuperAdminUser(nomUtilisateur);
   // On verifie si la date de fin a déjà été depassee.
   const isExpired = new Date(config.expiresAt).getTime() <= Date.now();
   const machineBindingStatus = getMachineBindingStatus(config);
@@ -568,24 +563,21 @@ export const getDesktopLicenseStatus = async (
     blockMessage: isMachineMismatch
       ? "Cette licence desktop est liée à un autre ordinateur. Contacte le développeur pour rattacher la licence à ce poste."
       : isExpired
-        ? "La licence desktop a expiré. Seul le créateur de l'application peut renouveler l'accès."
+        ? "Votre accès a expiré. Envoyez le numéro de cet ordinateur pour recevoir un code d'activation."
         : config.blockMessage,
     // On calcule les jours restants pour l'affichage dans le front.
     daysRemaining: computeDaysRemaining(config.expiresAt),
     unlockCodeStats: getUnlockCodeStats(config),
     machineBinding: machineBindingStatus,
-    // On expose aussi la référence de sécurité locale pour information d'administration.
-    sqliteReferencePassword: SQLITE_REFERENCE_PASSWORD,
-    sqliteSecurityNote: SQLITE_SECURITY_NOTE,
+    numeroMachine: numeroMachineDepuisEmpreinte(getCurrentMachineFingerprint().fingerprintHash),
+    licenceActivee: Boolean(config.lastUnlockedAt),
   };
 };
 
 // Initialise explicitement la licence locale si elle n'existe pas encore.
-export const ensureDesktopLicenseInitialized = async (
-  seedSuperAdminUsername?: string
-): Promise<DesktopLicenseConfig> => {
+export const ensureDesktopLicenseInitialized = async (): Promise<DesktopLicenseConfig> => {
   // Cette fonction réutilise simplement la lecture, qui sait déjà créer la licence si besoin.
-  return readDesktopLicenseConfig(seedSuperAdminUsername);
+  return readDesktopLicenseConfig();
 };
 
 // Renouvelle l'accès desktop local après vérification du créateur de l'application.
@@ -595,7 +587,7 @@ export const unlockDesktopLicense = async (payload: {
   extendDays?: number;
 }): Promise<DesktopLicenseStatus> => {
   // On lit la licence actuelle avant toute modification.
-  const config = await readDesktopLicenseConfig(payload.nomUtilisateur);
+  const config = await readDesktopLicenseConfig();
 
   if (!isFixedDesktopSuperAdminCredentials(payload.nomUtilisateur, payload.password)) {
     // Le renouvellement manuel n'est autorise qu'au superadmin fixe du projet.
@@ -625,7 +617,7 @@ export const rebindDesktopLicenseMachine = async (payload: {
   nomUtilisateur: string;
   password: string;
 }): Promise<DesktopLicenseStatus> => {
-  const config = await readDesktopLicenseConfig(payload.nomUtilisateur);
+  const config = await readDesktopLicenseConfig();
 
   if (!isFixedDesktopSuperAdminCredentials(payload.nomUtilisateur, payload.password)) {
     throw new Error("Seul le superadmin fixe peut rattacher la licence à ce poste.");
@@ -634,6 +626,38 @@ export const rebindDesktopLicenseMachine = async (payload: {
   await writeDesktopLicenseConfig({
     ...config,
     machineBinding: buildCurrentMachineBinding(),
+  });
+
+  return getDesktopLicenseStatus(payload.nomUtilisateur);
+};
+
+// Active un code signé par le générateur. Il a été fait pour CET ordinateur : il suffit
+// donc aussi après un changement de poste, sans passer par le rattachement superadmin.
+const activerCodeSigne = async (
+  payload: { nomUtilisateur: string; code: string },
+  config: DesktopLicenseConfig
+): Promise<DesktopLicenseStatus> => {
+  const machine = getCurrentMachineFingerprint();
+  const contenu = verifierCodeSigne(payload.code, numeroMachineDepuisEmpreinte(machine.fingerprintHash));
+
+  if (!contenu) {
+    throw new Error("Ce code n'est pas valable pour cet ordinateur. Vérifiez le numéro envoyé.");
+  }
+
+  if (config.usedSignedCodeIds.includes(contenu.id)) {
+    throw new Error("Ce code a déjà été utilisé sur cet ordinateur.");
+  }
+
+  const now = new Date().toISOString();
+
+  await writeDesktopLicenseConfig({
+    ...config,
+    manuallyBlocked: false,
+    expiresAt: buildExtendedExpirationDate(config.expiresAt, contenu.jours),
+    machineBinding: buildCurrentMachineBinding(),
+    lastUnlockedAt: now,
+    lastUnlockedBy: payload.nomUtilisateur || "code-client",
+    usedSignedCodeIds: [...config.usedSignedCodeIds, contenu.id],
   });
 
   return getDesktopLicenseStatus(payload.nomUtilisateur);
@@ -650,7 +674,12 @@ export const unlockDesktopLicenseWithCode = async (payload: {
     throw new Error("Le code de déblocage est requis.");
   }
 
-  const config = await readDesktopLicenseConfig(payload.nomUtilisateur);
+  const config = await readDesktopLicenseConfig();
+
+  if (estCodeSigne(payload.code)) {
+    return activerCodeSigne(payload, config);
+  }
+
   const machineBindingStatus = getMachineBindingStatus(config);
 
   if (!machineBindingStatus.isCurrentMachine) {
@@ -696,7 +725,7 @@ export const exportPendingDesktopUnlockCodes = async (payload: {
   nomUtilisateur: string;
   password: string;
 }): Promise<DesktopUnlockCodeExport> => {
-  const config = await readDesktopLicenseConfig(payload.nomUtilisateur);
+  const config = await readDesktopLicenseConfig();
 
   if (!isFixedDesktopSuperAdminCredentials(payload.nomUtilisateur, payload.password)) {
     throw new Error("Seul le superadmin fixe peut exporter les codes de déblocage.");
@@ -729,7 +758,7 @@ export const generateDesktopUnlockCodes = async (payload: {
   nomUtilisateur: string;
   password: string;
 }): Promise<DesktopUnlockCodeExport> => {
-  const config = await readDesktopLicenseConfig(payload.nomUtilisateur);
+  const config = await readDesktopLicenseConfig();
 
   if (!isFixedDesktopSuperAdminCredentials(payload.nomUtilisateur, payload.password)) {
     throw new Error("Seul le superadmin fixe peut générer les codes de déblocage.");
@@ -798,4 +827,5 @@ export default {
   restoreSqliteBackup,
   getServerNetworkInfo,
   isFixedDesktopSuperAdminCredentials,
+  estNomSuperAdminReserve,
 };
