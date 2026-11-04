@@ -11,6 +11,7 @@ import {
   SQLITE_REFERENCE_PASSWORD,
   verifierMotDePasseSuperAdmin,
 } from "../../db/sqliteSecurity";
+import { ecrireAncre, EtatAncre, lireAncre } from "./licence-ancres";
 import { estCodeSigne, numeroMachineDepuisEmpreinte, verifierCodeSigne } from "./licence-ticket";
 
 type DesktopLicenseConfig = {
@@ -28,6 +29,10 @@ type DesktopLicenseConfig = {
   machineBinding: DesktopMachineBinding;
   // Codes signés déjà activés sur ce poste : un code ne prolonge qu'une seule fois.
   usedSignedCodeIds: string[];
+  // Augmente à chaque écriture : entre le fichier et ses copies, la plus récente fait foi.
+  revision: number;
+  // Date la plus tardive vue sur ce poste, pour repérer une date d'ordinateur reculée.
+  lastSeenAt: string | null;
 };
 
 type DesktopLicenseStatus = {
@@ -110,6 +115,10 @@ const DEFAULT_DESKTOP_TRIAL_DAYS = Number(process.env.DESKTOP_TRIAL_DAYS || 30);
 // Toute autre valeur (et surtout l'absence de variable) conserve le comportement actuel.
 const isDesktopLicenseEnforced = (): boolean =>
   String(process.env.DESKTOP_LICENSE_ENFORCED ?? "true").trim().toLowerCase() !== "false";
+// Écart toléré avant de considérer que la date de l'ordinateur a été reculée : assez large
+// pour un changement d'heure ou un fuseau corrigé.
+const RECUL_DATE_TOLERE_MS = 48 * 60 * 60 * 1000;
+const INTERVALLE_DERNIERE_VUE_MS = 60 * 60 * 1000;
 const DESKTOP_UNLOCK_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const DESKTOP_UNLOCK_CODE_PLANS = [
   { label: "Forfait 30 jours", durationDays: 30, quantity: 10 },
@@ -435,6 +444,8 @@ const buildDefaultDesktopLicense = (): DesktopLicenseConfig => {
     unlockCodes: unlockCodePack.records,
     pendingPlainUnlockCodes: unlockCodePack.plainCodes,
     usedSignedCodeIds: [],
+    revision: 0,
+    lastSeenAt: new Date().toISOString(),
     lastUnlockCodesGeneratedAt: now,
     lastUnlockCodesExportedAt: null,
     machineBinding: buildCurrentMachineBinding(),
@@ -448,22 +459,69 @@ const ensureDesktopLicenseDirectory = async (): Promise<void> => {
 };
 
 // Lit la configuration locale de licence desktop en la creant au besoin.
+const lireAncreLicence = (): EtatAncre | null =>
+  isDesktopLicenseEnforced()
+    ? lireAncre(sqliteDB.getSqliteDirectory(), (contenu) => decryptDesktopLicenseConfig(contenu))
+    : null;
+
+// Reporte sur la configuration ce que la copie sait de plus récent.
+const appliquerAncre = (config: DesktopLicenseConfig, ancre: EtatAncre): DesktopLicenseConfig => {
+  const codesUtilises = new Set(ancre.usedUnlockCodeIds || []);
+
+  return {
+    ...config,
+    revision: Number(ancre.revision || 0),
+    createdAt: ancre.createdAt || config.createdAt,
+    expiresAt: ancre.expiresAt,
+    manuallyBlocked: Boolean(ancre.manuallyBlocked),
+    lastUnlockedAt: ancre.lastUnlockedAt,
+    lastUnlockedBy: ancre.lastUnlockedBy,
+    lastSeenAt: ancre.lastSeenAt,
+    usedSignedCodeIds: [...new Set([...config.usedSignedCodeIds, ...(ancre.usedSignedCodeIds || [])])],
+    unlockCodes: config.unlockCodes.map((code) =>
+      codesUtilises.has(code.id) && !code.usedAt
+        ? { ...code, usedAt: ancre.lastUnlockedAt || new Date().toISOString() }
+        : code
+    ),
+    pendingPlainUnlockCodes: config.pendingPlainUnlockCodes.filter((code) => !codesUtilises.has(code.id)),
+  };
+};
+
 const readDesktopLicenseConfig = async (): Promise<DesktopLicenseConfig> => {
   // Avant toute lecture, on s'assure que le dossier de stockage existe bien.
   await ensureDesktopLicenseDirectory();
+  const ancre = lireAncreLicence();
+  let rawContent = "";
 
-  if (!fs.existsSync(DESKTOP_LICENSE_FILE)) {
-    // Si aucun fichier n'existe, on cree une licence par défaut immédiate.
-    const defaultConfig = buildDefaultDesktopLicense();
-    // On écrit aussitot cette licence sous forme chiffrée pour initialiser le desktop local.
-    await fs.promises.writeFile(DESKTOP_LICENSE_FILE, encryptDesktopLicenseConfig(defaultConfig), "utf-8");
-    return defaultConfig;
+  if (fs.existsSync(DESKTOP_LICENSE_FILE)) {
+    // Si le fichier existe déjà, on lit son contenu chiffre depuis le disque.
+    rawContent = await fs.promises.readFile(DESKTOP_LICENSE_FILE, "utf-8");
   }
 
-  // Si le fichier existe déjà, on lit son contenu chiffre depuis le disque.
-  const rawContent = await fs.promises.readFile(DESKTOP_LICENSE_FILE, "utf-8");
-  // On déchiffre ensuite ce contenu pour retrouver la configuration courante.
-  const parsedContent = decryptDesktopLicenseConfig(rawContent) as Partial<DesktopLicenseConfig>;
+  let storedContent: Partial<DesktopLicenseConfig> | null = null;
+
+  if (rawContent) {
+    try {
+      // On déchiffre ensuite ce contenu pour retrouver la configuration courante.
+      storedContent = decryptDesktopLicenseConfig(rawContent) as Partial<DesktopLicenseConfig>;
+    } catch (error) {
+      // Un fichier illisible ne se répare tout seul que si une copie existe.
+      if (!ancre) {
+        throw error;
+      }
+    }
+  }
+
+  if (!storedContent) {
+    // Fichier absent : on repart de sa copie s'il y en a une, sinon c'est une première
+    // installation et l'essai commence.
+    const defaultConfig = buildDefaultDesktopLicense();
+    const nextConfig = ancre ? appliquerAncre(defaultConfig, ancre) : defaultConfig;
+    await writeDesktopLicenseConfig(nextConfig);
+    return nextConfig;
+  }
+
+  const parsedContent = storedContent;
   // On garde une base par défaut pour compléter les propriétés manquantes si besoin.
   const defaultConfig = buildDefaultDesktopLicense();
   const storedUnlockCodes = normalizeUnlockCodeRecords(parsedContent.unlockCodes);
@@ -495,7 +553,21 @@ const readDesktopLicenseConfig = async (): Promise<DesktopLicenseConfig> => {
     machineBinding: storedMachineBinding || buildCurrentMachineBinding(),
   };
 
-  if (!hasStoredUnlockCodes || !storedMachineBinding) {
+  const revisionFichier = Number(parsedContent.revision || 0);
+
+  // À révision égale, une date différente vient d'une modification à la main : la copie gagne.
+  if (
+    ancre &&
+    (Number(ancre.revision || 0) > revisionFichier ||
+      (Number(ancre.revision || 0) === revisionFichier && ancre.expiresAt !== config.expiresAt))
+  ) {
+    const restauree = appliquerAncre(config, ancre);
+    await writeDesktopLicenseConfig(restauree);
+    return restauree;
+  }
+
+  // Le second cas couvre une licence d'avant les copies, et une copie effacée.
+  if (!hasStoredUnlockCodes || !storedMachineBinding || (isDesktopLicenseEnforced() && !ancre)) {
     await writeDesktopLicenseConfig(config);
   }
 
@@ -506,8 +578,28 @@ const readDesktopLicenseConfig = async (): Promise<DesktopLicenseConfig> => {
 const writeDesktopLicenseConfig = async (config: DesktopLicenseConfig): Promise<void> => {
   // On recrée le dossier si nécessaire avant toute écriture sur disque.
   await ensureDesktopLicenseDirectory();
+  config.revision = Number(config.revision || 0) + 1;
   // On écrit toujours la version chiffrée, jamais la configuration brute.
   await fs.promises.writeFile(DESKTOP_LICENSE_FILE, encryptDesktopLicenseConfig(config), "utf-8");
+
+  if (isDesktopLicenseEnforced()) {
+    const ancre: EtatAncre = {
+      revision: config.revision,
+      createdAt: config.createdAt,
+      expiresAt: config.expiresAt,
+      manuallyBlocked: config.manuallyBlocked,
+      lastUnlockedAt: config.lastUnlockedAt,
+      lastUnlockedBy: config.lastUnlockedBy,
+      lastSeenAt: config.lastSeenAt,
+      usedSignedCodeIds: config.usedSignedCodeIds,
+      usedUnlockCodeIds: config.unlockCodes.filter((code) => code.usedAt).map((code) => code.id),
+    };
+
+    ecrireAncre(
+      sqliteDB.getSqliteDirectory(),
+      encryptDesktopLicenseConfig(ancre as unknown as DesktopLicenseConfig)
+    );
+  }
 };
 
 // Indique si le nom utilisateur fourni fait partie des créateur de l'applications autorises.
@@ -541,6 +633,14 @@ export const getDesktopLicenseStatus = async (
 ): Promise<DesktopLicenseStatus> => {
   // On charge d'abord la licence actuellement stockée localement.
   const config = await readDesktopLicenseConfig();
+  const maintenant = Date.now();
+  const derniereVue = config.lastSeenAt ? new Date(config.lastSeenAt).getTime() : 0;
+  const dateReculee = isDesktopLicenseEnforced() && maintenant < derniereVue - RECUL_DATE_TOLERE_MS;
+
+  if (isDesktopLicenseEnforced() && maintenant > derniereVue + INTERVALLE_DERNIERE_VUE_MS) {
+    await writeDesktopLicenseConfig({ ...config, lastSeenAt: new Date(maintenant).toISOString() });
+  }
+
   // On détermine si cet utilisateur à un droit créateur de l'application.
   const isSuperAdmin = isSuperAdminUser(nomUtilisateur);
   // On verifie si la date de fin a déjà été depassee.
@@ -548,7 +648,7 @@ export const getDesktopLicenseStatus = async (
   const machineBindingStatus = getMachineBindingStatus(config);
   const isMachineMismatch = !machineBindingStatus.isCurrentMachine;
   // On combine le blocage manuel et l'expiration pour produire l'état brut de blocage.
-  const rawBlocked = config.manuallyBlocked || isExpired || isMachineMismatch;
+  const rawBlocked = config.manuallyBlocked || isExpired || isMachineMismatch || dateReculee;
   // Sur un déploiement serveur (DESKTOP_LICENSE_ENFORCED=false), l'état reste calculé
   // et visible dans les paramètres, mais il ne ferme plus l'accès à personne.
   const isEnforced = isDesktopLicenseEnforced();
@@ -562,6 +662,8 @@ export const getDesktopLicenseStatus = async (
     // Si la licence a expiré, on renvoie un message explicite prioritaire sur le message manuel.
     blockMessage: isMachineMismatch
       ? "Cette licence desktop est liée à un autre ordinateur. Contacte le développeur pour rattacher la licence à ce poste."
+      : dateReculee
+        ? "Accès bloqué : la date de cet ordinateur est antérieure à sa dernière utilisation. Remettez la bonne date et la bonne heure, ou envoyez le numéro de cet ordinateur pour recevoir un code d'activation."
       : isExpired
         ? "Votre accès a expiré. Envoyez le numéro de cet ordinateur pour recevoir un code d'activation."
         : config.blockMessage,
@@ -601,6 +703,7 @@ export const unlockDesktopLicense = async (payload: {
     manuallyBlocked: false,
     // On recalcule une nouvelle date d'expiration à partir du nombre de jours demande.
     expiresAt: buildExpirationDate(payload.extendDays || DEFAULT_DESKTOP_TRIAL_DAYS),
+    lastSeenAt: new Date().toISOString(),
     // On trace la date et l'auteur du dernier déblocage pour le suivi administratif.
     lastUnlockedAt: new Date().toISOString(),
     lastUnlockedBy: payload.nomUtilisateur,
@@ -654,6 +757,7 @@ const activerCodeSigne = async (
     ...config,
     manuallyBlocked: false,
     expiresAt: buildExtendedExpirationDate(config.expiresAt, contenu.jours),
+    lastSeenAt: now,
     machineBinding: buildCurrentMachineBinding(),
     lastUnlockedAt: now,
     lastUnlockedBy: payload.nomUtilisateur || "code-client",
@@ -700,6 +804,7 @@ export const unlockDesktopLicenseWithCode = async (payload: {
     ...config,
     manuallyBlocked: false,
     expiresAt: buildExtendedExpirationDate(config.expiresAt, matchingCode.durationDays),
+    lastSeenAt: now,
     lastUnlockedAt: now,
     lastUnlockedBy: payload.nomUtilisateur || "code-client",
     unlockCodes: config.unlockCodes.map((unlockCode) =>
