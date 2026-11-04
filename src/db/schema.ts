@@ -620,6 +620,24 @@ const ecodimFinance: TableDefinition = {
   ],
 };
 
+// Autres cotisations de l'église (Caisse de Noël...) : le nom est saisi librement, et
+// chaque ligne dit quel membre a donné combien.
+const autreCotisation: TableDefinition = {
+  name: "autre_cotisation",
+  columns: [
+    { name: "idCotisation", type: "pk" },
+    { name: "nomCotisation", type: "text", notNull: true },
+    { name: "idMembre", type: "int" },
+    // Recopié de la fiche : l'historique garde qui a donné si la fiche disparaît.
+    { name: "nomMembreVersement", type: "text", notNull: true },
+    { name: "montantVersement", type: "int", default: "0" },
+    { name: "dateVersement", type: "text" },
+    { name: "observationVersement", type: "longtext" },
+    { name: "idUtilisateur", type: "int", notNull: true },
+    { name: "dateCreation", type: "datetime", default: "CURRENT_TIMESTAMP" },
+  ],
+};
+
 export const SHARED_TABLES: TableDefinition[] = [
   agenda,
   familleJeunesse,
@@ -638,6 +656,7 @@ export const SHARED_TABLES: TableDefinition[] = [
   ecodimPresence,
   ecodimEnfantDemande,
   ecodimFinance,
+  autreCotisation,
 ];
 
 export type TableColumnsPatch = {
