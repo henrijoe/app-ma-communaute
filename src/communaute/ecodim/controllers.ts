@@ -470,7 +470,52 @@ const supprimerFinanceDefinitivement = (req: Request, res: Response) => {
     .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
 };
 
+// ------------------------------------------------- programme des moniteurs
+
+const recupProgrammesByUtilisateur = (req: Request, res: Response) =>
+  repondre(res, functions.recupProgrammes(Number(req.params.idUtilisateur)));
+
+const ajouterProgramme = (req: Request, res: Response) => {
+  const data = req.body;
+
+  return functions
+    .ajouterProgramme(data)
+    .then((result: any) => {
+      diffuser(req, "ajouterProgrammeEcodim", { idUtilisateur: data?.idUtilisateur, data: result });
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
+};
+
+const modifierProgramme = (req: Request, res: Response) => {
+  const data = req.body;
+
+  return functions
+    .modifierProgramme(data)
+    .then((result: any) => {
+      diffuser(req, "modifierProgrammeEcodim", { idUtilisateur: data?.idUtilisateur, data: result });
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
+};
+
+const supprimerProgramme = (req: Request, res: Response) => {
+  const { idProgrammeEcodim, idUtilisateur } = req.body;
+
+  return functions
+    .supprimerProgramme(Number(idProgrammeEcodim), Number(idUtilisateur))
+    .then((result: any) => {
+      diffuser(req, "supprimerProgrammeEcodim", { idUtilisateur, idProgrammeEcodim });
+      res.status(200).send({ status: 1, data: result });
+    })
+    .catch((error: any) => res.status(400).send({ status: 0, error: errorMsg(error) }));
+};
+
 export default {
+  recupProgrammesByUtilisateur,
+  ajouterProgramme,
+  modifierProgramme,
+  supprimerProgramme,
   recupClassesByUtilisateur,
   ajouterClasse,
   modifierClasse,

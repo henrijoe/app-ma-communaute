@@ -28,6 +28,7 @@ import versetProgrammeRouter from "./versetprogramme/routes";
 import programmeEgliseRouter from "./programmeeglise/routes";
 import abonnementRouter from "./abonnement/routes";
 import ecodimRouter from "./ecodim/routes";
+import programmeActiviteRouter from "./programme_activite/routes";
 
 const communauteRouter: Router = express.Router();
 const getDataEgliseRouter: Router = express.Router();
@@ -62,5 +63,6 @@ communauteRouter.use(versetProgrammeRouter);
 communauteRouter.use(programmeEgliseRouter);
 communauteRouter.use(abonnementRouter);
 communauteRouter.use(ecodimRouter);
+communauteRouter.use(programmeActiviteRouter);
 
 export default communauteRouter;

@@ -88,4 +88,13 @@ ecodimRouter.post(
   controllers.supprimerFinanceDefinitivement
 );
 
+// Programme de direction et d'enseignement des moniteurs sur une période.
+ecodimRouter.get(
+  "/recupprogrammeecodimbyutilisateur/:idUtilisateur",
+  controllers.recupProgrammesByUtilisateur
+);
+ecodimRouter.post("/insererprogrammeecodim", controllers.ajouterProgramme);
+ecodimRouter.post("/modifierprogrammeecodim", controllers.modifierProgramme);
+ecodimRouter.post("/supprimerprogrammeecodim", controllers.supprimerProgramme);
+
 export default ecodimRouter;

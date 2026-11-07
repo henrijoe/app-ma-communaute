@@ -1790,7 +1790,110 @@ export const supprimerFinanceDefinitivement = async (
   return true;
 };
 
+// ------------------------------------------------------- programme des moniteurs
+
+/**
+ * La grille du programme, telle que l'écran l'envoie.
+ *
+ * Elle arrive en objet ; on la range en texte. Un texte déjà JSON est accepté
+ * tel quel, pour qu'un renvoi de la ligne relue ne la sérialise pas deux fois.
+ */
+const grilleEnTexte = (grille: unknown): string => {
+  if (grille === null || grille === undefined || grille === "") return "";
+  if (typeof grille === "string") return grille;
+  return JSON.stringify(grille);
+};
+
+const lireGrille = (texteGrille: unknown): any => {
+  try {
+    const valeur = JSON.parse(String(texteGrille || ""));
+    return valeur && typeof valeur === "object" ? valeur : null;
+  } catch (_erreur) {
+    return null;
+  }
+};
+
+const CHAMPS_PROGRAMME: { nom: string; valeur: (data: any) => any }[] = [
+  { nom: "titreProgramme", valeur: (d) => texte(d.titreProgramme) },
+  { nom: "dateDebutProgramme", valeur: (d) => texte(d.dateDebutProgramme) || null },
+  { nom: "dateFinProgramme", valeur: (d) => texte(d.dateFinProgramme) || null },
+  { nom: "enteteProgramme", valeur: (d) => texte(d.enteteProgramme) },
+  { nom: "themeAnnuel", valeur: (d) => texte(d.themeAnnuel) },
+  { nom: "passageTheme", valeur: (d) => texte(d.passageTheme) },
+  { nom: "consignesProgramme", valeur: (d) => texte(d.consignesProgramme) },
+  { nom: "messageFinProgramme", valeur: (d) => texte(d.messageFinProgramme) },
+  { nom: "grilleProgramme", valeur: (d) => grilleEnTexte(d.grilleProgramme ?? d.grille) },
+  { nom: "dateModification", valeur: () => new Date().toISOString() },
+];
+
+const COLONNES_PROGRAMME = CHAMPS_PROGRAMME.map((champ) => champ.nom).join(", ");
+const PLACEHOLDERS_PROGRAMME = CHAMPS_PROGRAMME.map(() => "?").join(",");
+const AFFECTATIONS_PROGRAMME = CHAMPS_PROGRAMME.map((champ) => `${champ.nom} = ?`).join(", ");
+
+const valeursProgramme = (data: any) => CHAMPS_PROGRAMME.map((champ) => champ.valeur(data));
+
+const verifierProgramme = (data: any) => {
+  if (!texte(data?.titreProgramme)) {
+    throw new Error("Donnez un titre au programme.");
+  }
+};
+
+/** Programmes de l'église, du plus récent au plus ancien, grille déjà relue. */
+export const recupProgrammes = async (idUtilisateur: number): Promise<any[]> => {
+  const lignes: any = await _selectSql(
+    `SELECT * FROM ecodim_programme
+      WHERE idUtilisateur = ?
+      ORDER BY dateDebutProgramme DESC, idProgrammeEcodim DESC`,
+    [idUtilisateur]
+  );
+
+  return (Array.isArray(lignes) ? lignes : []).map((ligne: any) => ({
+    ...ligne,
+    grille: lireGrille(ligne.grilleProgramme),
+  }));
+};
+
+export const ajouterProgramme = async (data: any): Promise<any> => {
+  verifierProgramme(data);
+
+  const resultat: any = await _executeSql(
+    `INSERT INTO ecodim_programme (${COLONNES_PROGRAMME}, idUtilisateur)
+     VALUES (${PLACEHOLDERS_PROGRAMME},?)`,
+    [...valeursProgramme(data), data.idUtilisateur]
+  );
+
+  return resultat?.insertId ?? resultat?.lastID ?? null;
+};
+
+export const modifierProgramme = async (data: any): Promise<boolean> => {
+  verifierProgramme(data);
+
+  await _executeSql(
+    `UPDATE ecodim_programme SET ${AFFECTATIONS_PROGRAMME}
+      WHERE idProgrammeEcodim = ? AND idUtilisateur = ?`,
+    [...valeursProgramme(data), data.idProgrammeEcodim, data.idUtilisateur]
+  );
+
+  return true;
+};
+
+export const supprimerProgramme = async (
+  idProgrammeEcodim: number,
+  idUtilisateur: number
+): Promise<boolean> => {
+  await _executeSql(
+    `DELETE FROM ecodim_programme WHERE idProgrammeEcodim = ? AND idUtilisateur = ?`,
+    [idProgrammeEcodim, idUtilisateur]
+  );
+
+  return true;
+};
+
 export default {
+  recupProgrammes,
+  ajouterProgramme,
+  modifierProgramme,
+  supprimerProgramme,
   recupClasses,
   ajouterClasse,
   modifierClasse,
